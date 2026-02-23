@@ -1,0 +1,1569 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AbsenceReason {
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  maxPerWeek: Int
+  name: String!
+  updatedAt: DateTime!
+}
+
+input AddMaterialToRequestInput {
+  importance: MaterialRequestImportance
+  materialId: ID!
+  maximumStock: Int
+  minimumStock: Int
+  quantity: Int!
+}
+
+input AddWorkOrderMaterialInput {
+  materialId: ID!
+  notes: String
+  quantity: Int! = 1
+  workOrderId: ID!
+}
+
+input AddWorkOrderSparePartInput {
+  notes: String
+  quantity: Int! = 1
+  sparePartId: ID!
+  workOrderId: ID!
+}
+
+type Area {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  isActive: Boolean!
+  name: String!
+  type: AreaType!
+  updatedAt: DateTime!
+}
+
+type AreaMetric {
+  areaId: String!
+  areaName: String!
+  value: Int!
+}
+
+"""Tipo de área"""
+enum AreaType {
+  """Área operativa - Puede tener sub-áreas y máquinas"""
+  OPERATIONAL
+
+  """Área de servicio - No tiene sub-áreas"""
+  SERVICE
+}
+
+input AssignTechnicianInput {
+  isLead: Boolean! = false
+  technicianId: ID!
+  workOrderId: ID!
+}
+
+input AssignWeekScheduleInput {
+  """Asignaciones por día (hasta 7)"""
+  days: [DayScheduleInput!]!
+
+  """ID del técnico (user)"""
+  technicianId: ID!
+
+  """Número de semana del año (1-53)"""
+  weekNumber: Int!
+
+  """Año"""
+  year: Int!
+}
+
+input AssignWorkOrderInput {
+  assignedShiftId: ID
+
+  """ID del técnico líder"""
+  leadTechnicianId: ID
+
+  """Máquina asociada (requerida si stopType = BREAKDOWN)"""
+  machineId: ID
+  maintenanceType: MaintenanceType!
+  priority: WorkOrderPriority!
+  stopType: StopType
+
+  """IDs de técnicos a asignar"""
+  technicianIds: [ID!]!
+}
+
+input BulkUpdatePreferencesInput {
+  preferences: [UpdateNotificationPreferenceInput!]!
+}
+
+type CleanupTableResult {
+  deleted: Int!
+  table: String!
+}
+
+input ClosePreventiveTaskInput {
+  continuationTask: CreatePreventiveTaskInput
+
+  """Si se debe crear una nueva tarea de continuación"""
+  createContinuation: Boolean
+  policyChangeNote: String!
+}
+
+input CompleteWorkOrderInput {
+  actionTaken: String!
+  cause: String
+  downtimeMinutes: Int
+
+  """COMPLETED o TEMPORARY_REPAIR"""
+  finalStatus: WorkOrderStatus! = COMPLETED
+  observations: String
+  toolsUsed: String
+}
+
+input CopyWeekSchedulesInput {
+  """Semana origen"""
+  sourceWeekNumber: Int!
+
+  """Año origen"""
+  sourceYear: Int!
+
+  """Semana destino"""
+  targetWeekNumber: Int!
+
+  """Año destino"""
+  targetYear: Int!
+
+  """Copiar solo para un técnico específico (null = todos)"""
+  technicianId: ID
+}
+
+input CreateAbsenceReasonInput {
+  """Máximo permitido por semana (NULL = Sin límite)"""
+  maxPerWeek: Int
+  name: String!
+}
+
+input CreateAreaInput {
+  description: String
+  name: String!
+  type: AreaType!
+}
+
+input CreateDepartmentInput {
+  description: String
+  name: String!
+}
+
+input CreateFindingInput {
+  areaId: ID!
+  description: String!
+  machineId: ID!
+  photoPath: String!
+  shiftId: ID!
+}
+
+input CreateMachineInput {
+  brand: String
+  code: String!
+  description: String
+  installationDate: DateTime
+  machinePhotoUrl: String
+  model: String
+  name: String!
+  operationalManualUrl: String
+  serialNumber: String
+  subAreaId: String!
+}
+
+input CreateMaterialInput {
+  brand: String
+  description: String!
+  manufacturer: String
+  model: String
+  partNumber: String
+  sku: String
+  unitOfMeasure: String
+}
+
+input CreateMaterialRequestInput {
+  comments: String
+  isGenericOrAlternativeModel: Boolean = false
+  justification: String
+  machineId: ID!
+  priority: MaterialRequestPriority!
+  requestText: String!
+  suggestedSupplier: String
+}
+
+input CreatePositionInput {
+  description: String
+  name: String!
+}
+
+input CreatePreventiveTaskInput {
+  advanceHours: Int! = 24
+  description: String!
+  frequencyType: FrequencyType!
+  frequencyUnit: FrequencyUnit
+  frequencyValue: Int
+  machineId: ID!
+  startDate: DateTime!
+}
+
+input CreateRoleInput {
+  name: String!
+}
+
+input CreateScheduleInput {
+  """ID del motivo de ausencia (si aplica)"""
+  absenceReasonId: ID
+
+  """Notas adicionales"""
+  notes: String
+
+  """Fecha de la asignación (YYYY-MM-DD)"""
+  scheduleDate: String!
+
+  """ID del turno (null si ausencia)"""
+  shiftId: ID
+
+  """ID del técnico (user)"""
+  technicianId: ID!
+}
+
+input CreateShiftInput {
+  endTime: String!
+  name: String!
+  startTime: String!
+}
+
+input CreateSparePartInput {
+  brand: String
+  machineId: ID!
+  model: String
+  partNumber: String!
+  supplier: String
+  unitOfMeasure: String
+}
+
+input CreateSubAreaInput {
+  areaId: ID!
+  description: String
+  name: String!
+}
+
+input CreateTechnicianInput {
+  address: String!
+  allergies: String!
+  birthDate: DateTime!
+  bloodType: String!
+  childrenCount: Float!
+  education: String!
+  emergencyContactName: String!
+  emergencyContactPhone: String!
+  emergencyContactRelationship: String!
+  hireDate: DateTime!
+  nss: String
+  pantsSize: String!
+  positionId: String!
+  rfc: String
+  shirtSize: String!
+  shoeSize: String!
+  transportRoute: String!
+  userId: ID!
+  vacationPeriod: Float!
+}
+
+input CreateUserInput {
+  departmentId: String!
+  email: String
+  employeeNumber: String!
+  firstName: String!
+  lastName: String!
+  password: String!
+  phone: String
+  roleId: String!
+}
+
+input CreateWorkOrderInput {
+  areaId: ID!
+  description: String!
+  machineId: ID
+  subAreaId: ID
+}
+
+input CreateWorkOrderPhotoInput {
+  fileName: String!
+  filePath: String!
+  mimeType: String!
+  photoType: PhotoType!
+  workOrderId: ID!
+}
+
+input CreateWorkOrderSignatureInput {
+  signatureImagePath: String!
+  workOrderId: ID!
+}
+
+type CronJobStatus {
+  cronExpression: String!
+  enabled: Boolean!
+  name: String!
+  nextRunAt: DateTime
+  retentionDays: Int
+}
+
+type DashboardCharts {
+  downtimeByAreaTop5: [AreaMetric!]!
+  findingsConversion: [KeyValue!]!
+  maintenanceMixByPeriod: [MixPoint!]!
+  throughputByWeek: [TimeCount!]!
+}
+
+type DashboardData {
+  cacheTtlSeconds: Int!
+  charts: DashboardCharts!
+  generatedAt: DateTime!
+  kpis: DashboardKpis!
+  rankings: DashboardRankings!
+}
+
+input DashboardInput {
+  areaIds: [ID!]
+
+  """RANGO DE INICIO"""
+  dateFrom: String!
+
+  """RANGO DE FIN"""
+  dateTo: String!
+  machineIds: [ID!]
+  shiftIds: [ID!]
+  technicianIds: [ID!]
+  timezone: String! = "America/Mexico_City"
+}
+
+type DashboardKpis {
+  activeBacklog: Int!
+  leadTimeHoursAvg: Float!
+  mttrHoursAvg: Float!
+  preventiveComplianceRate: Float!
+}
+
+type DashboardRankings {
+  topMachinesByDowntime: [MachineMetric!]!
+  topTechniciansByClosures: [TechnicianMetric!]!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input DayScheduleInput {
+  """ID del motivo de ausencia"""
+  absenceReasonId: ID
+
+  """Notas adicionales"""
+  notes: String
+
+  """Fecha del día (YYYY-MM-DD)"""
+  scheduleDate: String!
+
+  """ID del turno (null si ausencia)"""
+  shiftId: ID
+}
+
+type Department {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  isActive: Boolean!
+  name: String!
+  updatedAt: DateTime!
+}
+
+"""Plataforma del dispositivo"""
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+type Finding {
+  area: Area!
+  convertedToWo: WorkOrder
+  createdAt: DateTime!
+  description: String!
+  folio: String!
+  id: ID!
+  machine: Machine!
+  machineId: ID!
+  photoPath: String!
+  sequence: Int!
+  shift: Shift!
+  status: FindingStatus!
+  updatedAt: DateTime!
+}
+
+input FindingFiltersInput {
+  areaId: ID
+
+  """Filtrar por creador"""
+  createdBy: ID
+
+  """Fecha de creación desde (ISO)"""
+  createdFrom: String
+
+  """Fecha de creación hasta (ISO)"""
+  createdTo: String
+  machineId: ID
+
+  """Búsqueda por folio o descripción"""
+  search: String
+  shiftId: ID
+  status: FindingStatus
+}
+
+type FindingPaginatedResponse {
+  data: [Finding!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+input FindingPaginationInput {
+  limit: Int! = 20
+  page: Int! = 1
+}
+
+input FindingSortInput {
+  field: String! = "createdAt"
+  order: String! = "DESC"
+}
+
+type FindingStats {
+  count: Int!
+  status: String!
+}
+
+"""Estados posibles de un hallazgo"""
+enum FindingStatus {
+  """Convertido a OT - Se generó una orden de trabajo"""
+  CONVERTED_TO_WO
+
+  """Abierto - Hallazgo registrado pendiente de acción"""
+  OPEN
+}
+
+"""Tipo de frecuencia para tareas preventivas"""
+enum FrequencyType {
+  """Personalizado (cada N días/horas)"""
+  CUSTOM
+
+  """Diario"""
+  DAILY
+
+  """Mensual"""
+  MONTHLY
+
+  """Semanal"""
+  WEEKLY
+}
+
+"""Unidad de frecuencia para tareas preventivas"""
+enum FrequencyUnit {
+  """Días"""
+  DAYS
+
+  """Horas"""
+  HOURS
+}
+
+type GenerateWorkOrdersResult {
+  generated: Int!
+  tasks: [String!]!
+}
+
+type KeyValue {
+  key: String!
+  value: Float!
+}
+
+input LoginInput {
+  employeeNumber: String!
+  password: String!
+}
+
+type LoginResponse {
+  accessToken: String!
+  user: User!
+}
+
+type Machine {
+  brand: String
+  code: String!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  installationDate: DateTime
+  isActive: Boolean!
+  machinePhotoUrl: String
+  model: String
+  name: String!
+  operationalManualUrl: String
+  serialNumber: String
+  subArea: SubArea!
+  subAreaId: ID!
+  updatedAt: DateTime!
+}
+
+type MachineMetric {
+  machineId: String
+  machineName: String!
+  value: Int!
+}
+
+"""Tipos de mantenimiento"""
+enum MaintenanceType {
+  """Correctivo emergente - falla inesperada"""
+  CORRECTIVE_EMERGENT
+
+  """Correctivo programado"""
+  CORRECTIVE_SCHEDULED
+
+  """Mantenimiento derivado de hallazgo"""
+  FINDING
+
+  """Mantenimiento preventivo programado"""
+  PREVENTIVE
+}
+
+type Material {
+  brand: String
+  createdAt: DateTime!
+  description: String!
+  id: ID!
+  isActive: Boolean!
+  manufacturer: String
+  model: String
+  partNumber: String
+  sku: String
+  unitOfMeasure: String
+  updatedAt: DateTime!
+}
+
+type MaterialRequest {
+  comments: String
+  createdAt: DateTime!
+  folio: String!
+  id: ID!
+  isActive: Boolean!
+  isGenericOrAlternativeModel: Boolean!
+  justification: String
+  machine: Machine!
+  machineId: ID!
+  materials: [MaterialRequestMaterial!]!
+  priority: MaterialRequestPriority!
+  requestText: String!
+  sequence: Int!
+  suggestedSupplier: String
+  updatedAt: DateTime!
+}
+
+"""Importancia del material en la solicitud"""
+enum MaterialRequestImportance {
+  """Crítica"""
+  CRITICAL
+
+  """Alta"""
+  HIGH
+
+  """Baja"""
+  LOW
+
+  """Media"""
+  MEDIUM
+}
+
+type MaterialRequestMaterial {
+  createdAt: DateTime!
+  id: ID!
+  importance: MaterialRequestImportance
+  material: Material!
+  materialId: ID!
+  materialRequestId: ID!
+  maximumStock: Int
+  minimumStock: Int
+  quantity: Int!
+  updatedAt: DateTime!
+}
+
+"""Prioridad de solicitud de material"""
+enum MaterialRequestPriority {
+  """Crítica"""
+  CRITICAL
+
+  """Alta"""
+  HIGH
+
+  """Baja"""
+  LOW
+
+  """Media"""
+  MEDIUM
+}
+
+type MixPoint {
+  count: Int!
+  period: String!
+  type: String!
+}
+
+type Mutation {
+  activateAbsenceReason(id: ID!): AbsenceReason!
+  activateArea(id: ID!): Area!
+  activateDepartment(id: ID!): Department!
+  activateMachine(id: ID!): Machine!
+  activateMaterial(id: ID!): Material!
+  activatePosition(id: ID!): Position!
+  activatePreventiveTask(id: ID!): PreventiveTask!
+  activateRole(id: ID!): Role!
+  activateShift(id: ID!): Shift!
+  activateSparePart(id: ID!): SparePart!
+  activateSubArea(id: ID!): SubArea!
+  activateTechnician(id: ID!): Technician!
+  addMaterialToRequest(input: AddMaterialToRequestInput!, materialRequestId: ID!): MaterialRequestMaterial!
+  addWorkOrderMaterial(input: AddWorkOrderMaterialInput!): WorkOrderMaterial!
+  addWorkOrderSparePart(input: AddWorkOrderSparePartInput!): WorkOrderSparePart!
+  assignTechnician(input: AssignTechnicianInput!): WorkOrderTechnician!
+
+  """
+  Asigna la semana completa de un técnico (reemplaza asignaciones existentes)
+  """
+  assignWeekSchedule(input: AssignWeekScheduleInput!): [TechnicianSchedule!]!
+  assignWorkOrder(id: ID!, input: AssignWorkOrderInput!): WorkOrder!
+
+  """Actualiza múltiples preferencias de notificación en batch"""
+  bulkUpdateNotificationPreferences(input: BulkUpdatePreferencesInput!): [NotificationPreference!]!
+  changeWorkOrderStatus(id: ID!, status: String!): WorkOrder!
+  closePreventiveTask(id: ID!, input: ClosePreventiveTaskInput!): PreventiveTask!
+  completeWorkOrder(id: ID!, input: CompleteWorkOrderInput!): WorkOrder!
+  convertToWorkOrder(id: ID!): Finding!
+
+  """Copia los horarios de una semana a otra (reasignación)"""
+  copyWeekSchedules(input: CopyWeekSchedulesInput!): [TechnicianSchedule!]!
+  createAbsenceReason(input: CreateAbsenceReasonInput!): AbsenceReason!
+  createArea(input: CreateAreaInput!): Area!
+  createDepartment(input: CreateDepartmentInput!): Department!
+  createFinding(input: CreateFindingInput!): Finding!
+  createMachine(input: CreateMachineInput!): Machine!
+  createMaterial(input: CreateMaterialInput!): Material!
+  createMaterialRequest(input: CreateMaterialRequestInput!): MaterialRequest!
+  createPosition(input: CreatePositionInput!): Position!
+  createPreventiveTask(input: CreatePreventiveTaskInput!): PreventiveTask!
+  createRole(input: CreateRoleInput!): Role!
+  createShift(input: CreateShiftInput!): Shift!
+  createSparePart(input: CreateSparePartInput!): SparePart!
+  createSubArea(input: CreateSubAreaInput!): SubArea!
+  createTechnician(input: CreateTechnicianInput!): Technician!
+
+  """Asigna un turno o ausencia a un técnico para un día específico"""
+  createTechnicianSchedule(input: CreateScheduleInput!): TechnicianSchedule!
+  createUser(input: CreateUserInput!): User!
+  createWorkOrder(input: CreateWorkOrderInput!): WorkOrder!
+  deactivateAbsenceReason(id: ID!): Boolean!
+  deactivateArea(id: ID!): Boolean!
+  deactivateDepartment(id: ID!): Boolean!
+  deactivateMachine(id: ID!): Boolean!
+  deactivateMaterial(id: ID!): Boolean!
+  deactivateMaterialRequest(id: ID!): Boolean!
+  deactivatePosition(id: ID!): Boolean!
+  deactivatePreventiveTask(id: ID!): PreventiveTask!
+  deactivateRole(id: ID!): Role!
+  deactivateShift(id: ID!): Boolean!
+  deactivateSparePart(id: ID!): Boolean!
+  deactivateSubArea(id: ID!): Boolean!
+  deactivateTechnician(id: ID!): Boolean!
+  deactivateUser(id: ID!): Boolean!
+  deleteFinding(id: ID!): Finding!
+
+  """Elimina una notificación (soft delete)"""
+  deleteNotification(id: ID!): Boolean!
+
+  """Elimina (soft-delete) una asignación de horario"""
+  deleteTechnicianSchedule(id: ID!): Boolean!
+  deleteWorkOrder(id: ID!): WorkOrder!
+  deleteWorkOrderPhoto(id: ID!): WorkOrderPhoto!
+  generateWorkOrdersForPreventiveTask: GenerateWorkOrdersResult!
+
+  """Inicia sesión con número de empleado y contraseña"""
+  login(input: LoginInput!): LoginResponse!
+
+  """
+  Marca todas las notificaciones como leídas. Retorna cantidad actualizada.
+  """
+  markAllNotificationsAsRead: Int!
+
+  """Marca una notificación como leída"""
+  markNotificationAsRead(id: ID!): Notification!
+  pausePreventiveTasksCron: Boolean!
+  pauseWorkOrder(id: ID!, input: PauseWorkOrderInput!): WorkOrder!
+
+  """Registra un token FCM para recibir notificaciones push"""
+  registerDeviceToken(input: RegisterDeviceTokenInput!): UserDeviceToken!
+  removeMaterialFromRequest(materialRequestMaterialId: ID!): Boolean!
+  removeWorkOrderMaterial(id: ID!): Boolean!
+  removeWorkOrderSparePart(id: ID!): Boolean!
+  resumePreventiveTasksCron: Boolean!
+  resumeWorkOrder(id: ID!): WorkOrder!
+  runPreventiveTasksCron: GenerateWorkOrdersResult!
+  setLeadTechnician(id: ID!, technicianId: ID!): WorkOrderTechnician!
+  signWorkOrder(input: CreateWorkOrderSignatureInput!): WorkOrderSignature!
+  startWorkOrder(id: ID!, input: StartWorkOrderInput!): WorkOrder!
+  unassignTechnician(id: ID!, technicianId: ID!): Boolean!
+
+  """Elimina un token FCM (al cerrar sesión)"""
+  unregisterDeviceToken(input: UnregisterDeviceTokenInput!): Boolean!
+  updateAbsenceReason(id: ID!, input: UpdateAbsenceReasonInput!): AbsenceReason!
+  updateArea(id: ID!, input: UpdateAreaInput!): Area!
+  updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
+  updateFinding(id: ID!, input: UpdateFindingInput!): Finding!
+  updateMachine(id: ID!, input: UpdateMachineInput!): Machine!
+  updateMaterial(id: ID!, input: UpdateMaterialInput!): Material!
+  updateMaterialRequest(id: ID!, input: UpdateMaterialRequestInput!): MaterialRequest!
+
+  """Actualiza una preferencia de notificación"""
+  updateNotificationPreference(input: UpdateNotificationPreferenceInput!): NotificationPreference!
+  updatePosition(id: ID!, input: UpdatePositionInput!): Position!
+  updatePreventiveTask(id: ID!, input: UpdatePreventiveTaskInput!): PreventiveTask!
+  updateRole(id: ID!, input: UpdateRoleInput!): Role!
+  updateShift(id: ID!, input: UpdateShiftInput!): Shift!
+  updateSparePart(id: ID!, input: UpdateSparePartInput!): SparePart!
+  updateSubArea(id: ID!, input: UpdateSubAreaInput!): SubArea!
+  updateTechnician(id: ID!, input: UpdateTechnicianInput!): Technician!
+
+  """Actualiza una asignación de horario existente"""
+  updateTechnicianSchedule(id: ID!, input: UpdateScheduleInput!): TechnicianSchedule!
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  updateWorkOrder(id: ID!, input: UpdateWorkOrderInput!): WorkOrder!
+  uploadWorkOrderPhoto(input: CreateWorkOrderPhotoInput!): WorkOrderPhoto!
+}
+
+type Notification {
+  body: String!
+  createdAt: DateTime!
+  data: String
+  emailSent: Boolean!
+  id: ID!
+  isActive: Boolean!
+  pushSent: Boolean!
+  readAt: DateTime
+  recipient: User!
+  recipientId: ID!
+  title: String!
+  type: NotificationType!
+}
+
+input NotificationFiltersInput {
+  """Filtrar por tipo"""
+  type: NotificationType
+
+  """Solo no leídas"""
+  unreadOnly: Boolean
+}
+
+type NotificationPaginatedResponse {
+  data: [Notification!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+  unreadCount: Int!
+}
+
+input NotificationPaginationInput {
+  limit: Int! = 20
+  page: Int! = 1
+}
+
+type NotificationPreference {
+  emailEnabled: Boolean!
+  id: ID
+  inAppEnabled: Boolean!
+  notificationType: NotificationType!
+  pushEnabled: Boolean!
+  quietHoursEnd: String
+  quietHoursStart: String
+  userId: ID!
+}
+
+"""Tipos de notificación del sistema"""
+enum NotificationType {
+  """Tarea preventiva generó una OT"""
+  PREVENTIVE_TASK_WO_GENERATED
+
+  """Técnico asignado a una OT"""
+  WORK_ORDER_ASSIGNED
+
+  """OT completada — recordatorio para firmar"""
+  WORK_ORDER_COMPLETED
+
+  """Requester creó una nueva OT"""
+  WORK_ORDER_CREATED_BY_REQUESTER
+
+  """OT reparación temporal — recordatorio para firmar"""
+  WORK_ORDER_TEMPORARY_REPAIR
+}
+
+input PaginationInput {
+  limit: Int! = 20
+  page: Int! = 1
+}
+
+input PauseWorkOrderInput {
+  pauseReason: String!
+}
+
+"""Tipo de foto"""
+enum PhotoType {
+  """Foto después del trabajo"""
+  AFTER
+
+  """Foto antes del trabajo"""
+  BEFORE
+}
+
+type Position {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  isActive: Boolean!
+  name: String!
+  updatedAt: DateTime!
+}
+
+type PreventiveTask {
+  advanceHours: Int!
+  createdAt: DateTime!
+  description: String!
+  endDate: DateTime
+  frequencyDescription: String!
+  frequencyType: FrequencyType!
+  frequencyUnit: FrequencyUnit
+  frequencyValue: Int
+  id: ID!
+  isActive: Boolean!
+  lastWoGeneratedAt: DateTime
+  machine: Machine!
+  machineId: ID!
+  nextExecutionDate: DateTime
+  parentTask: PreventiveTask
+  parentTaskId: ID
+  policyChangeNote: String
+  startDate: DateTime!
+  status: PreventiveTaskStatus!
+  updatedAt: DateTime!
+}
+
+input PreventiveTaskFiltersInput {
+  frequencyType: FrequencyType
+  machineId: ID
+
+  """Próxima ejecución desde (ISO)"""
+  nextExecutionFrom: String
+
+  """Próxima ejecución hasta (ISO)"""
+  nextExecutionTo: String
+
+  """Búsqueda por descripción"""
+  search: String
+  status: PreventiveTaskStatus
+}
+
+type PreventiveTaskPaginatedResponse {
+  data: [PreventiveTask!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+input PreventiveTaskPaginationInput {
+  limit: Int! = 20
+  page: Int! = 1
+}
+
+input PreventiveTaskSortInput {
+  field: String! = "nextExecutionDate"
+  order: String! = "ASC"
+}
+
+type PreventiveTaskStats {
+  count: Int!
+  status: String!
+}
+
+"""Estado de una tarea preventiva"""
+enum PreventiveTaskStatus {
+  """Activa - Generando WOs según programación"""
+  ACTIVE
+
+  """Cerrada - Terminada por cambio de política"""
+  CLOSED
+
+  """Inactiva - Pausada temporalmente"""
+  INACTIVE
+}
+
+type Query {
+  absenceReason(id: ID!): AbsenceReason
+  absenceReasons: [AbsenceReason!]!
+  absenceReasonsActive: [AbsenceReason!]!
+  area(id: ID!): Area
+  areaByName(name: String!): Area
+  areas: [Area!]!
+  areasActive: [Area!]!
+  dashboardData(input: DashboardInput!): DashboardData!
+  department(id: ID!): Department
+  departments: [Department!]!
+  departmentsActive: [Department!]!
+  finding(id: ID!): Finding
+  findingByFolio(folio: String!): Finding
+  findings: [Finding!]!
+  findingsCountOpen: Int!
+  findingsFiltered(filters: FindingFiltersInput, pagination: FindingPaginationInput, sort: FindingSortInput): FindingPaginatedResponse!
+  findingsOpen: [Finding!]!
+  findingsStats: [FindingStats!]!
+  machine(id: ID!): Machine
+  machines: [Machine!]!
+  machinesActive: [Machine!]!
+  material(id: ID!): Material
+  materialRequest(id: ID!): MaterialRequest
+  materialRequestByFolio(folio: String!): MaterialRequest
+  materialRequests: [MaterialRequest!]!
+  materialRequestsActive: [MaterialRequest!]!
+  materials: [Material!]!
+  materialsActive: [Material!]!
+
+  """Obtiene el usuario actualmente autenticado"""
+  me: User!
+  myAssignedWorkOrders: [WorkOrder!]!
+
+  """Obtiene los tokens FCM registrados del usuario autenticado"""
+  myDeviceTokens: [UserDeviceToken!]!
+
+  """Obtiene las preferencias de notificación del usuario"""
+  myNotificationPreferences: [NotificationPreference!]!
+
+  """Obtiene las notificaciones del usuario autenticado con paginación"""
+  myNotifications(filters: NotificationFiltersInput, pagination: NotificationPaginationInput): NotificationPaginatedResponse!
+  myRequestedWorkOrders: [WorkOrder!]!
+  position(id: ID!): Position
+  positions: [Position!]!
+  positionsActive: [Position!]!
+  preventiveTaskById(id: ID!): PreventiveTask
+  preventiveTaskCountActive: Int!
+  preventiveTaskStats: [PreventiveTaskStats!]!
+  preventiveTasks: [PreventiveTask!]!
+  preventiveTasksActive: [PreventiveTask!]!
+  preventiveTasksByMachineId(machineId: ID!): [PreventiveTask!]!
+  preventiveTasksCronStatus: CronJobStatus!
+  preventiveTasksFiltered(filters: PreventiveTaskFiltersInput, pagination: PreventiveTaskPaginationInput, sort: PreventiveTaskSortInput): PreventiveTaskPaginatedResponse!
+  role(id: ID!): Role
+  roles: [Role!]!
+  rolesActive: Role!
+  schedulerStatus: SchedulerStatus!
+  shift(id: ID!): Shift
+  shifts: [Shift!]!
+  shiftsActive: [Shift!]!
+  sparePart(id: ID!): SparePart
+  spareParts: [SparePart!]!
+  sparePartsActive: [SparePart!]!
+  sparePartsByMachine(machineId: ID!): [SparePart!]!
+  subArea(id: ID!): SubArea
+  subAreas: [SubArea!]!
+  subAreasActive: [SubArea!]!
+  subAreasByArea(areaId: ID!): [SubArea!]!
+  technician(id: ID!): Technician
+
+  """Obtiene un horario por ID"""
+  technicianSchedule(id: ID!): TechnicianSchedule
+
+  """Obtiene todos los horarios de técnicos"""
+  technicianSchedules: [TechnicianSchedule!]!
+
+  """
+  Consulta horarios con filtros: por día, turno, técnico, semana, ausencia
+  """
+  technicianSchedulesFiltered(filters: ScheduleFiltersInput!): [TechnicianSchedule!]!
+
+  """Obtiene los horarios de un técnico en una semana específica"""
+  technicianWeekSchedule(technicianId: ID!, weekNumber: Int!, year: Int!): [TechnicianSchedule!]!
+  technicians: [Technician!]!
+  techniciansActive: [Technician!]!
+
+  """Contador de notificaciones no leídas"""
+  unreadNotificationsCount: Int!
+  user(id: ID!): User
+  users: [User!]!
+
+  """Obtiene los horarios de una semana completa con resumen"""
+  weekSchedule(weekNumber: Int!, year: Int!): WeekScheduleSummary!
+  workOrder(id: ID!): WorkOrder
+  workOrderByFolio(folio: String!): WorkOrder
+  workOrderStats: [WorkOrderStats!]!
+  workOrders: [WorkOrder!]!
+  workOrdersFiltered(filters: WorkOrderFiltersInput, pagination: PaginationInput, sort: WorkOrderSortInput): WorkOrderPaginatedResponse!
+}
+
+input RegisterDeviceTokenInput {
+  """El nombre del dispositivo"""
+  deviceName: String
+
+  """El token de dispositivo"""
+  fcmToken: String!
+
+  """La plataforma del dispositivo"""
+  platform: DevicePlatform! = WEB
+}
+
+type Role {
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  name: String!
+  updatedAt: DateTime!
+}
+
+input ScheduleFiltersInput {
+  """Filtrar por motivo de ausencia"""
+  absenceReasonId: ID
+
+  """Solo ausencias"""
+  onlyAbsences: Boolean
+
+  """Solo días de trabajo (excluir ausencias)"""
+  onlyWorkDays: Boolean
+
+  """Filtrar por fecha específica (YYYY-MM-DD)"""
+  scheduleDate: String
+
+  """Filtrar por turno (quién trabaja en turno X)"""
+  shiftId: ID
+
+  """Filtrar por técnico"""
+  technicianId: ID
+
+  """Filtrar por semana del año"""
+  weekNumber: Int
+
+  """Filtrar por año"""
+  year: Int
+}
+
+type SchedulerStatus {
+  globalEnabled: Boolean!
+  jobs: [CronJobStatus!]!
+}
+
+type Shift {
+  createdAt: DateTime!
+  endTime: String!
+  id: ID!
+  isActive: Boolean!
+  name: String!
+  startTime: String!
+  updatedAt: DateTime!
+}
+
+type SparePart {
+  brand: String
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  machine: Machine!
+  machineId: ID!
+  model: String
+  partNumber: String!
+  supplier: String
+  unitOfMeasure: String
+  updatedAt: DateTime!
+}
+
+input StartWorkOrderInput {
+  breakdownDescription: String
+}
+
+"""Tipo de parada de la orden de trabajo"""
+enum StopType {
+  """Avería - Requiere campos adicionales de diagnóstico"""
+  BREAKDOWN
+
+  """Otro tipo de actividad"""
+  OTHER
+}
+
+type SubArea {
+  area: Area!
+  areaId: ID!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  isActive: Boolean!
+  name: String!
+  updatedAt: DateTime!
+}
+
+type Subscription {
+  """Recibe notificaciones en tiempo real para el usuario autenticado"""
+  newNotification: Notification!
+}
+
+type Technician {
+  address: String!
+  allergies: String!
+  birthDate: DateTime!
+  bloodType: String!
+  childrenCount: Float!
+  createdAt: DateTime!
+  createdBy: String!
+  deletedAt: DateTime!
+  education: String!
+  emergencyContactName: String!
+  emergencyContactPhone: String!
+  emergencyContactRelationship: String!
+  hireDate: DateTime!
+  id: ID!
+  isActive: Boolean!
+  nss: String
+  pantsSize: String!
+  position: Position!
+  rfc: String
+  shirtSize: String!
+  shoeSize: String!
+  transportRoute: String!
+  updatedAt: DateTime!
+  updatedBy: String!
+  user: User!
+  vacationPeriod: Float!
+}
+
+type TechnicianMetric {
+  technicianId: String!
+  technicianName: String!
+  value: Int!
+}
+
+type TechnicianSchedule {
+  absenceReason: AbsenceReason
+  absenceReasonId: ID
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  notes: String
+  scheduleDate: DateTime!
+  shift: Shift
+  shiftId: ID
+  technician: User!
+  technicianId: ID!
+  updatedAt: DateTime!
+  weekNumber: Int!
+  year: Int!
+}
+
+type TimeCount {
+  count: Int!
+  period: String!
+}
+
+input UnregisterDeviceTokenInput {
+  """El token de dispositivo"""
+  fcmToken: String!
+}
+
+input UpdateAbsenceReasonInput {
+  """Máximo permitido por semana (NULL = Sin límite)"""
+  maxPerWeek: Int
+  name: String
+}
+
+input UpdateAreaInput {
+  description: String
+  name: String
+  type: AreaType
+}
+
+input UpdateDepartmentInput {
+  description: String
+  name: String
+}
+
+input UpdateFindingInput {
+  areaId: ID
+  description: String
+  machineId: ID
+  photoPath: String
+  shiftId: ID
+}
+
+input UpdateMachineInput {
+  brand: String
+  code: String
+  description: String
+  installationDate: DateTime
+  machinePhotoUrl: String
+  model: String
+  name: String
+  operationalManualUrl: String
+  serialNumber: String
+  subAreaId: String
+}
+
+input UpdateMaterialInput {
+  brand: String
+  description: String
+  manufacturer: String
+  model: String
+  partNumber: String
+  sku: String
+  unitOfMeasure: String
+}
+
+input UpdateMaterialRequestInput {
+  comments: String
+  isGenericOrAlternativeModel: Boolean = false
+  justification: String
+  machineId: ID
+  priority: MaterialRequestPriority
+  requestText: String
+  suggestedSupplier: String
+}
+
+input UpdateNotificationPreferenceInput {
+  """Habilitar email para este tipo"""
+  emailEnabled: Boolean
+
+  """Tipo de notificación"""
+  notificationType: NotificationType!
+
+  """Habilitar push para este tipo"""
+  pushEnabled: Boolean
+
+  """Fin de horario silencioso (HH:mm)"""
+  quietHoursEnd: String
+
+  """Inicio de horario silencioso (HH:mm)"""
+  quietHoursStart: String
+}
+
+input UpdatePositionInput {
+  description: String
+  name: String
+}
+
+input UpdatePreventiveTaskInput {
+  description: String
+  machineId: ID
+  status: PreventiveTaskStatus
+}
+
+input UpdateRoleInput {
+  name: String
+}
+
+input UpdateScheduleInput {
+  """ID del motivo de ausencia"""
+  absenceReasonId: ID
+
+  """Notas adicionales"""
+  notes: String
+
+  """ID del turno (null si ausencia)"""
+  shiftId: ID
+}
+
+input UpdateShiftInput {
+  endTime: String
+  name: String
+  startTime: String
+}
+
+input UpdateSparePartInput {
+  brand: String
+  machineId: ID
+  model: String
+  partNumber: String
+  supplier: String
+  unitOfMeasure: String
+}
+
+input UpdateSubAreaInput {
+  areaId: ID
+  description: String
+  name: String
+}
+
+input UpdateTechnicianInput {
+  address: String
+  allergies: String
+  birthDate: DateTime
+  bloodType: String
+  childrenCount: Float
+  education: String
+  emergencyContactName: String
+  emergencyContactPhone: String
+  emergencyContactRelationship: String
+  hireDate: DateTime
+  id: ID!
+  nss: String
+  pantsSize: String
+  positionId: String
+  rfc: String
+  shirtSize: String
+  shoeSize: String
+  transportRoute: String
+  vacationPeriod: Float
+}
+
+input UpdateUserInput {
+  departmentId: String
+  email: String
+  employeeNumber: String
+  firstName: String
+  lastName: String
+  password: String
+  phone: String
+  roleId: String
+}
+
+input UpdateWorkOrderInput {
+  assignedShiftId: ID
+  description: String
+
+  """
+  Máquina asociada (requerida si stopType = BREAKDOWN o la OT tiene sub-área)
+  """
+  machineId: ID
+  maintenanceType: MaintenanceType
+  observations: String
+  priority: WorkOrderPriority
+  stopType: StopType
+}
+
+type User {
+  createdAt: DateTime!
+  department: Department!
+  departmentId: ID!
+  email: String
+  employeeNumber: String!
+  firstName: String!
+  fullName: String!
+  id: ID!
+  isActive: Boolean!
+  lastName: String!
+  phone: String
+  role: Role!
+  roleId: ID!
+  updatedAt: DateTime!
+}
+
+type UserDeviceToken {
+  createdAt: DateTime!
+  deviceName: String
+  fcmToken: String!
+  id: ID!
+  isExpired: Boolean!
+  lastUsedAt: DateTime
+  platform: DevicePlatform!
+  userId: ID!
+}
+
+type WeekScheduleSummary {
+  schedules: [TechnicianSchedule!]!
+  totalAbsences: Int!
+  totalAssignments: Int!
+  totalWorkDays: Int!
+  weekNumber: Int!
+  year: Int!
+}
+
+type WorkOrder {
+  actionTaken: String
+  area: Area!
+  areaId: ID!
+  assignedShift: Shift
+  assignedShiftId: ID
+  breakdownDescription: String
+  cause: String
+  createdAt: DateTime!
+  description: String!
+  downtimeMinutes: Int
+  endDate: DateTime
+  findingId: ID
+  folio: String!
+  functionalTimeMinutes: Int!
+  id: ID!
+  isActive: Boolean!
+  isFullySigned: Boolean!
+  lastResumedAt: DateTime
+  machine: Machine
+  machineId: ID
+  maintenanceType: MaintenanceType
+  materials: [WorkOrderMaterial!]!
+  observations: String
+  pauseReason: String
+  photos: [WorkOrderPhoto!]!
+  photosAfterStart: [WorkOrderPhoto!]!
+  photosBeforeStart: [WorkOrderPhoto!]!
+  preventiveTaskId: ID
+  priority: WorkOrderPriority
+  requester: User!
+  requesterId: ID!
+  sequence: Int!
+  signatures: [WorkOrderSignature!]!
+  signaturesCount: Int!
+  spareParts: [WorkOrderSparePart!]!
+  startDate: DateTime
+  status: WorkOrderStatus!
+  stopType: StopType
+  subArea: SubArea
+  subAreaId: ID
+  technician: User!
+  technicians: [WorkOrderTechnician!]!
+  toolsUsed: String
+  updatedAt: DateTime!
+}
+
+input WorkOrderFiltersInput {
+  areaId: ID
+  assignedShiftId: ID
+
+  """Fecha de creación desde (ISO)"""
+  createdFrom: String
+
+  """Fecha de creación hasta (ISO)"""
+  createdTo: String
+  maintenanceType: MaintenanceType
+  priority: WorkOrderPriority
+  requesterId: ID
+
+  """Búsqueda por folio o descripción"""
+  search: String
+  status: WorkOrderStatus
+  statuses: [WorkOrderStatus!]
+  technicianId: ID
+}
+
+type WorkOrderMaterial {
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  material: Material!
+  materialId: ID!
+  notes: String
+  quantity: Int!
+  workOrderId: ID!
+}
+
+type WorkOrderPaginatedResponse {
+  data: [WorkOrder!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+type WorkOrderPhoto {
+  createdAt: DateTime!
+  fileName: String!
+  filePath: String!
+  id: ID!
+  isActive: Boolean!
+  mimeType: String!
+  photoType: PhotoType!
+  uploadedAt: DateTime!
+  uploadedBy: ID!
+  uploader: User!
+  workOrderId: ID!
+}
+
+"""Niveles de prioridad de una orden de trabajo"""
+enum WorkOrderPriority {
+  """Prioridad crítica (4)"""
+  CRITICAL
+
+  """Prioridad alta (3)"""
+  HIGH
+
+  """Prioridad baja (1)"""
+  LOW
+
+  """Prioridad media (2)"""
+  MEDIUM
+}
+
+type WorkOrderSignature {
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  signatureImagePath: String!
+  signedAt: DateTime!
+  signer: User!
+  signerId: ID!
+  workOrderId: ID!
+}
+
+input WorkOrderSortInput {
+  field: String! = "createdAt"
+  order: String! = "DESC"
+}
+
+type WorkOrderSparePart {
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  notes: String
+  quantity: Int!
+  sparePart: SparePart!
+  sparePartId: ID!
+  workOrderId: ID!
+}
+
+type WorkOrderStats {
+  count: Int!
+  status: String!
+}
+
+"""Estados posibles de una orden de trabajo"""
+enum WorkOrderStatus {
+  """Completada - Trabajo finalizado"""
+  COMPLETED
+
+  """En progreso - Técnico trabajando en la WO"""
+  IN_PROGRESS
+
+  """Pausada - En espera de material u otra razón"""
+  PAUSED
+
+  """Pendiente - OT creada, esperando asignación o inicio"""
+  PENDING
+
+  """Reparación temporal - Solución provisional aplicada"""
+  TEMPORARY_REPAIR
+}
+
+type WorkOrderTechnician {
+  assignedAt: DateTime!
+  assignedBy: ID!
+  assigner: User!
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  isLead: Boolean!
+  technician: User!
+  technicianId: ID!
+  workOrderId: ID!
+}
