@@ -399,8 +399,8 @@ type Finding {
   folio: String!
   id: ID!
   machine: Machine!
-  machineId: ID!
-  photoPath: String!
+  machineId: ID
+  photoPath: String
   sequence: Int!
   shift: Shift!
   status: FindingStatus!
@@ -521,7 +521,7 @@ type Machine {
 }
 
 type MachineMetric {
-  machineId: String!
+  machineId: String
   machineName: String!
   value: Int!
 }
