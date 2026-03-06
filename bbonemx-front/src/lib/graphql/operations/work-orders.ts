@@ -21,6 +21,8 @@ export const WORK_ORDER_ITEM_FRAGMENT = gql`
     stopType
     assignedShiftId
     machineId
+    scheduledDate
+    workType
     createdAt
     isFullySigned
     area {
@@ -79,6 +81,28 @@ export const GET_WORK_ORDERS_FILTERED_QUERY = gql`
   }
 `;
 
+
+export const GET_SCHEDULED_WORK_ORDERS_QUERY = gql`
+  ${WORK_ORDER_ITEM_FRAGMENT}
+  query GetScheduledWorkOrders($scheduledFrom: String, $scheduledTo: String, $assignedShiftId: ID) {
+    workOrdersFiltered(
+      filters: {
+        maintenanceType: CORRECTIVE_SCHEDULED
+        scheduledFrom: $scheduledFrom
+        scheduledTo: $scheduledTo
+        assignedShiftId: $assignedShiftId
+      }
+      pagination: { limit: 100, page: 1 }
+      sort: { field: "scheduledDate", order: ASC }
+    ) {
+      data {
+        ...WorkOrderItem
+      }
+      total
+    }
+  }
+`;
+
 export const CREATE_WORK_ORDER_MUTATION = gql`
   mutation CreateWorkOrder($input: CreateWorkOrderInput!) {
     createWorkOrder(input: $input) {
@@ -97,6 +121,8 @@ export const ASSIGN_WORK_ORDER_MUTATION = gql`
       priority
       maintenanceType
       stopType
+      scheduledDate
+      workType
     }
   }
 `;
@@ -190,6 +216,8 @@ export const UPDATE_WORK_ORDER_MUTATION = gql`
       stopType
       assignedShiftId
       machineId
+      scheduledDate
+      workType
     }
   }
 `;

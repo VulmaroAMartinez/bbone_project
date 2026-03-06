@@ -19,7 +19,7 @@ import {
     PaginationInput,
     WorkOrderSortInput,
 } from "../dto";
-import { WorkOrderStatus, StopType } from "src/common";
+import { WorkOrderStatus, StopType, MaintenanceType } from "src/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import {
     NOTIFICATION_EVENTS,
@@ -28,6 +28,7 @@ import {
 } from "src/common";
 import { AreasService } from "src/modules/catalogs/areas/application/services";
 import { AreaType } from "src/common/enums/area-type.enum";
+import { TechnicianSchedulesService } from "src/modules/technician-schedules/application/services";
 
 /** Allowed status transitions */
 const VALID_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
@@ -48,6 +49,7 @@ export class WorkOrdersService {
         private readonly woTechniciansRepository: WorkOrderTechniciansRepository,
         private readonly woSignaturesRepository: WorkOrderSignaturesRepository,
         private readonly areasService: AreasService,
+        private readonly technicianSchedulesService: TechnicianSchedulesService,
     ) { }
 
     async findAll(): Promise<WorkOrder[]> {
@@ -110,11 +112,28 @@ export class WorkOrdersService {
             throw new BadRequestException('La máquina es requerida cuando el tipo de paro es Avería');
         }
 
+        if (input.maintenanceType === MaintenanceType.CORRECTIVE_SCHEDULED && !input.scheduledDate) {
+            throw new BadRequestException('La fecha programada es requerida para mantenimiento correctivo programado');
+        }
+
+        if (input.maintenanceType !== MaintenanceType.CORRECTIVE_SCHEDULED && input.scheduledDate) {
+            throw new BadRequestException('La fecha programada solo aplica para mantenimiento correctivo programado');
+        }
+
+        if (input.assignedShiftId) {
+            const validationDate = this.resolveScheduleValidationDate(input.scheduledDate);
+            for (const techId of input.technicianIds) {
+                await this.ensureTechnicianAssignedToShift(techId, input.assignedShiftId, validationDate);
+            }
+        }
+
         await this.workOrdersRepository.update(id, {
             priority: input.priority,
             maintenanceType: input.maintenanceType,
             stopType: input.stopType,
             assignedShiftId: input.assignedShiftId,
+            scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : null,
+            workType: input.workType,
             ...(input.machineId && { machineId: input.machineId }),
         });
 
@@ -246,9 +265,34 @@ export class WorkOrdersService {
             throw new BadRequestException('La máquina es requerida cuando el tipo de paro es Avería o la OTtiene sub-área');
         }
 
+        const nextMaintenanceType = input.maintenanceType ?? wo.maintenanceType;
+        const nextAssignedShiftId = input.assignedShiftId ?? wo.assignedShiftId;
+        const nextScheduledDate = input.scheduledDate !== undefined
+            ? (input.scheduledDate ? new Date(input.scheduledDate) : null)
+            : (wo.scheduledDate ?? null);
+
+        if (nextMaintenanceType === MaintenanceType.CORRECTIVE_SCHEDULED && !nextScheduledDate) {
+            throw new BadRequestException('La fecha programada es requerida para mantenimiento correctivo programado');
+        }
+
+        if (nextMaintenanceType !== MaintenanceType.CORRECTIVE_SCHEDULED && input.scheduledDate) {
+            throw new BadRequestException('La fecha programada solo aplica para mantenimiento correctivo programado');
+        }
+
+        if (nextAssignedShiftId) {
+            const technicians = await this.woTechniciansRepository.findByWorkOrderId(id);
+            const validationDate = this.resolveScheduleValidationDate(nextScheduledDate?.toISOString());
+            for (const rel of technicians) {
+                await this.ensureTechnicianAssignedToShift(rel.technicianId, nextAssignedShiftId, validationDate);
+            }
+        }
+
         await this.workOrdersRepository.update(id, {
             ...input,
             machineId: input.machineId,
+            scheduledDate: input.scheduledDate !== undefined
+                ? (input.scheduledDate ? new Date(input.scheduledDate) : null)
+                : undefined,
         });
         return this.findByIdOrFail(id);
     }
@@ -281,6 +325,26 @@ export class WorkOrdersService {
     private calculateSegmentMinutes(from?: Date | null, to: Date = new Date()): number {
         if(!from) return 0;
         return Math.max(0, Math.floor((to.getTime() - from.getTime()) / 60000));
+    }
+
+    private resolveScheduleValidationDate(scheduledDate?: string | null): string {
+        if (scheduledDate) {
+            return scheduledDate.split('T')[0];
+        }
+        return new Date().toISOString().split('T')[0];
+    }
+
+    private async ensureTechnicianAssignedToShift(technicianId: string, shiftId: string, scheduleDate: string): Promise<void> {
+        const schedules = await this.technicianSchedulesService.findWithFilters({
+            technicianId,
+            shiftId,
+            scheduleDate,
+            onlyWorkDays: true,
+        });
+
+        if (!schedules.length) {
+            throw new BadRequestException('Solo se pueden asignar técnicos que pertenezcan al turno seleccionado para la fecha indicada');
+        }
     }
 
     /** Throws if the WO already has signatures (no edits allowed after signing) */

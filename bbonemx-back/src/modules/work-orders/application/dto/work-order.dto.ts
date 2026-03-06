@@ -1,9 +1,9 @@
 import { InputType, Field, ID, PartialType, Int } from '@nestjs/graphql';
 import { 
-  IsNotEmpty, IsString, IsUUID, IsOptional, IsEnum, IsInt, Min 
+  IsNotEmpty, IsString, IsUUID, IsOptional, IsEnum, IsInt, Min, ValidateIf, IsDateString 
 } from 'class-validator';
 import { 
-  WorkOrderStatus, WorkOrderPriority, MaintenanceType, StopType 
+  WorkOrderStatus, WorkOrderPriority, MaintenanceType, StopType, WorkType 
 } from '../../../../common/enums';
 
 @InputType()
@@ -55,6 +55,18 @@ export class AssignWorkOrderInput {
   @IsOptional()
   @IsUUID()
   machineId?: string;
+
+
+  @Field({ nullable: true, description: 'Fecha programada (requerida cuando maintenanceType = CORRECTIVE_SCHEDULED)' })
+  @ValidateIf((o: AssignWorkOrderInput) => o.maintenanceType === MaintenanceType.CORRECTIVE_SCHEDULED)
+  @IsNotEmpty({ message: 'La fecha programada es requerida para mantenimiento correctivo programado' })
+  @IsDateString({}, { message: 'La fecha programada debe tener un formato de fecha válido' })
+  scheduledDate?: string;
+
+  @Field(() => WorkType)
+  @IsNotEmpty({ message: 'El tipo de trabajo es requerido' })
+  @IsEnum(WorkType)
+  workType: WorkType;
 
   @Field(() => [ID], { description: 'IDs de técnicos a asignar' })
   @IsNotEmpty({ message: 'Debe asignar al menos un técnico' })
@@ -152,6 +164,17 @@ export class UpdateWorkOrderInput {
   @IsOptional()
   @IsUUID()
   machineId?: string;
+
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsDateString({}, { message: 'La fecha programada debe tener un formato de fecha válido' })
+  scheduledDate?: string;
+
+  @Field(() => WorkType, { nullable: true })
+  @IsOptional()
+  @IsEnum(WorkType)
+  workType?: WorkType;
 
   @Field({ nullable: true })
   @IsOptional()

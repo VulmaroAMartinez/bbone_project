@@ -31,6 +31,7 @@ import {
 import { WorkOrdersResolver } from './presentation/resolvers';
 import { AreasModule } from '../catalogs/areas/areas.module';
 import { UsersModule } from '../users/users.module';
+import { TechnicianSchedulesModule } from '../technician-schedules/technician-schedules.module';
 
 /**
  * Módulo de Órdenes de Trabajo.
@@ -56,6 +57,7 @@ import { UsersModule } from '../users/users.module';
     ]),
     AreasModule,
     UsersModule,
+    TechnicianSchedulesModule,
   ],
   providers: [
     WorkOrdersRepository,
