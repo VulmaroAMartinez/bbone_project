@@ -21,6 +21,11 @@ export class TechniciansResolver {
         return this.techniciansService.findAllActive();
     }
 
+    @Query(() => [TechnicianType], { name: "techniciansWithDeleted" })
+    async techniciansWithDeleted() {
+        return this.techniciansService.findAllWithDeleted();
+    }
+
     @Query(() => TechnicianType, { name: "technician", nullable: true })
     async technician(@Args("id", { type: () => ID }) id: string) {
         return this.techniciansService.findById(id);

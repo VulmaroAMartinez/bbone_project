@@ -22,6 +22,10 @@ export class RolesService {
         return this.rolesRepository.findAllActive();
     }
 
+    async findAllWithDeleted(): Promise<Role[]> {
+        return this.rolesRepository.findAllWithDeleted();
+    }
+
     async findById(id: string): Promise<Role | null> {
         return this.rolesRepository.findById(id);
     }

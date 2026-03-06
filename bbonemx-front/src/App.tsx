@@ -18,6 +18,7 @@ import AdminDashboardPage from '@/pages/admin/DashboardPage';
 import AdminOrdenesPage from '@/pages/admin/orders/OrdenesPage';
 import AdminOrdenDetallePage from '@/pages/admin/orders/AdminOrdenDetallePage';
 import AdminCrearOTPage from '@/pages/admin/orders/CrearOTPage';
+import OrdenesProgramadasPage from '@/pages/admin/orders/OrdenesProgramadasPage';
 import FindingPage from './pages/admin/findings/FindingPage';
 
 // Tecnico
@@ -84,6 +85,7 @@ function App() {
               <Route path='/puestos' element={<PositionsPage />} />
               <Route path='/departamentos' element={<DepartmentsPage />} />
               <Route path="/admin/crear-ot" element={<AdminCrearOTPage />} />
+              <Route path="/admin/ordenes-programadas" element={<OrdenesProgramadasPage />} />
               <Route path="/horarios" element={<SchedulePage />} />
               <Route path="/tecnicos" element={<TechniciansPage />} />
               <Route path="/tecnico/:id" element={<TechnicianDetailPage />} />

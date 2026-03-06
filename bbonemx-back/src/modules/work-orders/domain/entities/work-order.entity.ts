@@ -11,7 +11,7 @@ import { User } from 'src/modules/users/domain/entities';
 import { Area } from 'src/modules/catalogs/areas/domain/entities';
 import { SubArea } from 'src/modules/catalogs/sub-areas/domain/entities';
 import { Machine, Shift } from 'src/modules/catalogs';
-import { WorkOrderStatus, WorkOrderPriority, MaintenanceType, StopType } from 'src/common';
+import { WorkOrderStatus, WorkOrderPriority, MaintenanceType, StopType, WorkType } from 'src/common';
 import { Finding } from 'src/modules/findings/domain/entities/finding.entity';
 import { PreventiveTask } from 'src/modules/preventive-tasks/domain/entities/preventive-task.entity';
 
@@ -92,6 +92,18 @@ export class WorkOrder extends BaseEntity {
     @ManyToOne(() => Machine, {nullable: true})
     @JoinColumn({name: 'machine_id'})
     machine?: Machine;
+
+
+    @Column({name: 'scheduled_date', type: 'timestamp', nullable: true})
+    scheduledDate?: Date | null;
+
+    @Column({
+        name: 'work_type',
+        type: 'enum',
+        enum: WorkType,
+        nullable: true,
+    })
+    workType?: WorkType;
 
     @Column({name: 'start_date', type: 'timestamp', nullable: true})
     startDate?: Date;

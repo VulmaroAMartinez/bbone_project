@@ -15,9 +15,14 @@ export class RolesResolver {
         return this.rolesService.findAll();
     }
 
-    @Query(() => RoleType, { name: 'rolesActive' })
+    @Query(() => [RoleType], { name: 'rolesActive' })
     async findAllActive(): Promise<RoleType[]> {
         return this.rolesService.findAllActive();
+    }
+
+    @Query(() => [RoleType], { name: 'rolesWithDeleted' })
+    async findAllWithDeleted(): Promise<RoleType[]> {
+        return this.rolesService.findAllWithDeleted();
     }
 
     @Query(() => RoleType, { name: 'role', nullable: true })

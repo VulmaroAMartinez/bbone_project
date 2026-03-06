@@ -23,6 +23,13 @@ export class UsersResolver {
     return this.usersService.findAll();
   }
 
+  @Query(() => [UserType], { name: "usersWithDeleted" })
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  async usersWithDeleted() {
+    return this.usersService.findAllWithDeleted();
+  }
+
   @Query(() => UserType, { name: "user", nullable: true })
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
@@ -53,5 +60,12 @@ export class UsersResolver {
   async deactivateUser(@Args("id", { type: () => ID }) id: string): Promise<boolean> {
     await this.usersService.deactivate(id);
     return true;
+  }
+
+  @Mutation(() => UserType, { name: "activateUser" })
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  async activateUser(@Args("id", { type: () => ID }) id: string) {
+    return this.usersService.activate(id);
   }
 }

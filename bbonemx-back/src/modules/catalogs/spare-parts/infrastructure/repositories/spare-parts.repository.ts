@@ -11,6 +11,10 @@ export class SparePartsRepository {
         return this.repository.find({ relations: ['machine'] });
     }
 
+    async findAllWithDeleted(): Promise<SparePart[]> {
+        return this.repository.find({ withDeleted: true });
+    }
+
     async findAllActive(): Promise<SparePart[]> {
         return this.repository.find({ where: { isActive: true }, relations: ['machine'] });
     }

@@ -11,6 +11,10 @@ export class PositionsRepository {
         return this.repository.find();
     }
 
+    async findAllWithDeleted(): Promise<Position[]> {
+        return this.repository.find({ withDeleted: true });
+    }
+
     async findAllActive(): Promise<Position[]> {
         return this.repository.find({ where: { isActive: true } });
     }

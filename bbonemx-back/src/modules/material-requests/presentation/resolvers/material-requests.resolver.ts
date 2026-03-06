@@ -20,6 +20,11 @@ export class MaterialRequestsResolver {
         return this.materialRequestsService.findAllActive();
     }
 
+    @Query(() => [MaterialRequestType], { name: "materialRequestsWithDeleted" })
+    async materialRequestsWithDeleted() {
+        return this.materialRequestsService.findAllWithDeleted();
+    }
+
     @Query(() => MaterialRequestType, { name: "materialRequest", nullable: true })
     async materialRequest(@Args("id", { type: () => ID }) id: string) {
         return this.materialRequestsService.findById(id);

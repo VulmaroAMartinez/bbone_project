@@ -11,6 +11,10 @@ export class AreasRepository {
         return this.repository.find();
     }
 
+    async findAllWithDeleted(): Promise<Area[]> {
+        return this.repository.find({ withDeleted: true });
+    }
+
     async findAllActive(): Promise<Area[]> {
         return this.repository.find({ where: { isActive: true } });
     }

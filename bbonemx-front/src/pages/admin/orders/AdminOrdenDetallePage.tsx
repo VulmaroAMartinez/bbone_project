@@ -4,14 +4,9 @@ import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
 import { useAuth } from '@/contexts/auth-context';
 
 import {
-  GetWorkOrderByIdDocument,
   GetTechniciansDocument,
   GetShiftsDocument,
   GetMachinesPageDataDocument,
-  UpdateWorkOrderDocument,
-  SignWorkOrderDocument,
-  ResumeWorkOrderDocument,
-  AssignWorkOrderDocument,
   type MaintenanceType,
   type WorkOrderPriority,
   type StopType,
@@ -23,6 +18,13 @@ import {
   UserBasicFragmentDoc
 } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
+import {
+  GET_WORK_ORDER_BY_ID_QUERY,
+  UPDATE_WORK_ORDER_MUTATION,
+  SIGN_WORK_ORDER_MUTATION,
+  RESUME_WORK_ORDER_MUTATION,
+  ASSIGN_WORK_ORDER_MUTATION,
+} from '@/lib/graphql/operations/work-orders';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +45,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { StatusBadge, PriorityBadge, MaintenanceTypeBadge, StopTypeBadge } from '@/components/ui/status-badge';
 import { WorkOrderDetailSkeleton } from '@/components/ui/skeleton-loaders';
 import { SignatureDialog } from '@/components/ui/signature-dialog';
@@ -81,6 +84,24 @@ const STOPPAGE_TYPES: { value: StopType; label: string }[] = [
   { value: 'OTHER', label: 'Otro' },
 ];
 
+
+type WorkTypeValue = 'PAINTING' | 'PNEUMATIC' | 'ELECTRONIC' | 'ELECTRICAL' | 'BUILDING' | 'METROLOGY' | 'AUTOMATION' | 'MECHANICAL' | 'HYDRAULIC' | 'ELECTRICAL_CONTROL' | 'OTHER';
+
+const WORK_TYPES: { value: WorkTypeValue; label: string }[] = [
+  { value: 'PAINTING', label: 'Pintura' },
+  { value: 'PNEUMATIC', label: 'Neumática' },
+  { value: 'ELECTRONIC', label: 'Electrónico' },
+  { value: 'ELECTRICAL', label: 'Eléctrico' },
+  { value: 'BUILDING', label: 'Edificio' },
+  { value: 'METROLOGY', label: 'Metrología' },
+  { value: 'AUTOMATION', label: 'Automatización' },
+  { value: 'MECHANICAL', label: 'Mecánico' },
+  { value: 'HYDRAULIC', label: 'Hidráulico' },
+  { value: 'ELECTRICAL_CONTROL', label: 'Control eléctrico' },
+  { value: 'OTHER', label: 'Otro' },
+];
+
+
 function AdminOrdenDetallePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -95,21 +116,23 @@ function AdminOrdenDetallePage() {
     stoppageType: undefined as StopType | undefined,
     shiftId: '',
     maintenanceType: undefined as MaintenanceType | undefined,
+    scheduledDate: '',
+    workType: undefined as WorkTypeValue | undefined,
     machineId: '',
     leadTechnicianId: '',
   })
 
-  const { data, loading, error, refetch } = useQuery(GetWorkOrderByIdDocument, { variables: { id: id! }, skip: !id });
+  const { data, loading, error, refetch } = useQuery(GET_WORK_ORDER_BY_ID_QUERY, { variables: { id: id! }, skip: !id });
   const { data: techData } = useQuery(GetTechniciansDocument);
   const { data: shiftsData } = useQuery(GetShiftsDocument);
   const [getMachines, { data: machinesData }] = useLazyQuery(GetMachinesPageDataDocument);
 
-  const [updateOrder, { loading: updating }] = useMutation(UpdateWorkOrderDocument);
-  const [assignOrder, { loading: assigning }] = useMutation(AssignWorkOrderDocument);
-  const [resumeOrder, { loading: resuming }] = useMutation(ResumeWorkOrderDocument);
-  const [signWorkOrder] = useMutation(SignWorkOrderDocument);
+  const [updateOrder, { loading: updating }] = useMutation(UPDATE_WORK_ORDER_MUTATION);
+  const [assignOrder, { loading: assigning }] = useMutation(ASSIGN_WORK_ORDER_MUTATION);
+  const [resumeOrder, { loading: resuming }] = useMutation(RESUME_WORK_ORDER_MUTATION);
+  const [signWorkOrder] = useMutation(SIGN_WORK_ORDER_MUTATION);
 
-  const workOrderRaw = data?.workOrder;
+  const workOrderRaw = (data as any)?.workOrder;
   const order = unmaskFragment(WorkOrderItemFragmentDoc, workOrderRaw);
 
   const area = unmaskFragment(AreaBasicFragmentDoc, order?.area);
@@ -143,6 +166,8 @@ function AdminOrdenDetallePage() {
         stoppageType: order.stopType || undefined,
         shiftId: order.assignedShiftId || '',
         maintenanceType: order.maintenanceType || undefined,
+        scheduledDate: (order as any).scheduledDate ? new Date((order as any).scheduledDate).toISOString().split('T')[0] : '',
+        workType: (order as any).workType || undefined,
         machineId: order.machineId || '',
         leadTechnicianId: unmaskFragment(UserBasicFragmentDoc, leadTechRel?.technician)?.id || '',
       });
@@ -162,6 +187,14 @@ function AdminOrdenDetallePage() {
           throw new Error("Debe seleccionar un Técnico Líder para asignar la orden.");
         }
 
+        if (!mgmt.workType) {
+          throw new Error("Debe seleccionar el tipo de trabajo.");
+        }
+
+        if (mgmt.maintenanceType === 'CORRECTIVE_SCHEDULED' && !mgmt.scheduledDate) {
+          throw new Error("La fecha programada es obligatoria para correctivo programado.");
+        }
+
         const cleanAuxTechnicians = auxiliaryTechnicians.filter(tId => tId !== '');
         const allTechnicianIds = Array.from(new Set([mgmt.leadTechnicianId, ...cleanAuxTechnicians])).filter(Boolean);
 
@@ -175,7 +208,9 @@ function AdminOrdenDetallePage() {
               assignedShiftId: mgmt.shiftId || undefined,
               leadTechnicianId: mgmt.leadTechnicianId,
               technicianIds: allTechnicianIds,
-              machineId: mgmt.machineId || undefined
+              machineId: mgmt.machineId || undefined,
+              scheduledDate: mgmt.scheduledDate || undefined,
+              workType: mgmt.workType
             }
           }
         });
@@ -191,6 +226,8 @@ function AdminOrdenDetallePage() {
               assignedShiftId: mgmt.shiftId || undefined,
               maintenanceType: mgmt.maintenanceType,
               machineId: mgmt.machineId || undefined,
+              scheduledDate: mgmt.scheduledDate || undefined,
+              workType: mgmt.workType,
             },
           },
         });
@@ -260,6 +297,7 @@ function AdminOrdenDetallePage() {
   const isCompleted = order.status === 'COMPLETED';
   const isTemporaryRepair = order.status === 'TEMPORARY_REPAIR';
   const showMachineField = mgmt.stoppageType === 'BREAKDOWN' || !!subArea?.id;
+  const showScheduledDate = mgmt.maintenanceType === 'CORRECTIVE_SCHEDULED';
 
   // Firmas
   const signatures = workOrderRaw.signatures || [];
@@ -767,7 +805,28 @@ function AdminOrdenDetallePage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="mgmt-work-type">Tipo de trabajo *</Label>
+                  <Select value={mgmt.workType} onValueChange={(v) => setMgmt((p) => ({ ...p, workType: v as WorkTypeValue }))}>
+                    <SelectTrigger id="mgmt-work-type"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                    <SelectContent>
+                      {WORK_TYPES.map((wt) => (<SelectItem key={wt.value} value={wt.value}>{wt.label}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
               </div>
+</div>
+
+              {showScheduledDate && (
+                <div className="space-y-2">
+                  <Label htmlFor="mgmt-scheduled-date">Fecha programada *</Label>
+                  <Input
+                    id="mgmt-scheduled-date"
+                    type="date"
+                    value={mgmt.scheduledDate}
+                    onChange={(e) => setMgmt((p) => ({ ...p, scheduledDate: e.target.value }))}
+                  />
+                </div>
+              )}
 
               {showMachineField && (
                 <div className="space-y-2 pt-2 border-t border-border/50">

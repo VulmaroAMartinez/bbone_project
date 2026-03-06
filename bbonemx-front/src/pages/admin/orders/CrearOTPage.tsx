@@ -7,9 +7,6 @@ import {
   GetAreasDocument,
   GetTechniciansDocument,
   GetShiftsDocument,
-  CreateWorkOrderDocument,
-  AssignWorkOrderDocument,
-  UploadWorkOrderPhotoDocument,
   AreaBasicFragmentDoc,
   SubAreaBasicFragmentDoc,
   MachineBasicFragmentDoc,
@@ -20,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -29,6 +27,7 @@ import type { MaintenanceType, WorkOrderPriority, StopType } from '@/lib/graphql
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 import { useNavigate } from 'react-router-dom';
 import { useAreaMachineSelector } from '@/hooks/useAreaMachineSelector';
+import { CREATE_WORK_ORDER_MUTATION, ASSIGN_WORK_ORDER_MUTATION, UPLOAD_WORK_ORDER_PHOTO_MUTATION } from '@/lib/graphql/operations/work-orders';
 
 const adminCrearOTSchema = yup.object({
   areaId: yup.string().required('El área es obligatoria.'),
@@ -42,6 +41,12 @@ const adminCrearOTSchema = yup.object({
   stoppageType: yup.string().required('El tipo de parada es obligatorio.'),
   shiftId: yup.string().required('El turno es obligatorio.'),
   maintenanceType: yup.string().required('El tipo de mantenimiento es obligatorio.'),
+  scheduledDate: yup.string().when('maintenanceType', {
+    is: 'CORRECTIVE_SCHEDULED',
+    then: (schema) => schema.required('La fecha programada es obligatoria para correctivo programado.'),
+    otherwise: (schema) => schema.notRequired().default(''),
+  }),
+  workType: yup.string().required('El tipo de trabajo es obligatorio.'),
   leadTechnicianId: yup.string().required('El técnico líder es obligatorio.'),
   machineId: yup.string().default(''),
 });
@@ -67,6 +72,24 @@ const STOPPAGE_TYPES: { value: StopType; label: string }[] = [
   { value: 'OTHER', label: 'Otro' },
 ];
 
+
+type WorkTypeValue = 'PAINTING' | 'PNEUMATIC' | 'ELECTRONIC' | 'ELECTRICAL' | 'BUILDING' | 'METROLOGY' | 'AUTOMATION' | 'MECHANICAL' | 'HYDRAULIC' | 'ELECTRICAL_CONTROL' | 'OTHER';
+
+const WORK_TYPES: { value: WorkTypeValue; label: string }[] = [
+  { value: 'PAINTING', label: 'Pintura' },
+  { value: 'PNEUMATIC', label: 'Neumática' },
+  { value: 'ELECTRONIC', label: 'Electrónico' },
+  { value: 'ELECTRICAL', label: 'Eléctrico' },
+  { value: 'BUILDING', label: 'Edificio' },
+  { value: 'METROLOGY', label: 'Metrología' },
+  { value: 'AUTOMATION', label: 'Automatización' },
+  { value: 'MECHANICAL', label: 'Mecánico' },
+  { value: 'HYDRAULIC', label: 'Hidráulico' },
+  { value: 'ELECTRICAL_CONTROL', label: 'Control eléctrico' },
+  { value: 'OTHER', label: 'Otro' },
+];
+
+
 export default function AdminCrearOTPage() {
   const navigate = useNavigate();
 
@@ -85,9 +108,9 @@ export default function AdminCrearOTPage() {
     handleSubAreaChange: hookSubAreaChange,
   } = useAreaMachineSelector();
 
-  const [createWorkOrder] = useMutation(CreateWorkOrderDocument);
-  const [assignWorkOrder] = useMutation(AssignWorkOrderDocument);
-  const [uploadPhoto] = useMutation(UploadWorkOrderPhotoDocument);
+  const [createWorkOrder] = useMutation(CREATE_WORK_ORDER_MUTATION);
+  const [assignWorkOrder] = useMutation(ASSIGN_WORK_ORDER_MUTATION);
+  const [uploadPhoto] = useMutation(UPLOAD_WORK_ORDER_PHOTO_MUTATION);
 
   const areas = areasData?.areas ? unmaskFragment(AreaBasicFragmentDoc, areasData.areas) : [];
   const subAreas = subAreasData?.subAreasByArea
@@ -103,7 +126,7 @@ export default function AdminCrearOTPage() {
     watch,
     // setError,  // ya no se usa (validación rígida eliminada)
     formState: { errors, isSubmitting },
-  } = useForm<AdminCrearOTFormValues>({
+  } = useForm<any>({
     resolver: yupResolver(adminCrearOTSchema),
     defaultValues: {
       areaId: '',
@@ -113,6 +136,8 @@ export default function AdminCrearOTPage() {
       stoppageType: undefined,
       shiftId: '',
       maintenanceType: undefined,
+      scheduledDate: '',
+      workType: undefined,
       leadTechnicianId: '',
       machineId: '',
     },
@@ -127,6 +152,7 @@ export default function AdminCrearOTPage() {
   const areaId = watch('areaId');
   const subAreaId = watch('subAreaId');
   const stoppageType = watch('stoppageType');
+  const maintenanceType = watch('maintenanceType');
   const description = watch('description');
 
   const availableMachines = machinesByAreaData?.machinesByArea
@@ -186,7 +212,7 @@ export default function AdminCrearOTPage() {
 
     try {
       // 1. Crear OT Básica
-      const { data: createData } = await createWorkOrder({
+      const createResp = await createWorkOrder({
         variables: {
           input: {
             areaId: values.areaId,
@@ -197,7 +223,7 @@ export default function AdminCrearOTPage() {
         },
       });
 
-      const newWorkOrderId = createData?.createWorkOrder.id;
+      const newWorkOrderId = (createResp.data as any)?.createWorkOrder?.id;
       if (!newWorkOrderId) throw new Error("No se pudo obtener el ID de la OT");
 
       // 2. Asignar Detalles
@@ -212,6 +238,8 @@ export default function AdminCrearOTPage() {
             leadTechnicianId: values.leadTechnicianId,
             technicianIds: allTechIds,
             machineId: values.machineId || undefined,
+            scheduledDate: values.scheduledDate || undefined,
+            workType: values.workType as WorkTypeValue,
           }
         }
       });
@@ -430,6 +458,35 @@ export default function AdminCrearOTPage() {
                 )}
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="admin-work-type">Tipo de trabajo *</Label>
+              <Select value={watch('workType')} onValueChange={(v) => handleSelectChange('workType', v)}>
+                <SelectTrigger id="admin-work-type"><SelectValue placeholder="Seleccionar tipo de trabajo" /></SelectTrigger>
+                <SelectContent>
+                  {WORK_TYPES.map((wt) => (
+                    <SelectItem key={wt.value} value={wt.value}>{wt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.workType && (
+                <p className="text-xs text-destructive">{errors.workType.message}</p>
+              )}
+            </div>
+
+            {maintenanceType === 'CORRECTIVE_SCHEDULED' && (
+              <div className="space-y-2">
+                <Label htmlFor="admin-scheduled-date">Fecha programada *</Label>
+                <Input
+                  id="admin-scheduled-date"
+                  type="date"
+                  {...register('scheduledDate')}
+                />
+                {errors.scheduledDate && (
+                  <p className="text-xs text-destructive">{errors.scheduledDate.message}</p>
+                )}
+              </div>
+            )}
 
             {/* SECCIÓN DE TÉCNICOS */}
             <div className="space-y-4 rounded-lg bg-muted/30 p-4 border border-border">

@@ -23,6 +23,23 @@ export class MachinesRepository {
         return this.repository.find({ where: { subAreaId, isActive: true }, relations: ['subArea', 'subArea.area'], order: { name: 'ASC' } });
     }
 
+    async findByAreaAndSubArea(areaId?: string, subAreaId?: string): Promise<Machine[]> {
+        const qb = this.repository.createQueryBuilder('m')
+            .leftJoinAndSelect('m.subArea', 'subArea')
+            .leftJoinAndSelect('subArea.area', 'area')
+            .where('m.is_active = :active', { active: true });
+
+        if (subAreaId) {
+            qb.andWhere('m.sub_area_id = :subAreaId', { subAreaId });
+        }
+
+        if (areaId) {
+            qb.andWhere('subArea.area_id = :areaId', { areaId });
+        }
+
+        return qb.orderBy('m.name', 'ASC').getMany();
+    }
+
     async create(data: Partial<Machine>): Promise<Machine> {
         const created = await this.repository.save(this.repository.create(data));
         return (await this.findById(created.id)) ?? created;

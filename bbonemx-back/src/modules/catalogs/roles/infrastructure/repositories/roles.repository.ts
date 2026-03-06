@@ -8,6 +8,7 @@ export class RolesRepository {
     constructor(@InjectRepository(Role) private readonly repository: Repository<Role>) { }
 
     findAll = () => this.repository.find({ order: { name: 'ASC' } });
+    findAllWithDeleted = () => this.repository.find({ withDeleted: true, order: { name: 'ASC' } });
     findAllActive = () => this.repository.find({ where: { isActive: true }, order: { name: 'ASC' } });
     findById = (id: string) => this.repository.findOne({ where: { id, isActive: true } });
     findByIds = (ids: string[]) => this.repository.find({ where: { id: In(ids), isActive: true } });

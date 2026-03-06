@@ -15,6 +15,10 @@ export class PositionsService {
         return this.positionsRepository.findAllActive();
     }
 
+    async findAllWithDeleted(): Promise<Position[]> {
+        return this.positionsRepository.findAllWithDeleted();
+    }
+
     async findById(id: string): Promise<Position | null> {
         return this.positionsRepository.findById(id);
     }

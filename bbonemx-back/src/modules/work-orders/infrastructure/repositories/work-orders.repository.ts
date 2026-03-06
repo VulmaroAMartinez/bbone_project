@@ -107,6 +107,9 @@ export class WorkOrdersRepository {
                 if (filters.maintenanceType) {
                   qb.andWhere('wo.maintenance_type = :maintenanceType', { maintenanceType: filters.maintenanceType });
                 }
+                if (filters.workType) {
+                  qb.andWhere('wo.work_type = :workType', { workType: filters.workType });
+                }
                 if (filters.areaId) {
                   qb.andWhere('wo.area_id = :areaId', { areaId: filters.areaId });
                 }
@@ -125,6 +128,12 @@ export class WorkOrdersRepository {
                 }
                 if (filters.createdTo) {
                   qb.andWhere('wo.created_at <= :createdTo', { createdTo: filters.createdTo });
+                }
+                if (filters.scheduledFrom) {
+                  qb.andWhere('wo.scheduled_date >= :scheduledFrom', { scheduledFrom: filters.scheduledFrom });
+                }
+                if (filters.scheduledTo) {
+                  qb.andWhere('wo.scheduled_date <= :scheduledTo', { scheduledTo: filters.scheduledTo });
                 }
                 if (filters.search) {
                   qb.andWhere('(wo.folio ILIKE :search OR wo.description ILIKE :search)', { 

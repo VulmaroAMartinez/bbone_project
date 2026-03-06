@@ -116,6 +116,15 @@ export class UsersRepository {
         await this.repository.save(user);
     }
 
+    async restore(id: string): Promise<void> {
+        const user = await this.repository.findOne({ where: { id }, withDeleted: true });
+        if (!user) return;
+
+        user.isActive = true;
+        user.deletedAt = undefined;
+        await this.repository.save(user);
+    }
+
     getRepository(): Repository<User> {
         return this.repository;
     }
