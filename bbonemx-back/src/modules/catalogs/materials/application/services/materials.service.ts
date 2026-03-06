@@ -15,6 +15,10 @@ export class MaterialsService {
         return this.materialsRepository.findAllActive();
     }
 
+    async findAllWithDeleted(): Promise<Material[]> {
+        return this.materialsRepository.findAllWithDeleted();
+    }
+
     async findById(id: string): Promise<Material | null> {
         return this.materialsRepository.findById(id);
     }

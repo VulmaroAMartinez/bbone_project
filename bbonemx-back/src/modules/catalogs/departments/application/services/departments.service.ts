@@ -15,6 +15,10 @@ export class DepartmentsService {
         return this.departmentsRepository.findAllActive();
     }
 
+    async findAllWithDeleted(): Promise<Department[]> {
+        return this.departmentsRepository.findAllWithDeleted();
+    }
+
     async findById(id: string): Promise<Department | null> {
         return this.departmentsRepository.findById(id);
     }

@@ -21,6 +21,11 @@ export class AreasResolver {
         return this.areasService.findAllActive();
     }
 
+    @Query(() => [AreaType], { name: "areasWithDeleted" })
+    async areasWithDeleted() {
+        return this.areasService.findAllWithDeleted();
+    }
+
     @Query(() => AreaType, { name: "area", nullable: true })
     async area(@Args("id", { type: () => ID }) id: string) {
         return this.areasService.findById(id);

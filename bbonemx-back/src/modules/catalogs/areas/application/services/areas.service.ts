@@ -15,6 +15,10 @@ export class AreasService {
         return this.areasRepository.findAllActive();
     }
 
+    async findAllWithDeleted(): Promise<Area[]> {
+        return this.areasRepository.findAllWithDeleted();
+    }
+
     async findById(id: string): Promise<Area | null> {
         return this.areasRepository.findById(id);
     }

@@ -20,6 +20,11 @@ export class SparePartsResolver {
         return this.sparePartsService.findAllActive();
     }
 
+    @Query(() => [SparePartType], { name: "sparePartsWithDeleted" })
+    async sparePartsWithDeleted() {
+        return this.sparePartsService.findAllWithDeleted();
+    }
+
     @Query(() => SparePartType, { name: "sparePart", nullable: true })
     async sparePart(@Args("id", { type: () => ID }) id: string) {
         return this.sparePartsService.findById(id);

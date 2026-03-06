@@ -15,6 +15,10 @@ export class SparePartsService {
         return this.sparePartsRepository.findAllActive();
     }
 
+    async findAllWithDeleted(): Promise<SparePart[]> {
+        return this.sparePartsRepository.findAllWithDeleted();
+    }
+
     async findById(id: string): Promise<SparePart | null> {
         return this.sparePartsRepository.findById(id);
     }

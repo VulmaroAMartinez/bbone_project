@@ -20,6 +20,11 @@ export class MaterialsResolver {
         return this.materialsService.findAllActive();
     }
 
+    @Query(() => [MaterialType], { name: "materialsWithDeleted" })
+    async materialsWithDeleted() {
+        return this.materialsService.findAllWithDeleted();
+    }
+
     @Query(() => MaterialType, { name: "material", nullable: true })
     async material(@Args("id", { type: () => ID }) id: string) {
         return this.materialsService.findById(id);

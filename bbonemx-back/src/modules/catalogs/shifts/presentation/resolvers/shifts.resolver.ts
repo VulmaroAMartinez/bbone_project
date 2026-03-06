@@ -21,6 +21,11 @@ export class ShiftsResolver {
         return this.shiftsService.findAllActive();
     }
 
+    @Query(() => [ShiftType], { name: "shiftsWithDeleted" })
+    async shiftsWithDeleted() {
+        return this.shiftsService.findAllWithDeleted();
+    }
+
     @Query(() => ShiftType, { name: "shift", nullable: true })
     async shift(@Args("id", { type: () => ID }) id: string) {
         return this.shiftsService.findById(id);

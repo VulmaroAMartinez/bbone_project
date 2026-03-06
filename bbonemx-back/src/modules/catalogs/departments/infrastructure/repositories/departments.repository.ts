@@ -11,6 +11,10 @@ export class DepartmentsRepository {
         return this.repository.find();
     }
 
+    async findAllWithDeleted(): Promise<Department[]> {
+        return this.repository.find({ withDeleted: true });
+    }
+
     async findAllActive(): Promise<Department[]> {
         return this.repository.find({ where: { isActive: true } });
     }

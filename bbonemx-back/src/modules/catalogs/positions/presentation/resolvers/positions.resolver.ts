@@ -22,6 +22,11 @@ export class PositionsResolver {
         return this.positionsService.findAllActive();
     }
 
+    @Query(() => [PositionType], { name: "positionsWithDeleted" })
+    async positionsWithDeleted() {
+        return this.positionsService.findAllWithDeleted();
+    }
+
     @Query(() => PositionType, { name: "position", nullable: true })
     async position(@Args("id", { type: () => ID }) id: string) {
         return this.positionsService.findById(id);

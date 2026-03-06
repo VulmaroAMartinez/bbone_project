@@ -14,6 +14,10 @@ export class ShiftsService {
     async findAllActive(): Promise<Shift[]> {
         return this.shiftsRepository.findAllActive();
     }
+
+    async findAllWithDeleted(): Promise<Shift[]> {
+        return this.shiftsRepository.findAllWithDeleted();
+    }
     
     async findById(id: string): Promise<Shift | null> {
         return this.shiftsRepository.findById(id);

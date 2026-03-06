@@ -60,12 +60,6 @@ export const MACHINE_BASIC_FRAGMENT = gql`
     machinePhotoUrl
     operationalManualUrl
     isActive
-    areaId
-    area {
-      id
-      name
-      type
-    }
     subAreaId
     subArea {
       id

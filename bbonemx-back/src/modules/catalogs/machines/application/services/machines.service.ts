@@ -31,6 +31,10 @@ export class MachinesService {
         return this.machinesRepository.findBySubAreaId(subAreaId);
     }
 
+    async findByAreaAndSubArea(areaId?: string, subAreaId?: string): Promise<Machine[]> {
+        return this.machinesRepository.findByAreaAndSubArea(areaId, subAreaId);
+    }
+
     async create(input: CreateMachineInput): Promise<Machine> {
         return this.machinesRepository.create(input);
     }

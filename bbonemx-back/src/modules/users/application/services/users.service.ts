@@ -24,6 +24,10 @@ export class UsersService {
     return this.usersRepository.findAll();
   }
 
+  async findAllWithDeleted(): Promise<User[]> {
+    return this.usersRepository.findAllWithDeleted();
+  }
+
   async findById(id: string): Promise<User | null> {
     return this.usersRepository.findById(id);
   }
@@ -167,5 +171,18 @@ export class UsersService {
   async deactivate(id: string): Promise<void> {
     await this.findByIdOrFail(id);
     await this.usersRepository.softDelete(id);
+  }
+
+  async activate(id: string): Promise<User> {
+    const existing = await this.usersRepository.findByIdWithDeleted(id);
+    if (!existing) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+    await this.usersRepository.restore(id);
+    const restored = await this.usersRepository.findByIdWithDeleted(id);
+    if (!restored) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+    return restored;
   }
 }

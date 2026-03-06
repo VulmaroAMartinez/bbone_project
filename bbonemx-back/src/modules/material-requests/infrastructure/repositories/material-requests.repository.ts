@@ -11,6 +11,10 @@ export class MaterialRequestsRepository {
         return this.repository.find({ relations: ['machine', 'materials', 'materials.material'], order: { createdAt: 'DESC' } });
     }
 
+    async findAllWithDeleted(): Promise<MaterialRequest[]> {
+        return this.repository.find({ withDeleted: true });
+    }
+
     async findAllActive(): Promise<MaterialRequest[]> {
         return this.repository.find({ where: { isActive: true }, relations: ['machine', 'materials', 'materials.material'], order: { createdAt: 'DESC' } });
     }

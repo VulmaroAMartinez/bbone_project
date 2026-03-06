@@ -15,6 +15,10 @@ export class TechniciansService {
         return this.techniciansRepository.findAllActive();
     }
 
+    async findAllWithDeleted(): Promise<Technician[]> {
+        return this.techniciansRepository.findAllWithDeleted();
+    }
+
     async findById(id: string): Promise<Technician | null> {
         return this.techniciansRepository.findById(id);
     }

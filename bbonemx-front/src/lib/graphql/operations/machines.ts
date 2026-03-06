@@ -1,9 +1,6 @@
 import { gql } from '@apollo/client';
 import { MACHINE_BASIC_FRAGMENT } from './fragments';
 
-// ─── Queries ────────────────────────────────────────────────
-
-/** Datos de la página principal: máquinas + áreas para filtros */
 export const GET_MACHINES_PAGE_DATA = gql`
   ${MACHINE_BASIC_FRAGMENT}
   query GetMachinesPageData {
@@ -22,7 +19,6 @@ export const GET_MACHINES_PAGE_DATA = gql`
   }
 `;
 
-/** Máquina individual con todas sus relaciones */
 export const GET_MACHINE = gql`
   ${MACHINE_BASIC_FRAGMENT}
   query GetMachine($id: ID!) {
@@ -32,35 +28,29 @@ export const GET_MACHINE = gql`
   }
 `;
 
-/** Refacciones (spare parts) de una máquina */
 export const GET_MACHINE_SPARE_PARTS = gql`
   query GetMachineSpareParts($id: ID!) {
-    machine(id: $id) {
+    sparePartsByMachine(machineId: $id) {
       id
-      name
-      code
-      spareParts {
-        id
-        partNumber
-        brand
-        model
-        supplier
-        unitOfMeasure
-        isActive
-        createdAt
-      }
+      partNumber
+      brand
+      model
+      supplier
+      unitOfMeasure
+      isActive
+      createdAt
     }
   }
 `;
 
-/** Órdenes de trabajo de una máquina */
 export const GET_MACHINE_WORK_ORDERS = gql`
-  query GetMachineWorkOrders($id: ID!) {
-    machine(id: $id) {
-      id
-      name
-      code
-      workOrders {
+  query GetMachineWorkOrders($id: String!) {
+    workOrdersFiltered(
+      filters: { search: $id }
+      pagination: { page: 1, limit: 50 }
+      sort: { field: "createdAt", order: "DESC" }
+    ) {
+      data {
         id
         folio
         description
@@ -70,55 +60,25 @@ export const GET_MACHINE_WORK_ORDERS = gql`
         startDate
         endDate
         createdAt
-        requester {
-          id
-          fullName
-        }
-        area {
-          id
-          name
-        }
       }
+      total
     }
   }
 `;
 
-/** Solicitudes de material de una máquina */
 export const GET_MACHINE_MATERIAL_REQUESTS = gql`
   query GetMachineMaterialRequests($id: ID!) {
-    machine(id: $id) {
+    materialRequests {
       id
-      name
-      code
-      materialRequests {
-        id
-        folio
-        category
-        priority
-        importance
-        comments
-        justification
-        isGenericAllowed
-        suggestedSupplier
-        createdAt
-        items {
-          id
-          requestedQuantity
-          unitOfMeasure
-          description
-          material {
-            id
-            description
-            partNumber
-            brand
-          }
-        }
-      }
+      folio
+      machineId
+      requestText
+      priority
+      comments
+      createdAt
     }
   }
 `;
-
-// ─── Mutations ──────────────────────────────────────────────
 
 export const CREATE_MACHINE = gql`
   ${MACHINE_BASIC_FRAGMENT}

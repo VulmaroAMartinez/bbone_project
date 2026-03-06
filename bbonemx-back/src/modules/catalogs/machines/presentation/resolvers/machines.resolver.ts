@@ -25,6 +25,14 @@ export class MachinesResolver {
         return this.machinesService.findById(id);
     }
 
+    @Query(() => [MachineType], { name: "machinesByArea" })
+    async machinesByArea(
+        @Args("areaId", { type: () => ID, nullable: true }) areaId?: string,
+        @Args("subAreaId", { type: () => ID, nullable: true }) subAreaId?: string,
+    ) {
+        return this.machinesService.findByAreaAndSubArea(areaId, subAreaId);
+    }
+
     @Mutation(() => MachineType, { name: "createMachine" })
     @Roles(Role.ADMIN)
     async createMachine(@Args("input") input: CreateMachineInput) {

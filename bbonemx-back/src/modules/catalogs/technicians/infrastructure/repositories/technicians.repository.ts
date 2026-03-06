@@ -18,6 +18,10 @@ export class TechniciansRepository {
         });
     }
 
+    async findAllWithDeleted(): Promise<Technician[]> {
+        return this.repository.find({ withDeleted: true });
+    }
+
     async findAllActive(): Promise<Technician[]> {
         return this.repository.find({
             where: { isActive: true },

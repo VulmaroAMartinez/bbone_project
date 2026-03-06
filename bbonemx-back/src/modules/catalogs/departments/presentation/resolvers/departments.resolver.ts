@@ -20,6 +20,11 @@ export class DepartmentsResolver {
         return this.departmentsService.findAllActive();
     }
 
+    @Query(() => [DepartmentType], { name: "departmentsWithDeleted" })
+    async departmentsWithDeleted() {
+        return this.departmentsService.findAllWithDeleted();
+    }
+
     @Query(() => DepartmentType, { name: "department", nullable: true })
     async department(@Args("id", { type: () => ID }) id: string) {
         return this.departmentsService.findById(id);

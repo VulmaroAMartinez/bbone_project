@@ -11,6 +11,10 @@ export class ShiftsRepository {
         return this.repository.find();
     }
 
+    async findAllWithDeleted(): Promise<Shift[]> {
+        return this.repository.find({ withDeleted: true });
+    }
+
     async findAllActive(): Promise<Shift[]> {
         return this.repository.find({ where: { isActive: true } });
     }

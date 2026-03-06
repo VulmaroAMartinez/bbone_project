@@ -11,6 +11,10 @@ export class MaterialsRepository {
         return this.repository.find();
     }
 
+    async findAllWithDeleted(): Promise<Material[]> {
+        return this.repository.find({ withDeleted: true });
+    }
+
     async findAllActive(): Promise<Material[]> {
         return this.repository.find({ where: { isActive: true } });
     }
