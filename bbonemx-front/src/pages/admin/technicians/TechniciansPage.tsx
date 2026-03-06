@@ -139,7 +139,7 @@ export default function TecnicosPage() {
             } else {
                 if (!values.password) throw new Error("La contraseña es requerida para nuevos técnicos.");
                 userPayload.password = values.password;
-                userPayload.roleId = techRoleId;
+                userPayload.roleIds = [techRoleId];
 
                 const userRes = await createUser({ variables: { input: userPayload } });
                 const newUserId = userRes.data?.createUser.id;

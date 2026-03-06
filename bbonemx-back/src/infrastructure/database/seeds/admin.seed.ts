@@ -48,6 +48,7 @@ export async function seedAdmin(dataSource: DataSource): Promise<void> {
     lastName: ADMIN_USER.lastName,
     email: ADMIN_USER.email,
     roleId: adminRole.id,
+    roles: [adminRole],
     departmentId: maintenanceDepartment.id,
     isActive: true,
   });

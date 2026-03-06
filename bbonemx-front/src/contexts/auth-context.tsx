@@ -21,10 +21,15 @@ export interface AuthUser {
   fullName: string;
   email?: string | null;
   isActive: boolean;
+  roleIds?: string[];
   role: {
     id: string;
     name: string;
   };
+  roles?: Array<{
+    id: string;
+    name: string;
+  }>;
 }
 
 interface AuthContextType {
@@ -113,9 +118,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
   }, []);
 
-  const isAdmin = user?.role?.name === 'ADMIN';
-  const isTechnician = user?.role?.name === 'TECHNICIAN';
-  const isRequester = user?.role?.name === 'REQUESTER';
+  const roleNames = user?.roles?.map((role) => role.name) ?? (user?.role?.name ? [user.role.name] : []);
+  const isAdmin = roleNames.includes('ADMIN');
+  const isTechnician = roleNames.includes('TECHNICIAN');
+  const isRequester = roleNames.includes('REQUESTER');
 
   const value: AuthContextType = {
     user,

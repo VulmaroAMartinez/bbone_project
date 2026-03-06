@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { User } from "./domain/entities";
+import { User, UserRole } from "./domain/entities";
 import { UsersRepository } from "./infrastructure/persistence/repositories";
 import { UsersService } from "./application/services";
 import { RolesModule } from "../catalogs/roles";
@@ -9,7 +9,7 @@ import { UsersResolver } from "./presentation/resolvers";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, UserRole]),
     RolesModule,
     DepartmentsModule,
   ],

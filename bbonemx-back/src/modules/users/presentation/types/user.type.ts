@@ -28,6 +28,18 @@ export class UserType {
     @Field(() => RoleType)
     role: RoleType;
 
+    @Field(() => [String])
+    get roleIds(): string[] {
+        const ids = this.roles?.map((role) => role.id) ?? [];
+        if (ids.length) {
+            return ids;
+        }
+        return this.roleId ? [this.roleId] : [];
+    }
+
+    @Field(() => [RoleType])
+    roles: RoleType[];
+
     @Field(() => ID)
     departmentId: string;
 

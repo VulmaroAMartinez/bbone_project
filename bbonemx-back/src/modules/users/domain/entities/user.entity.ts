@@ -1,7 +1,8 @@
-import { Entity, Index, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Index, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from 'src/infrastructure/database/base.entity';
 import { Role } from 'src/modules/catalogs/roles/domain/entities';
 import { Department } from 'src/modules/catalogs/departments/domain/entities';
+import { UserRole } from './user-role.entity';
 
 @Entity({ name: 'users' })
 export class User extends BaseEntity {
@@ -55,6 +56,30 @@ export class User extends BaseEntity {
     @JoinColumn({name: 'role_id'})
     role: Role;
 
+    @OneToMany(() => UserRole, (userRole) => userRole.user, {
+        eager: true,
+        cascade: true,
+    })
+    userRoles: UserRole[];
+
+    get roles(): Role[] {
+        return this.userRoles?.map((userRole) => userRole.role).filter(Boolean) ?? [];
+    }
+
+    set roles(roles: Role[]) {
+        this.userRoles =
+            roles?.map((role) => {
+                const userRole = new UserRole();
+                userRole.role = role;
+                userRole.roleId = role.id;
+                return userRole;
+            }) ?? [];
+    }
+
+    get roleIds(): string[] {
+        return this.roles.map((role) => role.id);
+    }
+
     @Column({name: 'department_id', type: 'uuid'})
     departmentId: string;
 
@@ -67,18 +92,18 @@ export class User extends BaseEntity {
     }
 
     hasRole(roleName: string): boolean {
-        return this.role?.name === roleName;
+        return this.roles?.some((role) => role.name === roleName) ?? this.role?.name === roleName;
     }
 
     isAdmin(): boolean {
-        return this.role?.name === 'ADMIN';
+        return this.hasRole('ADMIN');
     }
 
     isTechnician(): boolean {
-        return this.role?.name === 'TECHNICIAN';
+        return this.hasRole('TECHNICIAN');
     }
 
     isRequester(): boolean {
-        return this.role?.name === 'REQUESTER';
+        return this.hasRole('REQUESTER');
     }
 }

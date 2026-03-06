@@ -11,7 +11,7 @@ export class UsersRepository {
     async findAll(): Promise<User[]> {
         return this.repository.find({
             where: { isActive: true },
-            relations: ['role', 'department']
+            relations: ['role', 'userRoles', 'userRoles.role', 'department']
         });
     }
 
@@ -26,7 +26,8 @@ export class UsersRepository {
             where: { 
                 employeeNumber,
                 isActive: true 
-            } 
+            },
+            relations: ['role', 'userRoles', 'userRoles.role', 'department'],
         });
     }
 
@@ -36,14 +37,15 @@ export class UsersRepository {
                 id,
                 isActive: true
             },
-            relations: ['role', 'department']
+            relations: ['role', 'userRoles', 'userRoles.role', 'department']
         });
     }
 
     async findByIdWithDeleted(id: string): Promise<User | null> {
         return this.repository.findOne({
             where: { id },
-            withDeleted: true
+            withDeleted: true,
+            relations: ['role', 'userRoles', 'userRoles.role', 'department'],
         });
     }
 
@@ -88,7 +90,7 @@ export class UsersRepository {
     }
 
     async update(id: string, userData: Partial<User>): Promise<User | null> {
-        const user = await this.repository.findOne({ where: { id } });
+        const user = await this.repository.findOne({ where: { id }, relations: ['userRoles', 'userRoles.role'] });
         if (!user) return null;
         
         

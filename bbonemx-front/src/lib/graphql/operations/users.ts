@@ -11,11 +11,16 @@ export const GET_REQUESTERS_DATA_QUERY = gql`
       email
       phone
       isActive
+      roleIds
       department {
         id
         name
       }
       role {
+        id
+        name
+      }
+      roles {
         id
         name
       }

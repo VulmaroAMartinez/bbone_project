@@ -133,7 +133,7 @@ export class WorkOrdersResolver {
         const wo = await this.workOrdersService.create(input, user.id);
 
         // Solo notificar si quien crea es REQUESTER
-        if (user.role?.name === 'REQUESTER') {
+        if (user.hasRole('REQUESTER')) {
             this.eventEmitter.emit(
                 NOTIFICATION_EVENTS.WORK_ORDER_CREATED_BY_REQUESTER,
                 new WorkOrderCreatedByRequesterEvent(

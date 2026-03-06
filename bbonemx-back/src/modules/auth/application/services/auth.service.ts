@@ -8,8 +8,8 @@ import { LoginResponse } from "../dto";
 export interface JwtPayload {
     sub: string;
     employeeNumber: string;
-    roleId: string;
-    roleName: string;
+    roleIds: string[];
+    roleNames: string[];
 }
 
 @Injectable()
@@ -50,8 +50,8 @@ export class AuthService {
         const payload: JwtPayload = {
             sub: user.id,
             employeeNumber: user.employeeNumber,
-            roleId: user.roleId,
-            roleName: user.role?.name || '',
+            roleIds: user.roles?.map((role) => role.id) ?? (user.roleId ? [user.roleId] : []),
+            roleNames: user.roles?.map((role) => role.name) ?? (user.role?.name ? [user.role.name] : []),
         };
 
         const accessToken = this.jwtService.sign(payload);
