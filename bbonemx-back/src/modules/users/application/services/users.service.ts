@@ -63,7 +63,20 @@ export class UsersService {
       }
     }
 
+    const roleIds = [...new Set(input.roleIds)];
+    const roles = await this.rolesRepository.findByIds(roleIds);
+    if (roles.length !== roleIds.length) {
+      throw new BadRequestException('Uno o más roles no existen');
+    }
+
+    const department = await this.departmentsRepository.findById(input.departmentId);
+    if (!department) {
+      throw new BadRequestException(`Departamento con ID ${input.departmentId} no encontrado`);
+    }
+
     const hashedPassword = await this.passwordService.hash(input.password);
+
+    const primaryRoleId = roleIds[0];
 
     return this.usersRepository.create({
       employeeNumber: input.employeeNumber,
@@ -72,7 +85,8 @@ export class UsersService {
       lastName: input.lastName,
       email: input.email,
       phone: input.phone,
-      roleId: input.roleId,
+      roleId: primaryRoleId,
+      roles,
       departmentId: input.departmentId,
     });
   }
@@ -104,6 +118,30 @@ export class UsersService {
       }
     }
 
+    const nextRoleIds = input.roleIds ?? (input.roleId ? [input.roleId] : undefined);
+
+    let rolePatch: Partial<User> = {};
+    if (nextRoleIds !== undefined) {
+      const uniqueRoleIds = [...new Set(nextRoleIds)];
+      if (!uniqueRoleIds.length) {
+        throw new BadRequestException('Debe seleccionar al menos un rol');
+      }
+      const roles = await this.rolesRepository.findByIds(uniqueRoleIds);
+      if (roles.length !== uniqueRoleIds.length) {
+        throw new BadRequestException('Uno o más roles no existen');
+      }
+      rolePatch = {
+        roleId: uniqueRoleIds[0],
+        roles,
+      };
+    }
+
+    if (input.departmentId !== undefined) {
+      const department = await this.departmentsRepository.findById(input.departmentId);
+      if (!department) {
+        throw new BadRequestException(`Departamento con ID ${input.departmentId} no encontrado`);
+      }
+    }
 
     const updateData: Partial<User> = {
       ...(input.firstName !== undefined && { firstName: input.firstName }),
@@ -111,8 +149,8 @@ export class UsersService {
       ...(input.employeeNumber !== undefined && { employeeNumber: input.employeeNumber }),
       ...(input.email !== undefined && { email: input.email }),
       ...(input.phone !== undefined && { phone: input.phone }),
-      ...(input.roleId !== undefined && { roleId: input.roleId }),
       ...(input.departmentId !== undefined && { departmentId: input.departmentId }),
+      ...rolePatch,
     };
 
     if (input.password) {

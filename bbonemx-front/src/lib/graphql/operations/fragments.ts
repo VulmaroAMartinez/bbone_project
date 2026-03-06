@@ -17,7 +17,11 @@ export const USER_BASIC_FRAGMENT = gql`
     fullName
     email
     isActive
+    roleIds
     role {
+      ...RoleBasic
+    }
+    roles {
       ...RoleBasic
     }
   }

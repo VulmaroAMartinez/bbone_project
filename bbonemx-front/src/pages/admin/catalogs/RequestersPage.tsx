@@ -54,7 +54,7 @@ export default function RequestersPage() {
     });
 
     const allUsers = data?.usersWithDeleted || [];
-    const requesters = allUsers.filter(u => u.role.name === 'REQUESTER');
+    const requesters = allUsers.filter(u => (((u as any).roles?.some((role: any) => role.name === 'REQUESTER')) ?? u.role?.name === 'REQUESTER'));
     const departments = data?.departmentsWithDeleted || [];
     const roles = data?.rolesWithDeleted || [];
     const requesterRoleId = roles.find(r => r.name === 'REQUESTER')?.id;
@@ -104,7 +104,7 @@ export default function RequestersPage() {
                 await updateUser({ variables: { id: editingId, input } });
             } else {
                 input.password = values.password;
-                input.roleId = requesterRoleId;
+                input.roleIds = [requesterRoleId];
                 await createUser({ variables: { input } });
             }
 

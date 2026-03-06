@@ -10,9 +10,9 @@ async function runSeeds(): Promise<void> {
   try {
     await seedDataSource.initialize();
 
-    //await seedRoles(seedDataSource);
-    //await seedDepartments(seedDataSource);
-    //await seedAdmin(seedDataSource);
+    await seedRoles(seedDataSource);
+    await seedDepartments(seedDataSource);
+    await seedAdmin(seedDataSource);
     await seedAreas(seedDataSource);
     await seedSubAreas(seedDataSource);
     

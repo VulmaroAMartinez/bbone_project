@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import { Role } from "../../domain/entities";
 
 @Injectable()
@@ -10,6 +10,7 @@ export class RolesRepository {
     findAll = () => this.repository.find({ order: { name: 'ASC' } });
     findAllActive = () => this.repository.find({ where: { isActive: true }, order: { name: 'ASC' } });
     findById = (id: string) => this.repository.findOne({ where: { id, isActive: true } });
+    findByIds = (ids: string[]) => this.repository.find({ where: { id: In(ids), isActive: true } });
     findByName = (name: string) => this.repository.findOne({ where: { name, isActive: true } });
     async create(data: Partial<Role>) {
         return this.repository.save(this.repository.create(data));

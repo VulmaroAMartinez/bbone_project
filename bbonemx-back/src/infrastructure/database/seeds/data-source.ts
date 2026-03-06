@@ -11,6 +11,6 @@ export const seedDataSource = new DataSource({
   password: process.env.DB_PASSWORD || 'root',
   database: process.env.DB_NAME || 'bbonemx_db',
   entities: ['src/**/*.entity.ts'],
-  synchronize: false,
+  synchronize: true,
   logging: true,
 });

@@ -1,5 +1,6 @@
 import { InputType, Field } from "@nestjs/graphql";
 import {
+  IsArray,
   IsOptional,
   IsString,
   IsEmail,
@@ -51,7 +52,13 @@ export class UpdateUserInput {
   @MaxLength(13, { message: "El teléfono debe tener máximo 13 caracteres" })
   phone?: string;
 
-  @Field({ nullable: true })
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  @IsArray({ message: "Los roles deben enviarse como arreglo" })
+  @IsUUID("4", { each: true, message: "Cada ID de rol debe ser un UUID válido" })
+  roleIds?: string[];
+
+  @Field({ nullable: true, deprecationReason: "Usar roleIds" })
   @IsOptional()
   @IsUUID("4", { message: "El ID del rol debe ser un UUID válido" })
   roleId?: string;

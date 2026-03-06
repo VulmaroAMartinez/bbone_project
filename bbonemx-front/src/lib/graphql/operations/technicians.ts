@@ -41,6 +41,11 @@ export const GET_TECHNICIANS_DATA_QUERY = gql`
         email
         phone
         departmentId
+        roleIds
+        roles {
+          id
+          name
+        }
       }
       position {
         id
