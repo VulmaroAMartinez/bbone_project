@@ -1,16 +1,18 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     GetFindingsByAreaDocument,
     GetAreaDocument,
     AreaDetailFragmentDoc,
+    type FindingStatus,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Empty,
@@ -20,6 +22,13 @@ import {
     EmptyDescription,
 } from '@/components/ui/empty';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     ArrowLeft,
     AlertTriangle,
     Calendar,
@@ -27,6 +36,9 @@ import {
     CheckCircle2,
     ChevronLeft,
     ChevronRight,
+    Search,
+    X,
+    Filter,
 } from 'lucide-react';
 
 const PAGE_LIMIT = 20;
@@ -47,23 +59,71 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
 export default function AreaFindingsPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [page, setPage] = useState(1);
 
+    // ─── State: Paginación y filtros
+    const [page, setPage] = useState(1);
+    const [statusFilter, setStatusFilter] = useState<FindingStatus | 'ALL'>('ALL');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+
+    // ─── Queries
     const { data: areaData } = useQuery(GetAreaDocument, {
         variables: { id: id! },
         skip: !id,
     });
 
     const { data, loading } = useQuery(GetFindingsByAreaDocument, {
-        variables: { areaId: id!, page, limit: PAGE_LIMIT },
+        variables: {
+            areaId: id!,
+            page,
+            limit: PAGE_LIMIT,
+            // Pasar filtros solo si tienen valor
+            ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
+            ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
+            ...(dateFrom ? { createdFrom: new Date(dateFrom + 'T00:00:00').toISOString() } : {}),
+            ...(dateTo ? { createdTo: new Date(dateTo + 'T23:59:59').toISOString() } : {}),
+        },
         skip: !id,
         fetchPolicy: 'cache-and-network',
     });
 
+    // ─── Derived
     const area = areaData?.area ? unmaskFragment(AreaDetailFragmentDoc, areaData.area) : null;
     const result = data?.findingsFiltered;
     const findings = result?.data ?? [];
     const totalPages = result?.totalPages ?? 1;
+
+    const hasFilters = statusFilter !== 'ALL' || searchTerm || dateFrom || dateTo;
+
+    // ─── Handlers
+    const clearFilters = () => {
+        setStatusFilter('ALL');
+        setSearchTerm('');
+        setDateFrom('');
+        setDateTo('');
+        setPage(1);
+    };
+
+    const handleStatusChange = (value: string) => {
+        setStatusFilter(value as FindingStatus | 'ALL');
+        setPage(1);
+    };
+
+    const handleSearch = (value: string) => {
+        setSearchTerm(value);
+        setPage(1);
+    };
+
+    const handleDateFromChange = (value: string) => {
+        setDateFrom(value);
+        setPage(1);
+    };
+
+    const handleDateToChange = (value: string) => {
+        setDateTo(value);
+        setPage(1);
+    };
 
     const formatDate = (d?: string | null) =>
         d
@@ -99,7 +159,81 @@ export default function AreaFindingsPage() {
                 </div>
             </div>
 
-            {/* Content */}
+            {/* ── Filtros ────────────────────────────────────── */}
+            <div className="space-y-2">
+                {/* Buscador */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Buscar por folio o descripción..."
+                        value={searchTerm}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        className="pl-9 pr-9"
+                    />
+                    {searchTerm && (
+                        <button
+                            onClick={() => handleSearch('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
+
+                {/* Fila de filtros */}
+                <div className="flex flex-wrap gap-2">
+                    {/* Status */}
+                    <Select value={statusFilter} onValueChange={handleStatusChange}>
+                        <SelectTrigger className="w-[160px] h-8 text-xs">
+                            <SelectValue placeholder="Estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Todos los estados</SelectItem>
+                            <SelectItem value="OPEN">Abiertos</SelectItem>
+                            <SelectItem value="CONVERTED_TO_WO">Convertidos a OT</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Fecha desde */}
+                    <div className="relative">
+                        <Input
+                            type="date"
+                            value={dateFrom}
+                            onChange={(e) => handleDateFromChange(e.target.value)}
+                            className="h-8 text-xs w-[150px]"
+                            placeholder="Desde"
+                            max={dateTo || undefined}
+                        />
+                    </div>
+
+                    {/* Fecha hasta */}
+                    <div className="relative">
+                        <Input
+                            type="date"
+                            value={dateTo}
+                            onChange={(e) => handleDateToChange(e.target.value)}
+                            className="h-8 text-xs w-[150px]"
+                            placeholder="Hasta"
+                            min={dateFrom || undefined}
+                        />
+                    </div>
+
+                    {/* Limpiar filtros */}
+                    {hasFilters && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearFilters}
+                            className="h-8 text-xs gap-1 text-muted-foreground"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                            Limpiar
+                        </Button>
+                    )}
+                </div>
+            </div>
+
+            {/* ── Content ─────────────────────────────────── */}
             {loading && !data ? (
                 <div className="space-y-3">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -121,10 +255,24 @@ export default function AreaFindingsPage() {
                         <EmptyMedia variant="icon">
                             <AlertTriangle className="h-6 w-6" />
                         </EmptyMedia>
-                        <EmptyTitle>Sin hallazgos</EmptyTitle>
+                        <EmptyTitle>
+                            {hasFilters ? 'Sin resultados' : 'Sin hallazgos'}
+                        </EmptyTitle>
                         <EmptyDescription>
-                            Esta área no tiene hallazgos registrados.
+                            {hasFilters
+                                ? 'No se encontraron hallazgos con los filtros actuales.'
+                                : 'Esta área no tiene hallazgos registrados.'}
                         </EmptyDescription>
+                        {hasFilters && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={clearFilters}
+                                className="mt-3"
+                            >
+                                Limpiar filtros
+                            </Button>
+                        )}
                     </EmptyHeader>
                 </Empty>
             ) : (
@@ -156,26 +304,26 @@ export default function AreaFindingsPage() {
 
                                         {/* OT vinculada */}
                                         {finding.convertedToWo && (
-                                            <Badge variant="outline" className="text-xs font-mono">
+                                            <Badge variant="secondary" className="text-xs">
                                                 OT: {finding.convertedToWo.folio}
                                             </Badge>
                                         )}
 
-                                        {/* Metadata */}
-                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
+                                        {/* Meta info */}
+                                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                             {finding.machine && (
                                                 <span className="flex items-center gap-1">
-                                                    <Cog className="h-3 w-3" />
+                                                    <Cog className="h-3.5 w-3.5" />
                                                     {finding.machine.name}
                                                 </span>
                                             )}
-                                            {finding.shift && (
-                                                <span>{finding.shift.name}</span>
-                                            )}
                                             <span className="flex items-center gap-1">
-                                                <Calendar className="h-3 w-3" />
+                                                <Calendar className="h-3.5 w-3.5" />
                                                 {formatDate(finding.createdAt)}
                                             </span>
+                                            {finding.shift && (
+                                                <span>Turno: {finding.shift.name}</span>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -186,27 +334,29 @@ export default function AreaFindingsPage() {
                     {/* Paginación */}
                     {totalPages > 1 && (
                         <div className="flex items-center justify-between pt-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={page === 1}
-                                onClick={() => setPage((p) => p - 1)}
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                                Anterior
-                            </Button>
-                            <span className="text-sm text-muted-foreground">
-                                {page} / {totalPages}
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={page >= totalPages}
-                                onClick={() => setPage((p) => p + 1)}
-                            >
-                                Siguiente
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
+                            <p className="text-xs text-muted-foreground">
+                                Página {page} de {totalPages}
+                            </p>
+                            <div className="flex gap-1">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    disabled={page <= 1}
+                                    onClick={() => setPage(p => p - 1)}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    disabled={page >= totalPages}
+                                    onClick={() => setPage(p => p + 1)}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </>

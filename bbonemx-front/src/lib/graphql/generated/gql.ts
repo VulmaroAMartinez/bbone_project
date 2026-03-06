@@ -15,16 +15,20 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
  */
 type Documents = {
     "\n  fragment AreaDetail on Area {\n    id\n    name\n    type\n    description\n    isActive\n    createdAt\n    updatedAt\n  }\n": typeof types.AreaDetailFragmentDoc,
+    "\n  fragment SubAreaDetail on SubArea {\n    id\n    name\n    description\n    isActive\n    createdAt\n    updatedAt\n  }\n": typeof types.SubAreaDetailFragmentDoc,
     "\n  \n  query GetAreas {\n    areas {\n      ...AreaBasic\n    }\n  }\n": typeof types.GetAreasDocument,
     "\n  \n  query GetAreasWithDeleted {\n    areasWithDeleted {\n      ...AreaDetail\n    }\n  }\n": typeof types.GetAreasWithDeletedDocument,
     "\n  \n  query GetArea($id: ID!) {\n    area(id: $id) {\n      ...AreaDetail\n    }\n  }\n": typeof types.GetAreaDocument,
     "\n  \n  query GetSubAreasByArea($areaId: ID!) {\n    subAreasByArea(areaId: $areaId) {\n      ...SubAreaBasic\n    }\n  }\n": typeof types.GetSubAreasByAreaDocument,
     "\n  query GetWorkOrdersByArea($areaId: ID!, $page: Int, $limit: Int) {\n    workOrdersFiltered(\n      filters: { areaId: $areaId }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        status\n        priority\n        maintenanceType\n        createdAt\n        subArea { id  name }\n        machine { id  name  code }\n        requester { id  fullName }\n        technicians { isLead  technician { id  fullName } }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n": typeof types.GetWorkOrdersByAreaDocument,
-    "\n  query GetFindingsByArea($areaId: ID!, $page: Int, $limit: Int) {\n    findingsFiltered(\n      filters: { areaId: $areaId }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        photoPath\n        status\n        createdAt\n        machine { id  name  code }\n        shift { id  name }\n        convertedToWo { id  folio }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n": typeof types.GetFindingsByAreaDocument,
+    "\n  query GetFindingsByArea(\n    $areaId: ID!\n    $page: Int\n    $limit: Int\n    $status: FindingStatus\n    $createdFrom: String\n    $createdTo: String\n    $search: String\n  ) {\n    findingsFiltered(\n      filters: {\n        areaId: $areaId\n        status: $status\n        createdFrom: $createdFrom\n        createdTo: $createdTo\n        search: $search\n      }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        photoPath\n        status\n        createdAt\n        machine { id  name  code }\n        shift { id  name }\n        convertedToWo { id  folio }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n": typeof types.GetFindingsByAreaDocument,
     "\n  \n  mutation CreateArea($input: CreateAreaInput!) {\n    createArea(input: $input) {\n      ...AreaDetail\n    }\n  }\n": typeof types.CreateAreaDocument,
     "\n  \n  mutation UpdateArea($id: ID!, $input: UpdateAreaInput!) {\n    updateArea(id: $id, input: $input) {\n      ...AreaDetail\n    }\n  }\n": typeof types.UpdateAreaDocument,
     "\n  mutation DeactivateArea($id: ID!) {\n    deactivateArea(id: $id)\n  }\n": typeof types.DeactivateAreaDocument,
     "\n  \n  mutation ActivateArea($id: ID!) {\n    activateArea(id: $id) {\n      ...AreaDetail\n    }\n  }\n": typeof types.ActivateAreaDocument,
+    "\n  \n  mutation CreateSubArea($input: CreateSubAreaInput!) {\n    createSubArea(input: $input) {\n      ...SubAreaDetail\n    }\n  }\n": typeof types.CreateSubAreaDocument,
+    "\n  \n  mutation UpdateSubArea($id: ID!, $input: UpdateSubAreaInput!) {\n    updateSubArea(id: $id, input: $input) {\n      ...SubAreaDetail\n    }\n  }\n": typeof types.UpdateSubAreaDocument,
+    "\n  mutation DeactivateSubArea($id: ID!) {\n    deactivateSubArea(id: $id)\n  }\n": typeof types.DeactivateSubAreaDocument,
     "\n  \n  mutation Login($employeeNumber: String!, $password: String!) {\n    login(input: { employeeNumber: $employeeNumber, password: $password }) {\n      accessToken\n      user {\n        ...UserBasic\n      }\n    }\n  }\n": typeof types.LoginDocument,
     "\n  \n  query Me {\n    me {\n      ...UserBasic\n    }\n  }\n": typeof types.MeDocument,
     "\n  query GetShifts {\n    shiftsActive {\n      id\n      name\n      startTime\n      endTime\n      isActive\n    }\n  }\n": typeof types.GetShiftsDocument,
@@ -125,16 +129,20 @@ type Documents = {
 };
 const documents: Documents = {
     "\n  fragment AreaDetail on Area {\n    id\n    name\n    type\n    description\n    isActive\n    createdAt\n    updatedAt\n  }\n": types.AreaDetailFragmentDoc,
+    "\n  fragment SubAreaDetail on SubArea {\n    id\n    name\n    description\n    isActive\n    createdAt\n    updatedAt\n  }\n": types.SubAreaDetailFragmentDoc,
     "\n  \n  query GetAreas {\n    areas {\n      ...AreaBasic\n    }\n  }\n": types.GetAreasDocument,
     "\n  \n  query GetAreasWithDeleted {\n    areasWithDeleted {\n      ...AreaDetail\n    }\n  }\n": types.GetAreasWithDeletedDocument,
     "\n  \n  query GetArea($id: ID!) {\n    area(id: $id) {\n      ...AreaDetail\n    }\n  }\n": types.GetAreaDocument,
     "\n  \n  query GetSubAreasByArea($areaId: ID!) {\n    subAreasByArea(areaId: $areaId) {\n      ...SubAreaBasic\n    }\n  }\n": types.GetSubAreasByAreaDocument,
     "\n  query GetWorkOrdersByArea($areaId: ID!, $page: Int, $limit: Int) {\n    workOrdersFiltered(\n      filters: { areaId: $areaId }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        status\n        priority\n        maintenanceType\n        createdAt\n        subArea { id  name }\n        machine { id  name  code }\n        requester { id  fullName }\n        technicians { isLead  technician { id  fullName } }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n": types.GetWorkOrdersByAreaDocument,
-    "\n  query GetFindingsByArea($areaId: ID!, $page: Int, $limit: Int) {\n    findingsFiltered(\n      filters: { areaId: $areaId }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        photoPath\n        status\n        createdAt\n        machine { id  name  code }\n        shift { id  name }\n        convertedToWo { id  folio }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n": types.GetFindingsByAreaDocument,
+    "\n  query GetFindingsByArea(\n    $areaId: ID!\n    $page: Int\n    $limit: Int\n    $status: FindingStatus\n    $createdFrom: String\n    $createdTo: String\n    $search: String\n  ) {\n    findingsFiltered(\n      filters: {\n        areaId: $areaId\n        status: $status\n        createdFrom: $createdFrom\n        createdTo: $createdTo\n        search: $search\n      }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        photoPath\n        status\n        createdAt\n        machine { id  name  code }\n        shift { id  name }\n        convertedToWo { id  folio }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n": types.GetFindingsByAreaDocument,
     "\n  \n  mutation CreateArea($input: CreateAreaInput!) {\n    createArea(input: $input) {\n      ...AreaDetail\n    }\n  }\n": types.CreateAreaDocument,
     "\n  \n  mutation UpdateArea($id: ID!, $input: UpdateAreaInput!) {\n    updateArea(id: $id, input: $input) {\n      ...AreaDetail\n    }\n  }\n": types.UpdateAreaDocument,
     "\n  mutation DeactivateArea($id: ID!) {\n    deactivateArea(id: $id)\n  }\n": types.DeactivateAreaDocument,
     "\n  \n  mutation ActivateArea($id: ID!) {\n    activateArea(id: $id) {\n      ...AreaDetail\n    }\n  }\n": types.ActivateAreaDocument,
+    "\n  \n  mutation CreateSubArea($input: CreateSubAreaInput!) {\n    createSubArea(input: $input) {\n      ...SubAreaDetail\n    }\n  }\n": types.CreateSubAreaDocument,
+    "\n  \n  mutation UpdateSubArea($id: ID!, $input: UpdateSubAreaInput!) {\n    updateSubArea(id: $id, input: $input) {\n      ...SubAreaDetail\n    }\n  }\n": types.UpdateSubAreaDocument,
+    "\n  mutation DeactivateSubArea($id: ID!) {\n    deactivateSubArea(id: $id)\n  }\n": types.DeactivateSubAreaDocument,
     "\n  \n  mutation Login($employeeNumber: String!, $password: String!) {\n    login(input: { employeeNumber: $employeeNumber, password: $password }) {\n      accessToken\n      user {\n        ...UserBasic\n      }\n    }\n  }\n": types.LoginDocument,
     "\n  \n  query Me {\n    me {\n      ...UserBasic\n    }\n  }\n": types.MeDocument,
     "\n  query GetShifts {\n    shiftsActive {\n      id\n      name\n      startTime\n      endTime\n      isActive\n    }\n  }\n": types.GetShiftsDocument,
@@ -255,6 +263,10 @@ export function gql(source: "\n  fragment AreaDetail on Area {\n    id\n    name
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
+export function gql(source: "\n  fragment SubAreaDetail on SubArea {\n    id\n    name\n    description\n    isActive\n    createdAt\n    updatedAt\n  }\n"): (typeof documents)["\n  fragment SubAreaDetail on SubArea {\n    id\n    name\n    description\n    isActive\n    createdAt\n    updatedAt\n  }\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
 export function gql(source: "\n  \n  query GetAreas {\n    areas {\n      ...AreaBasic\n    }\n  }\n"): (typeof documents)["\n  \n  query GetAreas {\n    areas {\n      ...AreaBasic\n    }\n  }\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
@@ -275,7 +287,7 @@ export function gql(source: "\n  query GetWorkOrdersByArea($areaId: ID!, $page: 
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\n  query GetFindingsByArea($areaId: ID!, $page: Int, $limit: Int) {\n    findingsFiltered(\n      filters: { areaId: $areaId }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        photoPath\n        status\n        createdAt\n        machine { id  name  code }\n        shift { id  name }\n        convertedToWo { id  folio }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n"): (typeof documents)["\n  query GetFindingsByArea($areaId: ID!, $page: Int, $limit: Int) {\n    findingsFiltered(\n      filters: { areaId: $areaId }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        photoPath\n        status\n        createdAt\n        machine { id  name  code }\n        shift { id  name }\n        convertedToWo { id  folio }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n"];
+export function gql(source: "\n  query GetFindingsByArea(\n    $areaId: ID!\n    $page: Int\n    $limit: Int\n    $status: FindingStatus\n    $createdFrom: String\n    $createdTo: String\n    $search: String\n  ) {\n    findingsFiltered(\n      filters: {\n        areaId: $areaId\n        status: $status\n        createdFrom: $createdFrom\n        createdTo: $createdTo\n        search: $search\n      }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        photoPath\n        status\n        createdAt\n        machine { id  name  code }\n        shift { id  name }\n        convertedToWo { id  folio }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n"): (typeof documents)["\n  query GetFindingsByArea(\n    $areaId: ID!\n    $page: Int\n    $limit: Int\n    $status: FindingStatus\n    $createdFrom: String\n    $createdTo: String\n    $search: String\n  ) {\n    findingsFiltered(\n      filters: {\n        areaId: $areaId\n        status: $status\n        createdFrom: $createdFrom\n        createdTo: $createdTo\n        search: $search\n      }\n      pagination: { page: $page, limit: $limit }\n      sort: { field: \"createdAt\", order: \"DESC\" }\n    ) {\n      data {\n        id\n        folio\n        description\n        photoPath\n        status\n        createdAt\n        machine { id  name  code }\n        shift { id  name }\n        convertedToWo { id  folio }\n      }\n      total\n      page\n      limit\n      totalPages\n    }\n  }\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
@@ -292,6 +304,18 @@ export function gql(source: "\n  mutation DeactivateArea($id: ID!) {\n    deacti
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function gql(source: "\n  \n  mutation ActivateArea($id: ID!) {\n    activateArea(id: $id) {\n      ...AreaDetail\n    }\n  }\n"): (typeof documents)["\n  \n  mutation ActivateArea($id: ID!) {\n    activateArea(id: $id) {\n      ...AreaDetail\n    }\n  }\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\n  \n  mutation CreateSubArea($input: CreateSubAreaInput!) {\n    createSubArea(input: $input) {\n      ...SubAreaDetail\n    }\n  }\n"): (typeof documents)["\n  \n  mutation CreateSubArea($input: CreateSubAreaInput!) {\n    createSubArea(input: $input) {\n      ...SubAreaDetail\n    }\n  }\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\n  \n  mutation UpdateSubArea($id: ID!, $input: UpdateSubAreaInput!) {\n    updateSubArea(id: $id, input: $input) {\n      ...SubAreaDetail\n    }\n  }\n"): (typeof documents)["\n  \n  mutation UpdateSubArea($id: ID!, $input: UpdateSubAreaInput!) {\n    updateSubArea(id: $id, input: $input) {\n      ...SubAreaDetail\n    }\n  }\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\n  mutation DeactivateSubArea($id: ID!) {\n    deactivateSubArea(id: $id)\n  }\n"): (typeof documents)["\n  mutation DeactivateSubArea($id: ID!) {\n    deactivateSubArea(id: $id)\n  }\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

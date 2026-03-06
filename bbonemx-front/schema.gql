@@ -11,6 +11,14 @@ type AbsenceReason {
   updatedAt: DateTime!
 }
 
+input AddMaterialToRequestInput {
+  importance: MaterialRequestImportance
+  materialId: ID!
+  maximumStock: Int
+  minimumStock: Int
+  quantity: Int!
+}
+
 input AddWorkOrderMaterialInput {
   materialId: ID!
   notes: String
@@ -43,15 +51,10 @@ type AreaMetric {
 
 """Tipo de área"""
 enum AreaType {
-  """Área operativa - Puede tener sub-áreas y máquinas directas"""
+  """Área operativa - Puede tener sub-áreas y máquinas"""
   OPERATIONAL
 
-  """
-  Área de producción - Puede tener líneas (sub-áreas) y máquinas directas
-  """
-  PRODUCTION
-
-  """Área de servicio - Máquinas directas, sin sub-áreas requeridas"""
+  """Área de servicio - No tiene sub-áreas"""
   SERVICE
 }
 
@@ -156,14 +159,12 @@ input CreateDepartmentInput {
 input CreateFindingInput {
   areaId: ID!
   description: String!
-  machineId: ID
-  photoPath: String
+  machineId: ID!
+  photoPath: String!
   shiftId: ID!
 }
 
 input CreateMachineInput {
-  """ID del área (si la máquina pertenece directamente al área)"""
-  areaId: ID
   brand: String
   code: String!
   description: String
@@ -173,9 +174,7 @@ input CreateMachineInput {
   name: String!
   operationalManualUrl: String
   serialNumber: String
-
-  """ID de la sub-área (si la máquina pertenece a una sub-área)"""
-  subAreaId: ID
+  subAreaId: String!
 }
 
 input CreateMaterialInput {
@@ -189,36 +188,13 @@ input CreateMaterialInput {
 }
 
 input CreateMaterialRequestInput {
-  boss: String!
-  category: String!
   comments: String
-  customMachineBrand: String!
-  customMachineManufacturer: String!
-  customMachineModel: String!
-  customMachineName: String!
-  importance: String!
-  isGenericAllowed: Boolean!
-  items: [CreateMaterialRequestItemInput!]! = []
+  isGenericOrAlternativeModel: Boolean = false
   justification: String
   machineId: ID!
-  priority: String!
-  requesterId: ID!
+  priority: MaterialRequestPriority!
+  requestText: String!
   suggestedSupplier: String
-}
-
-input CreateMaterialRequestItemInput {
-  brand: String
-  description: String
-  materialId: ID
-  materialRequestId: ID
-  model: String
-  partNumber: String
-  proposedMaxStock: Int
-  proposedMinStock: Int
-  requestedQuantity: Int
-  sku: String
-  sparePartId: ID
-  unitOfMeasure: String
 }
 
 input CreatePositionInput {
@@ -422,9 +398,9 @@ type Finding {
   description: String!
   folio: String!
   id: ID!
-  machine: Machine
-  machineId: ID
-  photoPath: String
+  machine: Machine!
+  machineId: ID!
+  photoPath: String!
   sequence: Int!
   shift: Shift!
   status: FindingStatus!
@@ -527,11 +503,6 @@ type LoginResponse {
 }
 
 type Machine {
-  """Área directa (null si pertenece a sub-área)"""
-  area: Area
-
-  """ID del área directa (null si pertenece a sub-área)"""
-  areaId: ID
   brand: String
   code: String!
   createdAt: DateTime!
@@ -540,20 +511,13 @@ type Machine {
   installationDate: DateTime
   isActive: Boolean!
   machinePhotoUrl: String
-  materialRequests: [MaterialRequest!]
   model: String
   name: String!
   operationalManualUrl: String
   serialNumber: String
-  spareParts: [SparePart!]
-
-  """Sub-área (null si pertenece directamente al área)"""
-  subArea: SubArea
-
-  """ID de la sub-área (null si pertenece directamente al área)"""
-  subAreaId: ID
+  subArea: SubArea!
+  subAreaId: ID!
   updatedAt: DateTime!
-  workOrders: [WorkOrder!]
 }
 
 type MachineMetric {
@@ -592,48 +556,64 @@ type Material {
 }
 
 type MaterialRequest {
-  boss: String!
-  category: RequestCategory!
   comments: String
   createdAt: DateTime!
-  customMachineBrand: String
-  customMachineManufacturer: String
-  customMachineModel: String
-  customMachineName: String
   folio: String!
   id: ID!
-  importance: RequestImportance!
   isActive: Boolean!
-  isGenericAllowed: Boolean!
-  items: [MaterialRequestItem!]!
+  isGenericOrAlternativeModel: Boolean!
   justification: String
   machine: Machine!
   machineId: ID!
-  priority: RequestPriority!
-  requester: User!
-  requesterId: ID!
+  materials: [MaterialRequestMaterial!]!
+  priority: MaterialRequestPriority!
+  requestText: String!
   sequence: Int!
   suggestedSupplier: String
   updatedAt: DateTime!
 }
 
-type MaterialRequestItem {
-  brand: String
+"""Importancia del material en la solicitud"""
+enum MaterialRequestImportance {
+  """Crítica"""
+  CRITICAL
+
+  """Alta"""
+  HIGH
+
+  """Baja"""
+  LOW
+
+  """Media"""
+  MEDIUM
+}
+
+type MaterialRequestMaterial {
   createdAt: DateTime!
-  description: String
   id: ID!
-  material: Material
-  materialId: ID
-  model: String
-  partNumber: String
-  proposedMaxStock: Int
-  proposedMinStock: Int
-  requestedQuantity: Int
-  sku: String
-  sparePart: SparePart
-  sparePartId: ID
-  unitOfMeasure: String
+  importance: MaterialRequestImportance
+  material: Material!
+  materialId: ID!
+  materialRequestId: ID!
+  maximumStock: Int
+  minimumStock: Int
+  quantity: Int!
   updatedAt: DateTime!
+}
+
+"""Prioridad de solicitud de material"""
+enum MaterialRequestPriority {
+  """Crítica"""
+  CRITICAL
+
+  """Alta"""
+  HIGH
+
+  """Baja"""
+  LOW
+
+  """Media"""
+  MEDIUM
 }
 
 type MixPoint {
@@ -655,8 +635,7 @@ type Mutation {
   activateSparePart(id: ID!): SparePart!
   activateSubArea(id: ID!): SubArea!
   activateTechnician(id: ID!): Technician!
-  activateUser(id: ID!): Boolean!
-  addMaterialToRequest(input: CreateMaterialRequestItemInput!, materialRequestId: ID!): MaterialRequestItem!
+  addMaterialToRequest(input: AddMaterialToRequestInput!, materialRequestId: ID!): MaterialRequestMaterial!
   addWorkOrderMaterial(input: AddWorkOrderMaterialInput!): WorkOrderMaterial!
   addWorkOrderSparePart(input: AddWorkOrderSparePartInput!): WorkOrderSparePart!
   assignTechnician(input: AssignTechnicianInput!): WorkOrderTechnician!
@@ -943,18 +922,14 @@ type Query {
   absenceReason(id: ID!): AbsenceReason
   absenceReasons: [AbsenceReason!]!
   absenceReasonsActive: [AbsenceReason!]!
-  absenceReasonsWithDeleted: [AbsenceReason!]!
   area(id: ID!): Area
   areaByName(name: String!): Area
   areas: [Area!]!
   areasActive: [Area!]!
-  areasWithDeleted: [Area!]!
-  bossesByPositionName: [Technician!]!
   dashboardData(input: DashboardInput!): DashboardData!
   department(id: ID!): Department
   departments: [Department!]!
   departmentsActive: [Department!]!
-  departmentsWithDeleted: [Department!]!
   finding(id: ID!): Finding
   findingByFolio(folio: String!): Finding
   findings: [Finding!]!
@@ -962,22 +937,16 @@ type Query {
   findingsFiltered(filters: FindingFiltersInput, pagination: FindingPaginationInput, sort: FindingSortInput): FindingPaginatedResponse!
   findingsOpen: [Finding!]!
   findingsStats: [FindingStats!]!
-  findingsWithDeleted: [Finding!]!
   machine(id: ID!): Machine
   machines: [Machine!]!
   machinesActive: [Machine!]!
-
-  """Búsqueda flexible de máquinas por área y/o sub-área"""
-  machinesByArea(areaId: ID, subAreaId: ID): [Machine!]!
   material(id: ID!): Material
   materialRequest(id: ID!): MaterialRequest
   materialRequestByFolio(folio: String!): MaterialRequest
   materialRequests: [MaterialRequest!]!
   materialRequestsActive: [MaterialRequest!]!
-  materialRequestsWithDeleted: [MaterialRequest!]!
   materials: [Material!]!
   materialsActive: [Material!]!
-  materialsWithDeleted: [Material!]!
 
   """Obtiene el usuario actualmente autenticado"""
   me: User!
@@ -995,7 +964,6 @@ type Query {
   position(id: ID!): Position
   positions: [Position!]!
   positionsActive: [Position!]!
-  positionsWithDeleted: [Position!]!
   preventiveTaskById(id: ID!): PreventiveTask
   preventiveTaskCountActive: Int!
   preventiveTaskStats: [PreventiveTaskStats!]!
@@ -1004,26 +972,21 @@ type Query {
   preventiveTasksByMachineId(machineId: ID!): [PreventiveTask!]!
   preventiveTasksCronStatus: CronJobStatus!
   preventiveTasksFiltered(filters: PreventiveTaskFiltersInput, pagination: PreventiveTaskPaginationInput, sort: PreventiveTaskSortInput): PreventiveTaskPaginatedResponse!
-  preventiveTasksWithDeleted: [PreventiveTask!]!
   role(id: ID!): Role
   roles: [Role!]!
-  rolesActive: [Role!]!
-  rolesWithDeleted: [Role!]!
+  rolesActive: Role!
   schedulerStatus: SchedulerStatus!
   shift(id: ID!): Shift
   shifts: [Shift!]!
   shiftsActive: [Shift!]!
-  shiftsWithDeleted: [Shift!]!
   sparePart(id: ID!): SparePart
   spareParts: [SparePart!]!
   sparePartsActive: [SparePart!]!
   sparePartsByMachine(machineId: ID!): [SparePart!]!
-  sparePartsWithDeleted: [SparePart!]!
   subArea(id: ID!): SubArea
   subAreas: [SubArea!]!
   subAreasActive: [SubArea!]!
   subAreasByArea(areaId: ID!): [SubArea!]!
-  subAreasWithDeleted: [SubArea!]!
   technician(id: ID!): Technician
 
   """Obtiene un horario por ID"""
@@ -1037,20 +1000,15 @@ type Query {
   """
   technicianSchedulesFiltered(filters: ScheduleFiltersInput!): [TechnicianSchedule!]!
 
-  """Obtiene todos los horarios de técnicos incluyendo eliminados"""
-  technicianSchedulesWithDeleted: [TechnicianSchedule!]!
-
   """Obtiene los horarios de un técnico en una semana específica"""
   technicianWeekSchedule(technicianId: ID!, weekNumber: Int!, year: Int!): [TechnicianSchedule!]!
   technicians: [Technician!]!
   techniciansActive: [Technician!]!
-  techniciansWithDeleted: [Technician!]!
 
   """Contador de notificaciones no leídas"""
   unreadNotificationsCount: Int!
   user(id: ID!): User
   users: [User!]!
-  usersWithDeleted: [User!]!
 
   """Obtiene los horarios de una semana completa con resumen"""
   weekSchedule(weekNumber: Int!, year: Int!): WeekScheduleSummary!
@@ -1059,7 +1017,6 @@ type Query {
   workOrderStats: [WorkOrderStats!]!
   workOrders: [WorkOrder!]!
   workOrdersFiltered(filters: WorkOrderFiltersInput, pagination: PaginationInput, sort: WorkOrderSortInput): WorkOrderPaginatedResponse!
-  workOrdersWithDeleted: [WorkOrder!]!
 }
 
 input RegisterDeviceTokenInput {
@@ -1071,66 +1028,6 @@ input RegisterDeviceTokenInput {
 
   """La plataforma del dispositivo"""
   platform: DevicePlatform! = WEB
-}
-
-"""Categoría de la solicitud"""
-enum RequestCategory {
-  """Equipo"""
-  EQUIPMENT
-
-  """Material con SKU"""
-  MATERIAL_WITH_SKU
-
-  """Material noInventariado"""
-  NON_INVENTORY_MATERIAL
-
-  """Pieza de repuesto noInventariada"""
-  NON_INVENTORY_SPARE_PART
-
-  """Protección personal"""
-  PPE
-
-  """Solicitud de material con SKU"""
-  REQUEST_SKU_MATERIAL
-
-  """Solicitud de pieza de repuesto con SKU"""
-  REQUEST_SKU_SPARE_PART
-
-  """Servicio"""
-  SERVICE
-
-  """Servicio con material"""
-  SERVICE_WITH_MATERIAL
-
-  """Pieza de repuesto con SKU"""
-  SPARE_PART_WITH_SKU
-
-  """Herramientas"""
-  TOOLS
-
-  """Actualización de SKU"""
-  UPDATE_SKU
-}
-
-"""Importancia de la solicitud"""
-enum RequestImportance {
-  """Importante"""
-  IMPORTANT
-
-  """poco importante"""
-  UNIMPORTANT
-
-  """Muy importante"""
-  VERY_IMPORTANT
-}
-
-"""Prioridad de la solicitud"""
-enum RequestPriority {
-  """Programada"""
-  SCHEDULED
-
-  """Urgente"""
-  URGENT
 }
 
 type Role {
@@ -1267,7 +1164,7 @@ type TechnicianSchedule {
   id: ID!
   isActive: Boolean!
   notes: String
-  scheduleDate: String!
+  scheduleDate: DateTime!
   shift: Shift
   shiftId: ID
   technician: User!
@@ -1313,8 +1210,6 @@ input UpdateFindingInput {
 }
 
 input UpdateMachineInput {
-  """ID del área (si la máquina pertenece directamente al área)"""
-  areaId: ID
   brand: String
   code: String
   description: String
@@ -1324,9 +1219,7 @@ input UpdateMachineInput {
   name: String
   operationalManualUrl: String
   serialNumber: String
-
-  """ID de la sub-área (si la máquina pertenece a una sub-área)"""
-  subAreaId: ID
+  subAreaId: String
 }
 
 input UpdateMaterialInput {
@@ -1340,21 +1233,12 @@ input UpdateMaterialInput {
 }
 
 input UpdateMaterialRequestInput {
-  boss: String
-  category: String
   comments: String
-  customMachineBrand: String
-  customMachineManufacturer: String
-  customMachineModel: String
-  customMachineName: String
-  id: ID!
-  importance: String
-  isGenericAllowed: Boolean
-  items: [CreateMaterialRequestItemInput!] = []
+  isGenericOrAlternativeModel: Boolean = false
   justification: String
   machineId: ID
-  priority: String
-  requesterId: ID
+  priority: MaterialRequestPriority
+  requestText: String
   suggestedSupplier: String
 }
 

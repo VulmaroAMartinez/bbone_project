@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { List } from 'react-window';
 
 import {
     GetAreasWithDeletedDocument,
@@ -12,10 +13,13 @@ import {
     UpdateAreaDocument,
     DeactivateAreaDocument,
     ActivateAreaDocument,
+    UpdateSubAreaDocument,
+    DeactivateSubAreaDocument,
     type AreaType,
     type AreaDetailFragment,
     AreaDetailFragmentDoc,
     SubAreaBasicFragmentDoc,
+    CreateSubAreaDocument,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 
@@ -25,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Dialog,
     DialogContent,
@@ -79,8 +84,10 @@ import {
     Info,
     X,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // ─── Schema de validación ────────────────────────────────────────────────────
+const AREA_TYPES_WITH_SUBAREAS = ['OPERATIONAL', 'PRODUCTION'];
 
 const areaSchema = yup.object({
     name: yup.string().trim().max(100).required('El nombre es obligatorio'),
@@ -107,6 +114,178 @@ const AREA_TYPE_COLORS: Record<AreaType, string> = {
     'PRODUCTION': 'bg-orange-100 text-orange-700',
 };
 
+const VIRTUAL_LIST_THRESHOLD = 30;
+const ROW_HEIGHT = 44;
+
+type SubAreaItem = { id: string; name: string; isActive: boolean };
+
+// ─── Lista editable de sub-áreas (virtualizada para 100+) ─────────────────────
+function SubAreasEditableList({
+    items,
+    editingId,
+    editingName,
+    onEditingNameChange,
+    onStartEdit,
+    onSaveEdit,
+    onCancelEdit,
+    onDeactivate,
+}: {
+    items: SubAreaItem[];
+    editingId: string | null;
+    editingName: string;
+    onEditingNameChange: (v: string) => void;
+    onStartEdit: (id: string, name: string) => void;
+    onSaveEdit: () => void;
+    onCancelEdit: () => void;
+    onDeactivate: (id: string) => void;
+}) {
+    const useVirtualList = items.length >= VIRTUAL_LIST_THRESHOLD;
+    const maxHeight = Math.min(items.length * ROW_HEIGHT, 280);
+
+    const RowComponent = useCallback(
+        ({ index, style, ...rowProps }: { index: number; style: React.CSSProperties } & Record<string, unknown>) => {
+            const sa = items[index];
+            const isEditing = editingId === sa.id;
+            const { onStartEdit: onStart, onSaveEdit: onSave, onCancelEdit: onCancel, onDeactivate: onDeact, onEditingNameChange: onNameChange } = rowProps as {
+                onStartEdit: (id: string, name: string) => void;
+                onSaveEdit: () => void;
+                onCancelEdit: () => void;
+                onDeactivate: (id: string) => void;
+                onEditingNameChange: (v: string) => void;
+            };
+            return (
+                <div style={style} className="flex items-center gap-2 px-2 py-1.5 border-b border-border/30 last:border-0">
+                    {isEditing ? (
+                        <>
+                            <Input
+                                value={editingName}
+                                onChange={(e) => onNameChange(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') onSave();
+                                    if (e.key === 'Escape') onCancel();
+                                }}
+                                className="h-8 text-sm flex-1"
+                                autoFocus
+                            />
+                            <Button type="button" variant="ghost" size="sm" onClick={onSave} className="h-7 px-2">
+                                Guardar
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={onCancel} className="h-7 px-2">
+                                Cancelar
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <span className="flex-1 truncate text-sm">{sa.name}</span>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => onStart(sa.id, sa.name)}
+                            >
+                                <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                onClick={() => onDeact(sa.id)}
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </Button>
+                        </>
+                    )}
+                </div>
+            );
+        },
+        [items, editingId, editingName, onStartEdit, onSaveEdit, onCancelEdit, onDeactivate, onEditingNameChange]
+    );
+
+    if (items.length === 0) return null;
+
+    if (useVirtualList) {
+        return (
+            <div className="rounded-md border border-border/50 overflow-hidden" style={{ height: maxHeight }}>
+                <List
+                    rowComponent={RowComponent}
+                    rowProps={{
+                        onStartEdit,
+                        onSaveEdit,
+                        onCancelEdit,
+                        onDeactivate,
+                        onEditingNameChange,
+                    }}
+                    rowCount={items.length}
+                    rowHeight={ROW_HEIGHT}
+                    style={{ height: maxHeight, width: '100%' }}
+                    overscanCount={5}
+                />
+            </div>
+        );
+    }
+
+    return (
+        <ScrollArea className="rounded-md border border-border/50" style={{ maxHeight }}>
+            <div className="p-1">
+                {items.map((sa) => {
+                    const isEditing = editingId === sa.id;
+                    return (
+                        <div
+                            key={sa.id}
+                            className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/30"
+                        >
+                            {isEditing ? (
+                                <>
+                                    <Input
+                                        value={editingName}
+                                        onChange={(e) => onEditingNameChange(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') onSaveEdit();
+                                            if (e.key === 'Escape') onCancelEdit();
+                                        }}
+                                        className="h-8 text-sm flex-1"
+                                        autoFocus
+                                    />
+                                    <Button type="button" variant="ghost" size="sm" onClick={onSaveEdit} className="h-7 px-2">
+                                        Guardar
+                                    </Button>
+                                    <Button type="button" variant="ghost" size="sm" onClick={onCancelEdit} className="h-7 px-2">
+                                        Cancelar
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="flex-1 truncate text-sm">{sa.name}</span>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => onStartEdit(sa.id, sa.name)}
+                                    >
+                                        <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 text-destructive hover:text-destructive"
+                                        onClick={() => onDeactivate(sa.id)}
+                                    >
+                                        <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </ScrollArea>
+    );
+}
+
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function AreasPage() {
@@ -122,6 +301,20 @@ export default function AreasPage() {
     const [deactivateArea] = useMutation(DeactivateAreaDocument);
     const [activateArea] = useMutation(ActivateAreaDocument);
 
+    const [newSubAreas, setNewSubAreas] = useState<string[]>([]);
+    const [subAreaInput, setSubAreaInput] = useState('');
+    const [subAreaError, setSubAreaError] = useState('');
+
+    const [createSubArea] = useMutation(CreateSubAreaDocument);
+    const [updateSubArea] = useMutation(UpdateSubAreaDocument);
+    const [deactivateSubArea] = useMutation(DeactivateSubAreaDocument);
+
+    const [existingSubAreas, setExistingSubAreas] = useState<
+        Array<{ id: string; name: string; isActive: boolean }>
+    >([]);
+    const [editingSubAreaId, setEditingSubAreaId] = useState<string | null>(null);
+    const [editingSubAreaName, setEditingSubAreaName] = useState('');
+
     // ─── State
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState<AreaType | 'all'>('all');
@@ -134,24 +327,50 @@ export default function AreasPage() {
     const [deactivatingArea, setDeactivatingArea] = useState<AreaDetailFragment | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Sub-áreas para modal info
-    const { data: subAreasData, loading: subAreasLoading } = useQuery(GetSubAreasByAreaDocument, {
-        variables: { areaId: viewingArea?.id ?? '' },
-        skip: !viewingArea?.id || !isInfoOpen,
-        fetchPolicy: 'cache-and-network',
-    });
-
     // ─── Form
     const {
         register,
         handleSubmit,
         control,
         reset,
+        watch,
         formState: { errors },
     } = useForm<AreaFormValues>({
         resolver: yupResolver(areaSchema),
         defaultValues: EMPTY_FORM,
     });
+
+    const formType = watch('type');
+
+    // Sub-áreas para modal info y modal editar
+    const subAreasAreaId = (isFormOpen && editingArea) ? editingArea.id : (isInfoOpen && viewingArea) ? viewingArea.id : '';
+    const { data: subAreasData, loading: subAreasLoading } = useQuery(GetSubAreasByAreaDocument, {
+        variables: { areaId: subAreasAreaId },
+        skip: !subAreasAreaId,
+        fetchPolicy: 'cache-and-network',
+    });
+
+    const areaType = (editingArea?.type ?? formType) as AreaType;
+
+    useEffect(() => {
+        if (!AREA_TYPES_WITH_SUBAREAS.includes(areaType as AreaType)) {
+            setNewSubAreas([]);
+            setSubAreaInput('');
+            setSubAreaError('');
+            if (!editingArea) setExistingSubAreas([]);
+        }
+    }, [areaType, isFormOpen, editingArea]);
+
+    useEffect(() => {
+        if (subAreasData?.subAreasByArea && (editingArea || viewingArea)) {
+            const subs = unmaskFragment(SubAreaBasicFragmentDoc, subAreasData.subAreasByArea);
+            setExistingSubAreas(
+                subs.map(s => ({ id: s.id, name: s.name, isActive: s.isActive }))
+            );
+        } else if (!subAreasAreaId) {
+            setExistingSubAreas([]);
+        }
+    }, [subAreasData, editingArea, viewingArea, subAreasAreaId]);
 
     // ─── Derived data
     const areas = data?.areasWithDeleted ? unmaskFragment(AreaDetailFragmentDoc, data.areasWithDeleted) : [];
@@ -167,8 +386,8 @@ export default function AreasPage() {
                 filterStatus === 'all'
                     ? true
                     : filterStatus === 'active'
-                    ? a.isActive
-                    : !a.isActive;
+                        ? a.isActive
+                        : !a.isActive;
             return matchSearch && matchType && matchStatus;
         });
     }, [areas, search, filterType, filterStatus]);
@@ -177,6 +396,10 @@ export default function AreasPage() {
     const openCreate = () => {
         setEditingArea(null);
         reset(EMPTY_FORM);
+        setNewSubAreas([]);
+        setSubAreaInput('');
+        setSubAreaError('');
+        setExistingSubAreas([]);
         setIsFormOpen(true);
     };
 
@@ -187,6 +410,11 @@ export default function AreasPage() {
             type: area.type as AreaType,
             description: area.description ?? '',
         });
+        setNewSubAreas([]);
+        setSubAreaInput('');
+        setSubAreaError('');
+        setExistingSubAreas([]);
+        setEditingSubAreaId(null);
         setIsFormOpen(true);
     };
 
@@ -203,6 +431,7 @@ export default function AreasPage() {
     const onSubmit = async (values: AreaFormValues) => {
         setIsSaving(true);
         try {
+            let areaId: string;
             if (editingArea) {
                 await updateArea({
                     variables: {
@@ -214,8 +443,9 @@ export default function AreasPage() {
                         },
                     },
                 });
+                areaId = editingArea.id;
             } else {
-                await createArea({
+                const { data: createData } = await createArea({
                     variables: {
                         input: {
                             name: values.name,
@@ -224,14 +454,122 @@ export default function AreasPage() {
                         },
                     },
                 });
+
+                const createdArea = createData?.createArea
+                    ? unmaskFragment(AreaDetailFragmentDoc, createData.createArea)
+                    : null;
+
+                if (!createdArea) throw new Error("Error al crear el área");
+                areaId = createdArea.id;
             }
+
+            if (newSubAreas.length > 0) {
+                const subAreaPromises = newSubAreas.map(name =>
+                    createSubArea({
+                        variables: {
+                            input: { areaId, name },
+                        },
+                    })
+                );
+                await Promise.all(subAreaPromises);
+                toast.success('Sub-áreas creadas correctamente');
+            }
+
             await refetch();
             setIsFormOpen(false);
             reset(EMPTY_FORM);
+            setNewSubAreas([]);
+            setExistingSubAreas([]);
+        } catch (error: any) {
+            toast.error(error.message || 'Error al guardar el área');
         } finally {
             setIsSaving(false);
         }
     };
+
+    const handleAddSubArea = async () => {
+        const trimmed = subAreaInput.trim();
+        if (!trimmed) return;
+
+        if (trimmed.length > 100) {
+            setSubAreaError('Máximo 100 caracteres');
+            return;
+        }
+
+        const allNames = [
+            ...newSubAreas.map((s) => s.toLowerCase()),
+            ...existingSubAreas.map((s) => s.name.toLowerCase()),
+        ];
+
+        if (allNames.includes(trimmed.toLowerCase())) {
+            setSubAreaError('Esta sub-área ya existe');
+            return;
+        }
+
+        setNewSubAreas(prev => [...prev, trimmed]);
+        setSubAreaInput('');
+        setSubAreaError('');
+    };
+
+    const handleRemoveSubArea = (index: number) => {
+        setNewSubAreas(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleStartEditSubArea = (id: string, name: string) => {
+        setEditingSubAreaId(id);
+        setEditingSubAreaName(name);
+    };
+
+    const handleSaveEditSubArea = useCallback(async () => {
+        if (!editingSubAreaId || !editingSubAreaName.trim()) {
+            setEditingSubAreaId(null);
+            return;
+        }
+        const trimmed = editingSubAreaName.trim();
+        if (trimmed.length > 100) {
+            toast.error('Máximo 100 caracteres');
+            return;
+        }
+        try {
+            await updateSubArea({
+                variables: {
+                    id: editingSubAreaId,
+                    input: { name: trimmed },
+                },
+            });
+            setExistingSubAreas(prev =>
+                prev.map(s => (s.id === editingSubAreaId ? { ...s, name: trimmed } : s))
+            );
+            setEditingSubAreaId(null);
+            setEditingSubAreaName('');
+            toast.success('Sub-área actualizada');
+        } catch (error: unknown) {
+            toast.error((error as Error)?.message || 'Error al actualizar');
+        }
+    }, [editingSubAreaId, editingSubAreaName, updateSubArea]);
+
+    const handleCancelEditSubArea = () => {
+        setEditingSubAreaId(null);
+        setEditingSubAreaName('');
+    };
+
+    const handleDeactivateSubArea = useCallback(async (id: string) => {
+        try {
+            await deactivateSubArea({ variables: { id } });
+            setExistingSubAreas(prev => prev.filter(s => s.id !== id));
+            if (editingSubAreaId === id) setEditingSubAreaId(null);
+            toast.success('Sub-área desactivada');
+        } catch (error: unknown) {
+            toast.error((error as Error)?.message || 'Error al desactivar');
+        }
+    }, [deactivateSubArea, editingSubAreaId]);
+
+    const handleSubAreaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleAddSubArea();
+        }
+    }
 
     const handleToggleStatus = async (area: AreaDetailFragment) => {
         if (area.isActive) {
@@ -537,6 +875,157 @@ export default function AreasPage() {
                                 </p>
                             )}
                         </div>
+
+                        {/* ── Sub-áreas: agregar en crear, editar en editar ───────────── */}
+                        {AREA_TYPES_WITH_SUBAREAS.includes(areaType) && (
+                            <div className="space-y-2">
+                                <Label>
+                                    Sub-áreas{' '}
+                                    <span className="text-muted-foreground font-normal">(opcional)</span>
+                                </Label>
+
+                                {/* CREAR: solo input para agregar sub-áreas nuevas */}
+                                {!editingArea && (
+                                    <>
+                                        {newSubAreas.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {newSubAreas.map((name, idx) => (
+                                                    <Badge
+                                                        key={`new-${idx}`}
+                                                        variant="outline"
+                                                        className="text-xs py-1 px-2 gap-1 bg-primary/5"
+                                                    >
+                                                        {name}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveSubArea(idx)}
+                                                            className="ml-0.5 hover:text-destructive transition-colors"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="flex gap-2">
+                                            <Input
+                                                placeholder="Nombre de sub-área..."
+                                                value={subAreaInput}
+                                                onChange={(e) => {
+                                                    setSubAreaInput(e.target.value);
+                                                    setSubAreaError('');
+                                                }}
+                                                onKeyDown={handleSubAreaKeyDown}
+                                                className="flex-1 h-8 text-sm"
+                                                maxLength={100}
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleAddSubArea}
+                                                disabled={!subAreaInput.trim()}
+                                                className="shrink-0 h-8"
+                                            >
+                                                <Plus className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+                                        {subAreaError && (
+                                            <p className="text-xs text-destructive">{subAreaError}</p>
+                                        )}
+                                        {newSubAreas.length > 0 && (
+                                            <p className="text-xs text-muted-foreground">
+                                                {newSubAreas.length} sub-área{newSubAreas.length !== 1 ? 's' : ''} a crear
+                                            </p>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* EDITAR: lista editable de existentes + input para agregar */}
+                                {editingArea && (
+                                    <>
+                                        {subAreasLoading ? (
+                                            <div className="space-y-2">
+                                                <Skeleton className="h-8 w-full" />
+                                                <Skeleton className="h-8 w-3/4" />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {existingSubAreas.filter(s => s.isActive).length > 0 && (
+                                                    <SubAreasEditableList
+                                                        items={existingSubAreas.filter(s => s.isActive)}
+                                                        editingId={editingSubAreaId}
+                                                        editingName={editingSubAreaName}
+                                                        onEditingNameChange={setEditingSubAreaName}
+                                                        onStartEdit={handleStartEditSubArea}
+                                                        onSaveEdit={handleSaveEditSubArea}
+                                                        onCancelEdit={handleCancelEditSubArea}
+                                                        onDeactivate={handleDeactivateSubArea}
+                                                    />
+                                                )}
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        placeholder="Agregar sub-área..."
+                                                        value={subAreaInput}
+                                                        onChange={(e) => {
+                                                            setSubAreaInput(e.target.value);
+                                                            setSubAreaError('');
+                                                        }}
+                                                        onKeyDown={handleSubAreaKeyDown}
+                                                        className="flex-1 h-8 text-sm"
+                                                        maxLength={100}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleAddSubArea}
+                                                        disabled={!subAreaInput.trim()}
+                                                        className="shrink-0 h-8"
+                                                    >
+                                                        <Plus className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                                {subAreaError && (
+                                                    <p className="text-xs text-destructive">{subAreaError}</p>
+                                                )}
+                                                {(existingSubAreas.filter(s => s.isActive).length + newSubAreas.length) > 0 && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {existingSubAreas.filter(s => s.isActive).length + newSubAreas.length} sub-área
+                                                        {(existingSubAreas.filter(s => s.isActive).length + newSubAreas.length) !== 1 ? 's' : ''}
+                                                        {newSubAreas.length > 0 && (
+                                                            <span className="text-primary">
+                                                                {' '}({newSubAreas.length} nueva{newSubAreas.length !== 1 ? 's' : ''})
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                )}
+                                            </>
+                                        )}
+                                        {newSubAreas.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {newSubAreas.map((name, idx) => (
+                                                    <Badge
+                                                        key={`new-${idx}`}
+                                                        variant="outline"
+                                                        className="text-xs py-1 px-2 gap-1 bg-primary/5"
+                                                    >
+                                                        {name}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveSubArea(idx)}
+                                                            className="ml-0.5 hover:text-destructive transition-colors"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
 
                         <DialogFooter className="pt-2 gap-2">
                             <Button

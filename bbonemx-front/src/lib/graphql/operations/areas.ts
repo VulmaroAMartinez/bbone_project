@@ -14,6 +14,17 @@ export const AREA_DETAIL_FRAGMENT = gql`
   }
 `;
 
+export const SUB_AREA_DETAIL_FRAGMENT = gql`
+  fragment SubAreaDetail on SubArea {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+`;
+
 // ─── Queries ─────────────────────────────────────────────────────────────────
 export const GET_AREAS_QUERY = gql`
   ${AREA_BASIC_FRAGMENT}
@@ -82,9 +93,23 @@ export const GET_WORK_ORDERS_BY_AREA_QUERY = gql`
 
 
 export const GET_FINDINGS_BY_AREA_QUERY = gql`
-  query GetFindingsByArea($areaId: ID!, $page: Int, $limit: Int) {
+  query GetFindingsByArea(
+    $areaId: ID!
+    $page: Int
+    $limit: Int
+    $status: FindingStatus
+    $createdFrom: String
+    $createdTo: String
+    $search: String
+  ) {
     findingsFiltered(
-      filters: { areaId: $areaId }
+      filters: {
+        areaId: $areaId
+        status: $status
+        createdFrom: $createdFrom
+        createdTo: $createdTo
+        search: $search
+      }
       pagination: { page: $page, limit: $limit }
       sort: { field: "createdAt", order: "DESC" }
     ) {
@@ -138,5 +163,29 @@ export const ACTIVATE_AREA_MUTATION = gql`
     activateArea(id: $id) {
       ...AreaDetail
     }
+  }
+`;
+
+export const CREATE_SUB_AREA_MUTATION = gql`
+  ${SUB_AREA_DETAIL_FRAGMENT}
+  mutation CreateSubArea($input: CreateSubAreaInput!) {
+    createSubArea(input: $input) {
+      ...SubAreaDetail
+    }
+  }
+`;
+
+export const UPDATE_SUB_AREA_MUTATION = gql`
+  ${SUB_AREA_DETAIL_FRAGMENT}
+  mutation UpdateSubArea($id: ID!, $input: UpdateSubAreaInput!) {
+    updateSubArea(id: $id, input: $input) {
+      ...SubAreaDetail
+    }
+  }
+`;
+
+export const DEACTIVATE_SUB_AREA_MUTATION = gql`
+  mutation DeactivateSubArea($id: ID!) {
+    deactivateSubArea(id: $id)
   }
 `;
