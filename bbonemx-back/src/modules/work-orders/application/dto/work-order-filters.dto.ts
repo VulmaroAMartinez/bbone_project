@@ -1,6 +1,6 @@
 import { InputType, Field, ID, Int } from '@nestjs/graphql';
 import { IsOptional, IsUUID, IsEnum, IsDateString, IsInt, Min, Max } from 'class-validator';
-import { WorkOrderStatus, WorkOrderPriority, MaintenanceType } from '../../../../common/enums';
+import { WorkOrderStatus, WorkOrderPriority, MaintenanceType, WorkType } from '../../../../common/enums';
 
 
 @InputType()
@@ -44,6 +44,22 @@ export class WorkOrderFiltersInput {
   @IsOptional()
   @IsUUID()
   assignedShiftId?: string;
+
+
+  @Field(() => WorkType, { nullable: true })
+  @IsOptional()
+  @IsEnum(WorkType)
+  workType?: WorkType;
+
+  @Field({ nullable: true, description: 'Fecha programada desde (ISO)' })
+  @IsOptional()
+  @IsDateString()
+  scheduledFrom?: string;
+
+  @Field({ nullable: true, description: 'Fecha programada hasta (ISO)' })
+  @IsOptional()
+  @IsDateString()
+  scheduledTo?: string;
 
   @Field({ nullable: true, description: 'Fecha de creación desde (ISO)' })
   @IsOptional()

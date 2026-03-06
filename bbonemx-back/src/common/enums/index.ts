@@ -2,6 +2,7 @@ export * from './work-order-status.enum';
 export * from './work-order-priority.enum';
 export * from './maintenance-type.enum';
 export * from './stop-type.enum';
+export * from './work-type.enum';
 export * from './finding-status.enum';
 export * from './role.enum';
 export * from './photo-type.enum';

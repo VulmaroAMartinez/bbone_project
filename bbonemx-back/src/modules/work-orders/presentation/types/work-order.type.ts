@@ -3,7 +3,8 @@ import {
   WorkOrderStatus,
   WorkOrderPriority,
   MaintenanceType,
-  StopType
+  StopType,
+  WorkType
 } from '../../../../common/enums';
 import { UserType } from '../../../users/presentation/types';
 import { AreaType } from '../../../catalogs/areas/presentation/types';
@@ -69,6 +70,12 @@ export class WorkOrderType {
 
   @Field(() => StopType, { nullable: true }) 
   stopType?: StopType;
+
+  @Field({ nullable: true })
+  scheduledDate?: Date;
+
+  @Field(() => WorkType, { nullable: true })
+  workType?: WorkType;
 
   @Field({ nullable: true })
   startDate?: Date;

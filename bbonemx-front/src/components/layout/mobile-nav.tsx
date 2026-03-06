@@ -58,6 +58,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
       return [
         { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/admin/ordenes', label: 'Órdenes', icon: ClipboardList },
+        { href: '/admin/ordenes-programadas', label: 'Programadas', icon: Calendar },
         { href: '/maquinas', label: 'Máquinas', icon: Forklift },
         { href: '/hallazgos', label: 'Hallazgos', icon: Search },
         { href: '/admin/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
