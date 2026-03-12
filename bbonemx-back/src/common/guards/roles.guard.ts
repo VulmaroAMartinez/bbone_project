@@ -41,9 +41,6 @@ export class RolesGuard implements CanActivate {
     }
 
     const userRoleNames = user.roles?.map((role: { name: string }) => role.name) ?? [];
-    if (!userRoleNames.length && user.role?.name) {
-      userRoleNames.push(user.role.name);
-    }
 
     return requiredRoles.some((role) => userRoleNames.includes(role));
   }

@@ -29,6 +29,11 @@ export class PreventiveTasksResolver {
         return this.preventiveTasksService.findAll();
     }
 
+    @Query(() => [PreventiveTaskType], { name: "preventiveTasksWithDeleted" })
+    findAllWithDeleted() {
+        return this.preventiveTasksService.findAllWithDeleted();
+    }
+
     @Query(() => [PreventiveTaskType], { name: "preventiveTasksActive" })
     findAllActive() {
         return this.preventiveTasksService.findAllActive();

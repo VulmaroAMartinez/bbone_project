@@ -12,7 +12,7 @@ import { CreateRoleInput, UpdateRoleInput } from "../dto";
  */
 @Injectable()
 export class RolesService {
-    constructor(private readonly rolesRepository: RolesRepository) {}
+    constructor(private readonly rolesRepository: RolesRepository) { }
 
     async findAll(): Promise<Role[]> {
         return this.rolesRepository.findAll();
@@ -32,7 +32,7 @@ export class RolesService {
 
     async findByIdOrFail(id: string): Promise<Role> {
         const role = await this.rolesRepository.findById(id);
-        if(!role) throw new NotFoundException('Rol no encontrado');
+        if (!role) throw new NotFoundException('Rol no encontrado');
         return role;
     }
 
@@ -42,7 +42,7 @@ export class RolesService {
      */
     async create(input: CreateRoleInput): Promise<Role> {
         if (await this.rolesRepository.findByName(input.name)) {
-          throw new ConflictException(`Ya existe un rol con el nombre "${input.name}"`);
+            throw new ConflictException(`Ya existe un rol con el nombre "${input.name}"`);
         }
         return this.rolesRepository.create(input);
     }
@@ -53,7 +53,7 @@ export class RolesService {
      */
     async update(id: string, input: UpdateRoleInput): Promise<Role> {
         await this.findByIdOrFail(id);
-        
+
         // Verificar nombre duplicado si se está cambiando
         if (input.name) {
             const existingRole = await this.rolesRepository.findByName(input.name);
@@ -61,7 +61,7 @@ export class RolesService {
                 throw new ConflictException(`Ya existe un rol con el nombre "${input.name}"`);
             }
         }
-        
+
         const updatedRole = await this.rolesRepository.update(id, input);
         if (!updatedRole) {
             throw new NotFoundException('Rol no encontrado después de actualizar');

@@ -30,6 +30,7 @@ import {
 
 import { WorkOrdersResolver } from './presentation/resolvers';
 import { AreasModule } from '../catalogs/areas/areas.module';
+import { SubAreasModule } from '../catalogs/sub-areas/sub-areas.module';
 import { UsersModule } from '../users/users.module';
 import { TechnicianSchedulesModule } from '../technician-schedules/technician-schedules.module';
 
@@ -56,6 +57,7 @@ import { TechnicianSchedulesModule } from '../technician-schedules/technician-sc
       WorkOrderMaterial,
     ]),
     AreasModule,
+    SubAreasModule,
     UsersModule,
     TechnicianSchedulesModule,
   ],

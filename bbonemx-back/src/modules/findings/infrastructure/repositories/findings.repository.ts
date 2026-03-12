@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { Finding } from "../../domain/entities";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { FindingStatus } from "src/common";
+import { FindingStatus, FolioGenerator } from "src/common";
 import { FindingFiltersInput, FindingPaginationInput, FindingSortInput } from "../../application/dto";
 
 @Injectable()
@@ -15,6 +15,17 @@ export class FindingsRepository {
     async findAll(): Promise<Finding[]> {
         return this.repository.find({
             where: { isActive: true },
+            withDeleted: true,
+            relations: ['area', 'machine', 'shift', 'converter'],
+            order: {
+                createdAt: 'DESC'
+            }
+        });
+    }
+
+    async findAllWithDeleted(): Promise<Finding[]> {
+        return this.repository.find({
+            withDeleted: true,
             relations: ['area', 'machine', 'shift', 'converter'],
             order: {
                 createdAt: 'DESC'
@@ -25,6 +36,7 @@ export class FindingsRepository {
     async findAllOpen(): Promise<Finding[]> {
         return this.repository.find({
             where: { isActive: true, status: FindingStatus.OPEN },
+            withDeleted: true,
             relations: ['area', 'machine', 'shift'],
             order: {
                 createdAt: 'DESC'
@@ -34,7 +46,8 @@ export class FindingsRepository {
 
     async findById(id: string): Promise<Finding | null> {
         return this.repository.findOne({
-            where: { id, isActive: true },
+            where: { id },
+            withDeleted: true,
             relations: ['area', 'machine', 'shift', 'converter'],
         });
     }
@@ -42,6 +55,7 @@ export class FindingsRepository {
     async findByCreatedBy(createdBy: string): Promise<Finding[]> {
         return this.repository.find({
             where: { createdBy, isActive: true },
+            withDeleted: true,
             relations: ['area', 'machine', 'shift'],
             order: {
                 createdAt: 'DESC'
@@ -52,6 +66,7 @@ export class FindingsRepository {
     async findByAreaId(areaId: string): Promise<Finding[]> {
         return this.repository.find({
             where: { areaId, isActive: true },
+            withDeleted: true,
             relations: ['area', 'machine', 'shift'],
             order: {
                 createdAt: 'DESC'
@@ -62,6 +77,7 @@ export class FindingsRepository {
     async findByShiftId(shiftId: string): Promise<Finding[]> {
         return this.repository.find({
             where: { shiftId, isActive: true },
+            withDeleted: true,
             relations: ['area', 'machine', 'shift'],
             order: {
                 createdAt: 'DESC'
@@ -72,6 +88,7 @@ export class FindingsRepository {
     async findByFolio(folio: string): Promise<Finding | null> {
         return this.repository.findOne({
             where: { folio, isActive: true },
+            withDeleted: true,
             relations: ['area', 'machine', 'shift'],
         });
     }
@@ -138,18 +155,24 @@ export class FindingsRepository {
 
 
       async create(data: Partial<Finding>): Promise<Finding> {
-        return this.repository.save(this.repository.create(data));
+        const result = await this.repository.query(
+            `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM findings`
+        );
+        const sequence = Number(result[0].next_seq);
+        const folio = FolioGenerator.generateFindingFolio(sequence, new Date());
+        const entity = this.repository.create({ ...data, sequence, folio });
+        return this.repository.save(entity);
       }
 
       async update(id: string, data: Partial<Finding>): Promise<Finding | null> {
-        const finding = await this.repository.findOne({ where: { id } });
+        const finding = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!finding) throw new NotFoundException('Hallazgo no encontrado');
         Object.assign(finding, data);
         return this.repository.save(finding);
       }
 
       async softDelete(id: string): Promise<void> {
-        const finding = await this.repository.findOne({ where: { id } });
+        const finding = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!finding) throw new NotFoundException('Hallazgo no encontrado');
         finding.isActive = false;
         finding.deletedAt = new Date();
@@ -166,14 +189,14 @@ export class FindingsRepository {
       }
 
       async countOpen(): Promise<number> {
-        return this.repository.count({ where: { isActive: true, status: FindingStatus.OPEN } });
+        return this.repository.count({ where: { isActive: true, status: FindingStatus.OPEN }, withDeleted: true });
       }
 
       async restore(id: string): Promise<void> {
         const finding = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!finding) throw new NotFoundException('Hallazgo no encontrado');
         finding.isActive = true;
-        finding.deletedAt = undefined;
+        finding.deletedAt = null as any;
         await this.repository.save(finding);
       }
 

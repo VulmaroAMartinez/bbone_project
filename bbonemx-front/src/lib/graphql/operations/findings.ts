@@ -50,6 +50,25 @@ export const CREATE_FINDING_MUTATION = gql`
   }
 `;
 
+export const GET_FINDING_BY_ID_QUERY = gql`
+  ${FINDING_BASIC_FRAGMENT}
+  query GetFindingById($id: ID!) {
+    finding(id: $id) {
+      ...FindingBasic
+      machineId
+    }
+  }
+`;
+
+export const UPDATE_FINDING_MUTATION = gql`
+  ${FINDING_BASIC_FRAGMENT}
+  mutation UpdateFinding($id: ID!, $input: UpdateFindingInput!) {
+    updateFinding(id: $id, input: $input) {
+      ...FindingBasic
+    }
+  }
+`;
+
 export const CONVERT_TO_WORK_ORDER_MUTATION = gql`
   mutation ConvertToWorkOrder($id: ID!) {
     convertToWorkOrder(id: $id) {

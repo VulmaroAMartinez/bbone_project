@@ -49,13 +49,6 @@ export class User extends BaseEntity {
     })
     phone?: string;
 
-    @Column({name: 'role_id', type: 'uuid'})
-    roleId: string;
-
-    @ManyToOne(() => Role, {eager: true})
-    @JoinColumn({name: 'role_id'})
-    role: Role;
-
     @OneToMany(() => UserRole, (userRole) => userRole.user, {
         eager: true,
         cascade: true,
@@ -63,13 +56,14 @@ export class User extends BaseEntity {
     userRoles: UserRole[];
 
     get roles(): Role[] {
-        return this.userRoles?.map((userRole) => userRole.role).filter(Boolean) ?? [];
+        return this.userRoles?.filter(ur => ur.isActive).map((userRole) => userRole.role).filter(Boolean) ?? [];
     }
 
     set roles(roles: Role[]) {
         this.userRoles =
             roles?.map((role) => {
                 const userRole = new UserRole();
+                userRole.user = this;
                 userRole.role = role;
                 userRole.roleId = role.id;
                 return userRole;
@@ -78,6 +72,16 @@ export class User extends BaseEntity {
 
     get roleIds(): string[] {
         return this.roles.map((role) => role.id);
+    }
+
+    /** Rol primario (primer rol) — derivado de userRoles para compatibilidad */
+    get role(): Role | undefined {
+        return this.roles[0];
+    }
+
+    /** ID del rol primario — derivado de userRoles para compatibilidad */
+    get roleId(): string | undefined {
+        return this.role?.id;
     }
 
     @Column({name: 'department_id', type: 'uuid'})

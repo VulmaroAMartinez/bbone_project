@@ -4,7 +4,7 @@ import { MACHINE_BASIC_FRAGMENT } from './fragments';
 export const GET_MACHINES_PAGE_DATA = gql`
   ${MACHINE_BASIC_FRAGMENT}
   query GetMachinesPageData {
-    machines {
+    machinesWithDeleted {
       ...MachineBasic
     }
     areasActive {
@@ -68,14 +68,37 @@ export const GET_MACHINE_WORK_ORDERS = gql`
 
 export const GET_MACHINE_MATERIAL_REQUESTS = gql`
   query GetMachineMaterialRequests($id: ID!) {
-    materialRequests {
+    machine(id: $id) {
       id
-      folio
-      machineId
-      requestText
-      priority
-      comments
-      createdAt
+      code
+      name
+      materialRequests {
+        id
+        folio
+        category
+        priority
+        importance
+        boss
+        isGenericAllowed
+        suggestedSupplier
+        comments
+        justification
+        isActive
+        createdAt
+        items {
+          id
+          requestedQuantity
+          unitOfMeasure
+          description
+          brand
+          partNumber
+          material {
+            description
+            partNumber
+            brand
+          }
+        }
+      }
     }
   }
 `;

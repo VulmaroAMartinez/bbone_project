@@ -4,6 +4,7 @@ export enum Role {
   ADMIN = 'ADMIN',
   TECHNICIAN = 'TECHNICIAN',
   REQUESTER = 'REQUESTER',
+  BOSS = 'BOSS',
 }
 
 registerEnumType(Role, {
@@ -13,5 +14,6 @@ registerEnumType(Role, {
     ADMIN: { description: 'Administrador - Acceso completo al sistema' },
     TECHNICIAN: { description: 'Técnico - Gestiona sus asignaciones de trabajo' },
     REQUESTER: { description: 'Solicitante - Crea órdenes de trabajo y firma' },
+    BOSS: { description: 'Jefe - Gestiona el sistema' },
   },
 });

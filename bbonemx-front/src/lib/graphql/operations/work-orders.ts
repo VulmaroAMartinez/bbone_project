@@ -68,9 +68,9 @@ export const MY_ASSIGNED_WORK_ORDERS_QUERY = gql`
 
 export const GET_WORK_ORDERS_FILTERED_QUERY = gql`
   ${WORK_ORDER_ITEM_FRAGMENT}
-  query GetWorkOrdersFiltered($status: WorkOrderStatus, $priority: WorkOrderPriority) {
+  query GetWorkOrdersFiltered($status: WorkOrderStatus, $priority: WorkOrderPriority, $assignedShiftId: ID) {
     workOrdersFiltered(
-      filters: { status: $status, priority: $priority }
+      filters: { status: $status, priority: $priority, assignedShiftId: $assignedShiftId }
       pagination: { limit: 100, page: 1 }
     ) {
       data {
@@ -162,12 +162,36 @@ export const GET_WORK_ORDER_BY_ID_QUERY = gql`
           role {
             name
           }
+          roles {
+            name
+          }
         }
       }
       photos {
         id
         photoType
         filePath
+      }
+      customSparePart
+      customMaterial
+      spareParts {
+        id
+        quantity
+        sparePart {
+          id
+          partNumber
+          brand
+          model
+        }
+      }
+      materials {
+        id
+        quantity
+        material {
+          id
+          description
+          brand
+        }
       }
     }
   }
@@ -185,6 +209,9 @@ export const SIGN_WORK_ORDER_MUTATION = gql`
         firstName
         lastName
         role {
+          name
+        }
+        roles {
           name
         }
       }
@@ -259,6 +286,63 @@ export const COMPLETE_WORK_ORDER_MUTATION = gql`
       toolsUsed
       observations
       status
+      customSparePart
+      customMaterial
+    }
+  }
+`;
+
+export const ADD_WORK_ORDER_SPARE_PART_MUTATION = gql`
+  mutation AddWorkOrderSparePart($input: AddWorkOrderSparePartInput!) {
+    addWorkOrderSparePart(input: $input) {
+      id
+      quantity
+      sparePart {
+        id
+        partNumber
+        brand
+        model
+      }
+    }
+  }
+`;
+
+export const ADD_WORK_ORDER_MATERIAL_MUTATION = gql`
+  mutation AddWorkOrderMaterial($input: AddWorkOrderMaterialInput!) {
+    addWorkOrderMaterial(input: $input) {
+      id
+      quantity
+      material {
+        id
+        description
+        brand
+      }
+    }
+  }
+`;
+
+export const GET_ACTIVE_MATERIALS_QUERY = gql`
+  query GetActiveMaterials {
+    materialsActive {
+      id
+      description
+      brand
+      model
+      partNumber
+      unitOfMeasure
+    }
+  }
+`;
+
+export const GET_MACHINE_SPARE_PARTS_FOR_WO = gql`
+  query GetMachineSparePartsForWO($machineId: ID!) {
+    sparePartsByMachine(machineId: $machineId) {
+      id
+      partNumber
+      brand
+      model
+      unitOfMeasure
+      isActive
     }
   }
 `;

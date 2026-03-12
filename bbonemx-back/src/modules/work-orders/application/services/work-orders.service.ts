@@ -28,8 +28,8 @@ import {
 } from "src/common";
 import { AreasService } from "src/modules/catalogs/areas/application/services";
 import { AreaType } from "src/common/enums/area-type.enum";
+import { SubAreasService } from "src/modules/catalogs/sub-areas/application/services";
 import { TechnicianSchedulesService } from "src/modules/technician-schedules/application/services";
-
 /** Allowed status transitions */
 const VALID_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
     [WorkOrderStatus.PENDING]: [WorkOrderStatus.IN_PROGRESS],
@@ -49,11 +49,17 @@ export class WorkOrdersService {
         private readonly woTechniciansRepository: WorkOrderTechniciansRepository,
         private readonly woSignaturesRepository: WorkOrderSignaturesRepository,
         private readonly areasService: AreasService,
+        private readonly subAreasService: SubAreasService,
         private readonly technicianSchedulesService: TechnicianSchedulesService,
+
     ) { }
 
     async findAll(): Promise<WorkOrder[]> {
         return this.workOrdersRepository.findAll();
+    }
+
+    async findAllWithDeleted(): Promise<WorkOrder[]> {
+        return this.workOrdersRepository.findAllWithDeleted();
     }
 
     async findById(id: string): Promise<WorkOrder | null> {
@@ -80,6 +86,10 @@ export class WorkOrdersService {
         return this.workOrdersRepository.findByRequesterId(requesterId);
     }
 
+    async findByMachineId(machineId: string): Promise<WorkOrder[]> {
+        return this.workOrdersRepository.findByMachineId(machineId);
+    }
+
     async findWithFilters(filters: WorkOrderFiltersInput, pagination: PaginationInput, sort: WorkOrderSortInput): Promise<{ data: WorkOrder[]; total: number }> {
         return this.workOrdersRepository.findWithFilters(filters, pagination, sort);
     }
@@ -89,12 +99,15 @@ export class WorkOrdersService {
     }
 
     async create(input: CreateWorkOrderInput, requesterId: string): Promise<WorkOrder> {
-        // Validate Area/SubArea logic
-        const area = await this.areasService.findByIdOrFail(input.areaId);
-        if (area.type === AreaType.OPERATIONAL && !input.subAreaId) {
-            throw new BadRequestException('Las áreas operativas requieren una sub-área');
-        }
+        // Validar que el área exista
+        await this.areasService.findByIdOrFail(input.areaId);
 
+        if (input.subAreaId) {
+            const subArea = await this.subAreasService.findByIdOrFail(input.subAreaId);
+            if (subArea.areaId !== input.areaId) {
+                throw new BadRequestException('La sub-área no pertenece al área seleccionada');
+            }
+        }
         const wo = await this.workOrdersRepository.create({
             ...input,
             requesterId,
@@ -103,6 +116,7 @@ export class WorkOrdersService {
         this.logger.log(`Folio: ${wo.folio}`);
         return wo;
     }
+
 
     async assign(id: string, input: AssignWorkOrderInput, userId: string): Promise<WorkOrder> {
         const wo = await this.findByIdOrFail(id);
@@ -208,6 +222,7 @@ export class WorkOrdersService {
 
         await this.workOrdersRepository.update(id, {
             status: WorkOrderStatus.IN_PROGRESS,
+            lastResumedAt: new Date(),
         });
 
         return this.findByIdOrFail(id);
@@ -233,6 +248,8 @@ export class WorkOrdersService {
             cause: input.cause,
             actionTaken: input.actionTaken,
             toolsUsed: input.toolsUsed,
+            customSparePart: input.customSparePart ?? null,
+            customMaterial: input.customMaterial ?? null,
             downtimeMinutes: input.downtimeMinutes,
         });
 
@@ -261,7 +278,7 @@ export class WorkOrdersService {
         const nextSubAreaId = wo.subAreaId;
         const nextMachineId = input.machineId ?? wo.machineId;
 
-        if ((nextStopType === StopType.BREAKDOWN || !!nextSubAreaId ) && !nextMachineId) {
+        if ((nextStopType === StopType.BREAKDOWN || !!nextSubAreaId) && !nextMachineId) {
             throw new BadRequestException('La máquina es requerida cuando el tipo de paro es Avería o la OTtiene sub-área');
         }
 

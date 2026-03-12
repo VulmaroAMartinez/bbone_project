@@ -13,5 +13,4 @@ export * from './preventive-task-history-action.enum';
 export * from './notification-type.enum';
 export * from './notification-channel.enum';
 export * from './area-type.enum';
-export * from './material-request-priority.enum';
-export * from './material-request-importance.enum';
+export * from './material-request.enum';

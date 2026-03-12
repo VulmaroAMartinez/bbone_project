@@ -30,3 +30,9 @@ export * from './utils';
 
 // Events
 export * from './events';
+
+export * from './modules';
+
+export * from './services';
+
+export * from './transformers';

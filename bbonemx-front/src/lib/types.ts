@@ -182,6 +182,7 @@ export enum UserRole {
     ADMIN = 'ADMIN',
     TECHNICIAN = 'TECHNICIAN',
     REQUESTER = 'REQUESTER',
+    BOSS = 'BOSS',
 }
 
 export type AllowedRole = UserRole | string;

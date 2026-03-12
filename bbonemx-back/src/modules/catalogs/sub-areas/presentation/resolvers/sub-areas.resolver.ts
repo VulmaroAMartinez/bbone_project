@@ -15,6 +15,12 @@ export class SubAreasResolver {
         return this.subAreasService.findAll();
     }
 
+    @Query(() => [SubAreaType], { name: "subAreasWithDeleted" })
+    @Roles(Role.ADMIN)
+    async subAreasWithDeleted() {
+        return this.subAreasService.findAllWithDeleted();
+    }
+
     @Query(() => [SubAreaType], { name: "subAreasActive" })
     async subAreasActive() {
         return this.subAreasService.findAllActive();

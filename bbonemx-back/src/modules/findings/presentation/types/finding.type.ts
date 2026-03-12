@@ -10,11 +10,11 @@ export class FindingType {
     @Field(() => Int) sequence: number;
     @Field() folio: string;
     @Field(() => AreaType) area: AreaType;
-    @Field(() => ID) machineId: string;
-    @Field(() => MachineType) machine: MachineType;
+    @Field(() => ID, { nullable: true }) machineId?: string;
+    @Field(() => MachineType, { nullable: true }) machine?: MachineType;
     @Field(() => ShiftType) shift: ShiftType;
     @Field() description: string;
-    @Field() photoPath: string;
+    @Field({ nullable: true }) photoPath?: string;
     @Field(() => FindingStatus) status: FindingStatus;
     @Field(() => WorkOrderType, { nullable: true }) convertedToWo?: WorkOrderType;
     @Field() createdAt: Date;

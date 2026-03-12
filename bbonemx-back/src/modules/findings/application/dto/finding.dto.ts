@@ -8,10 +8,10 @@ export class CreateFindingInput {
     @IsUUID()
     areaId: string;
 
-    @Field(() => ID)
-    @IsNotEmpty({message: 'La máquina es requerida'})
+    @Field(() => ID, { nullable: true })
+    @IsOptional()
     @IsUUID()
-    machineId: string;
+    machineId?: string;
 
     @Field(() => ID)
     @IsNotEmpty({message: 'El turno es requerido'})
@@ -24,11 +24,11 @@ export class CreateFindingInput {
     @MaxLength(500)
     description: string;
 
-    @Field()
-    @IsNotEmpty({message: 'La foto es requerida'})
+    @Field({ nullable: true })
+    @IsOptional()
     @IsString()
     @MaxLength(500)
-    photoPath: string;
+    photoPath?: string;
 }
 
 @InputType()

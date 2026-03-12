@@ -61,6 +61,7 @@ export const MACHINE_BASIC_FRAGMENT = gql`
     operationalManualUrl
     isActive
     subAreaId
+    areaId
     subArea {
       id
       name
@@ -69,6 +70,11 @@ export const MACHINE_BASIC_FRAGMENT = gql`
         name
         type
       }
+    }
+    area {
+      id
+      name
+      type
     }
     createdAt
     updatedAt

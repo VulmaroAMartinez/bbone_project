@@ -235,7 +235,8 @@ export default function SchedulePage() {
 
     // --- Preparar datos para render ---
     const isLoading = weekLoading || techLoading;
-    const technicians = techData?.techniciansWithDeleted || [];
+    // Solo técnicos activos pueden recibir horarios
+    const technicians = (techData?.techniciansWithDeleted || []).filter((t: any) => t.isActive);
     const shifts = shiftData?.shiftsActive || [];
     const absences = absData?.absenceReasonsActive || [];
 

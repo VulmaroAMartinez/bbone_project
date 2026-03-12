@@ -10,7 +10,8 @@ import { BaseEntity } from 'src/infrastructure/database/base.entity';
 import { User } from 'src/modules/users/domain/entities';
 import { Area } from 'src/modules/catalogs/areas/domain/entities';
 import { SubArea } from 'src/modules/catalogs/sub-areas/domain/entities';
-import { Machine, Shift } from 'src/modules/catalogs';
+import { Machine } from 'src/modules/catalogs/machines/domain/entities';
+import { Shift } from 'src/modules/catalogs/shifts/domain/entities';
 import { WorkOrderStatus, WorkOrderPriority, MaintenanceType, StopType, WorkType } from 'src/common';
 import { Finding } from 'src/modules/findings/domain/entities/finding.entity';
 import { PreventiveTask } from 'src/modules/preventive-tasks/domain/entities/preventive-task.entity';
@@ -126,6 +127,12 @@ export class WorkOrder extends BaseEntity {
     @Column({name:'tools_used', type: 'text', nullable: true})
     toolsUsed?: string;
 
+    @Column({name:'custom_spare_part', type: 'text', nullable: true})
+    customSparePart?: string | null;
+
+    @Column({name:'custom_material', type: 'text', nullable: true})
+    customMaterial?: string | null;
+
     @Column({name:'downtime_minutes', type: 'integer', nullable: true})
     downtimeMinutes?: number;
 
@@ -137,6 +144,7 @@ export class WorkOrder extends BaseEntity {
 
     @Column({name: 'last_resumed_at', type: 'timestamp', nullable: true})
     lastResumedAt?: Date | null;
+
 
     @Column({name: 'finding_id', type: 'uuid', nullable: true})
     findingId?: string;

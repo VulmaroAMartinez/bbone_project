@@ -1,11 +1,12 @@
 import { InputType, Field, ID, PartialType, OmitType } from "@nestjs/graphql";
-import { 
+import {
     IsNotEmpty,
     IsString,
     IsUUID,
     IsInt,
     IsPositive,
     IsOptional,
+    IsBoolean,
     Length,
     IsDate,
 } from "class-validator";
@@ -78,25 +79,21 @@ export class CreateTechnicianInput {
     @Field()
     @IsNotEmpty({ message: 'El número de hijos es requerido' })
     @IsInt({ message: 'El número de hijos debe ser un número entero' })
-    @IsPositive({ message: 'El número de hijos debe ser un número positivo' })
     childrenCount: number;
 
     @Field()
     @IsNotEmpty({ message: 'El tamaño de la camisa es requerido' })
     @IsString({ message: 'El tamaño de la camisa debe ser una cadena de texto' })
-    @Length(2, 20, { message: 'El tamaño de la camisa debe tener entre 2 y 20 caracteres' })
     shirtSize: string;
 
     @Field()
     @IsNotEmpty({ message: 'El tamaño de la pantalón es requerido' })
     @IsString({ message: 'El tamaño de la pantalón debe ser una cadena de texto' })
-    @Length(2, 20, { message: 'El tamaño de la pantalón debe tener entre 2 y 20 caracteres' })
     pantsSize: string;
 
     @Field()
     @IsNotEmpty({ message: 'El tamaño de la zapatilla es requerido' })
     @IsString({ message: 'El tamaño de la zapatilla debe ser una cadena de texto' })
-    @Length(2, 20, { message: 'El tamaño de la zapatilla debe tener entre 2 y 20 caracteres' })
     shoeSize: string;
 
     @Field()
@@ -120,6 +117,11 @@ export class CreateTechnicianInput {
     @IsNotEmpty({ message: 'El ID de la posición es requerido' })
     @IsUUID()
     positionId: string;
+
+    @Field({ nullable: true, description: 'Si el técnico tiene rol de jefe' })
+    @IsOptional()
+    @IsBoolean()
+    isBoss?: boolean;
 }
 
 @InputType()

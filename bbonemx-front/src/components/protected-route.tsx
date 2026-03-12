@@ -11,12 +11,12 @@ interface ProtectedRouteProps {
   redirectUnauthorizedTo?: string;
 }
 
-export const ProtectedRoute = ({ 
+export const ProtectedRoute = ({
   allowedRoles,
   requireActive = true,
   redirectUnauthorizedTo = '/login',
 }: ProtectedRouteProps) => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, activeRole, isBoss } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -38,12 +38,14 @@ export const ProtectedRoute = ({
     return <Navigate to={redirectUnauthorizedTo} replace />;
   }
 
-  if (
-    allowedRoles &&
-    allowedRoles.length > 0 &&
-    !allowedRoles.includes(user.role?.name)
-  ) {
-    return <Navigate to={redirectUnauthorizedTo} replace />;
+  if (allowedRoles && allowedRoles.length > 0) {
+    const hasAccess =
+      (activeRole !== null && allowedRoles.includes(activeRole as AllowedRole)) ||
+      (isBoss && allowedRoles.includes('BOSS' as AllowedRole));
+
+    if (!hasAccess) {
+      return <Navigate to={redirectUnauthorizedTo} replace />;
+    }
   }
 
   return <Outlet/>;

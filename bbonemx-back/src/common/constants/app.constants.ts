@@ -2,7 +2,7 @@
 export const FOLIO_PREFIX = {
   WORK_ORDER: 'OT',
   FINDING: 'H',
-  MATERIAL_REQUEST: 'SM',
+  MATERIAL_REQUEST: 'PLT',
 } as const;
 
 // Formato de fecha para folios: YYMMDD

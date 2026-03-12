@@ -10,7 +10,7 @@ export class WorkOrderSignaturesRepository {
     async findByWorkOrderId(workOrderId: string): Promise<WorkOrderSignature[]> {
         return this.repository.find({
             where: { workOrderId: workOrderId, isActive: true },
-            relations: ['signer', 'signer.role'],
+            relations: ['signer', 'signer.userRoles', 'signer.userRoles.role'],
             order: { signedAt: 'DESC' },
         });
     }
@@ -18,7 +18,7 @@ export class WorkOrderSignaturesRepository {
     async findById(id: string): Promise<WorkOrderSignature | null> {
         return this.repository.findOne({
             where: { id, isActive: true },
-            relations: ['workOrder','signer', 'signer.role'],
+            relations: ['workOrder','signer', 'signer.userRoles', 'signer.userRoles.role'],
         });
     }
 

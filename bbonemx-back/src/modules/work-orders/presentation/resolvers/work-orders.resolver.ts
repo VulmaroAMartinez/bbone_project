@@ -77,6 +77,12 @@ export class WorkOrdersResolver {
         return this.workOrdersService.findAll();
     }
 
+    @Query(() => [WorkOrderType], { name: "workOrdersWithDeleted" })
+    @UseGuards(RolesGuard) @Roles(Role.ADMIN)
+    findAllWithDeleted() {
+        return this.workOrdersService.findAllWithDeleted();
+    }
+
     @Query(() => WorkOrderPaginatedResponse, { name: "workOrdersFiltered" })
     async findFiltered(
         @Args('filters', { nullable: true }) filters?: WorkOrderFiltersInput,

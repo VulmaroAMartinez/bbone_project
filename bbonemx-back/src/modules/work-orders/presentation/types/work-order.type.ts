@@ -98,6 +98,12 @@ export class WorkOrderType {
   @Field({ nullable: true })
   toolsUsed?: string;
 
+  @Field({ nullable: true })
+  customSparePart?: string;
+
+  @Field({ nullable: true })
+  customMaterial?: string;
+
   @Field(() => Int, { nullable: true }) 
   downtimeMinutes?: number;
 
@@ -110,7 +116,7 @@ export class WorkOrderType {
   @Field({ nullable: true })
   lastResumedAt?: Date;
 
-  @Field(() => ID, { nullable: true }) 
+  @Field(() => ID, { nullable: true })
   findingId?: string;
 
   @Field(() => ID, { nullable: true }) 

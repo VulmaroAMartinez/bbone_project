@@ -18,21 +18,21 @@ export class UsersResolver {
 
   @Query(() => [UserType], { name: "users" })
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS, Role.TECHNICIAN)
   async users() {
     return this.usersService.findAll();
   }
 
   @Query(() => [UserType], { name: "usersWithDeleted" })
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS, Role.TECHNICIAN)
   async usersWithDeleted() {
     return this.usersService.findAllWithDeleted();
   }
 
   @Query(() => UserType, { name: "user", nullable: true })
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS, Role.TECHNICIAN)
   async user(@Args("id", { type: () => ID }) id: string) {
     return this.usersService.findById(id);
   }

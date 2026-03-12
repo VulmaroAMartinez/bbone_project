@@ -1,9 +1,9 @@
-import { MaterialRequestType, MaterialRequestMaterialType } from "../types";
+import { MaterialRequestType, MaterialRequestItemType } from "../types";
 import { MaterialRequestsService } from "../../application/services";
 import { Resolver, Query, Mutation, Args, ID } from "@nestjs/graphql";
 import { UseGuards } from "@nestjs/common";
 import { JwtAuthGuard, Roles, RolesGuard, Role } from "src/common";
-import { CreateMaterialRequestInput, UpdateMaterialRequestInput, AddMaterialToRequestInput } from "../../application/dto";
+import { CreateMaterialRequestInput, UpdateMaterialRequestInput, CreateMaterialRequestItemInput } from "../../application/dto";
 
 @Resolver(() => MaterialRequestType)
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -15,14 +15,15 @@ export class MaterialRequestsResolver {
         return this.materialRequestsService.findAll();
     }
 
+    @Query(() => [MaterialRequestType], { name: "materialRequestsWithDeleted" })
+    @Roles(Role.ADMIN)
+    async materialRequestsWithDeleted() {
+        return this.materialRequestsService.findAllWithDeleted();
+    }
+
     @Query(() => [MaterialRequestType], { name: "materialRequestsActive" })
     async materialRequestsActive() {
         return this.materialRequestsService.findAllActive();
-    }
-
-    @Query(() => [MaterialRequestType], { name: "materialRequestsWithDeleted" })
-    async materialRequestsWithDeleted() {
-        return this.materialRequestsService.findAllWithDeleted();
     }
 
     @Query(() => MaterialRequestType, { name: "materialRequest", nullable: true })
@@ -45,10 +46,10 @@ export class MaterialRequestsResolver {
         return this.materialRequestsService.update(id, input);
     }
 
-    @Mutation(() => MaterialRequestMaterialType)
+    @Mutation(() => MaterialRequestItemType)
     async addMaterialToRequest(
         @Args("materialRequestId", { type: () => ID }) materialRequestId: string,
-        @Args("input") input: AddMaterialToRequestInput,
+        @Args("input") input: CreateMaterialRequestItemInput,
     ) {
         return this.materialRequestsService.addMaterial(materialRequestId, input);
     }

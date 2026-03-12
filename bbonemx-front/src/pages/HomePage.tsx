@@ -1,16 +1,15 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
-import { UserRole } from '@/lib/types';
 
 const HOME_BY_ROLE: Record<string, string> = {
-  [UserRole.ADMIN]: '/admin/dashboard',
-  [UserRole.TECHNICIAN]: '/tecnico/asignaciones',
-  [UserRole.REQUESTER]: '/solicitante/mis-ordenes',
+  ADMIN: '/admin/dashboard',
+  TECHNICIAN: '/tecnico/asignaciones',
+  REQUESTER: '/solicitante/mis-ordenes',
 };
 
 export default function HomePage() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, activeRole, canSwitchRoles } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -22,11 +21,18 @@ export default function HomePage() {
   }
 
   if (!user.isActive) {
-    return <Navigate to="/403" replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  const roleName = user.role?.name;
-  const redirectTo = roleName ? HOME_BY_ROLE[roleName] : undefined;
+  // ADMIN+TECHNICIAN with no active role selected → show role selector
+  if (canSwitchRoles && !activeRole) {
+    return <Navigate to="/seleccionar-rol" replace />;
+  }
 
-  return <Navigate to={redirectTo ?? '/403'} replace />;
+  if (!activeRole) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const redirectTo = HOME_BY_ROLE[activeRole] ?? '/login';
+  return <Navigate to={redirectTo} replace />;
 }

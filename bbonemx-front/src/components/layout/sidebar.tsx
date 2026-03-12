@@ -1,4 +1,4 @@
-import { useState } from 'react'; // <-- Importante agregar useState
+import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
 import {
@@ -24,6 +24,7 @@ import {
   Drill,
   Clock,
   User,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -47,13 +48,18 @@ type NavItem = {
 export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAdmin, isTechnician, isRequester, user, logout } = useAuth();
+  const { isAdmin, isTechnician, isRequester, isBoss, canSwitchRoles, activeRole, selectRole, user, logout } = useAuth();
 
-  // Estado para controlar qué menús están desplegados
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const handleSwitchRole = () => {
+    const next = isAdmin ? 'TECHNICIAN' : 'ADMIN';
+    selectRole(next);
+    navigate('/', { replace: true });
   };
 
   const getNavItems = (): NavItem[] => {
@@ -89,11 +95,18 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       ];
     }
     if (isTechnician) {
-      return [
+      const items: NavItem[] = [
         { href: '/tecnico/pendientes', label: 'Mis Pendientes', icon: ClipboardList },
         { href: '/horario', label: 'Mi Horario', icon: Calendar },
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
       ];
+      if (isBoss || isAdmin) {
+        items.push(
+          { href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle },
+          { href: '/solicitud-material/nueva', label: 'Solicitud de Material', icon: FileCog2 },
+        );
+      }
+      return items;
     }
     if (isRequester) {
       return [
@@ -134,7 +147,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
             const isActive = (item.href && (location.pathname === item.href || location.pathname.startsWith(`${item.href}/`))) || isChildActive;
 
             return (
-              <li key={item.label} className="space-y-1"> {/* Usamos label como key porque href puede no existir */}
+              <li key={item.label} className="space-y-1">
                 <button
                   onClick={() => {
                     if (hasChildren) {
@@ -165,7 +178,6 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
                       <span className="text-sm font-medium truncate">{item.label}</span>
                     )}
                   </div>
-                  {/* Flecha indicadora (solo si no está colapsado y tiene hijos) */}
                   {!isCollapsed && hasChildren && (
                     <ChevronDown
                       className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isExpanded && "rotate-180")}
@@ -173,7 +185,6 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
                   )}
                 </button>
 
-                {/* Sub-menú Desplegable */}
                 {!isCollapsed && hasChildren && isExpanded && (
                   <ul className="mt-1 space-y-1 pl-9 pr-2">
                     {item.children!.map((child) => {
@@ -232,7 +243,6 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         </ul>
       </nav>
 
-
       {/* User info & logout */}
       <div className="border-t border-sidebar-border p-4">
         {!isCollapsed && (
@@ -240,8 +250,29 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
             <p className="text-sm font-medium text-sidebar-foreground truncate">
               {user?.fullName}
             </p>
-            <p className="text-xs text-muted-foreground capitalize">{getRoleLabel(user?.role?.name)}</p>
+            <p className="text-xs text-muted-foreground capitalize">
+              {getRoleLabel(activeRole ?? undefined)}
+              {isBoss && isTechnician && (
+                <span className="ml-1 text-primary font-medium"> · Jefe</span>
+              )}
+            </p>
           </div>
+        )}
+
+        {canSwitchRoles && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSwitchRole}
+            className={cn(
+              'w-full text-muted-foreground hover:text-primary mb-1',
+              isCollapsed ? 'justify-center px-0' : 'justify-start'
+            )}
+            title={isCollapsed ? (isAdmin ? 'Cambiar a Técnico' : 'Cambiar a Admin') : undefined}
+          >
+            <RefreshCw className={cn('h-4 w-4', !isCollapsed && 'mr-2')} />
+            {!isCollapsed && (isAdmin ? 'Cambiar a Técnico' : 'Cambiar a Admin')}
+          </Button>
         )}
 
         <Button

@@ -4,7 +4,7 @@ import { Department } from '../../../modules/catalogs/departments/domain/entitie
 
 const INITIAL_DEPARTMENTS = [
   { name: 'TI', description: 'Tecnologías de la Información' },
-  { name: 'MAINTENANCE', description: 'Mantenimiento' },
+  { name: 'Mantenimiento', description: 'Mantenimiento' },
 ];
 
 export async function seedDepartments(dataSource: DataSource): Promise<void> {

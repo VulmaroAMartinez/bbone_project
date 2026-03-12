@@ -54,10 +54,13 @@ export default function RequestersPage() {
     });
 
     const allUsers = data?.usersWithDeleted || [];
-    const requesters = allUsers.filter(u => (((u as any).roles?.some((role: any) => role.name === 'REQUESTER')) ?? u.role?.name === 'REQUESTER'));
     const departments = data?.departmentsWithDeleted || [];
     const roles = data?.rolesWithDeleted || [];
     const requesterRoleId = roles.find(r => r.name === 'REQUESTER')?.id;
+
+    const requesters = requesterRoleId
+        ? allUsers.filter((u) => u.roleIds.includes(requesterRoleId))
+        : [];
 
     const filteredRequesters = requesters.filter(r =>
         r.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||

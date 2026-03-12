@@ -15,14 +15,15 @@ export class MaterialsResolver {
         return this.materialsService.findAll();
     }
 
+    @Query(() => [MaterialType], { name: "materialsWithDeleted" })
+    @Roles(Role.ADMIN)
+    async materialsWithDeleted() {
+        return this.materialsService.findAllWithDeleted();
+    }
+
     @Query(() => [MaterialType], { name: "materialsActive" })
     async materialsActive() {
         return this.materialsService.findAllActive();
-    }
-
-    @Query(() => [MaterialType], { name: "materialsWithDeleted" })
-    async materialsWithDeleted() {
-        return this.materialsService.findAllWithDeleted();
     }
 
     @Query(() => MaterialType, { name: "material", nullable: true })

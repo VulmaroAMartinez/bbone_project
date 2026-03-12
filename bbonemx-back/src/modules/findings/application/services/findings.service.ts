@@ -16,6 +16,10 @@ export class FindingsService {
         return this.findingsRepository.findAll();
     }
 
+    findAllWithDeleted(): Promise<Finding[]> {
+        return this.findingsRepository.findAllWithDeleted();
+    }
+
     findAllOpen(): Promise<Finding[]> {
         return this.findingsRepository.findAllOpen();
     }
