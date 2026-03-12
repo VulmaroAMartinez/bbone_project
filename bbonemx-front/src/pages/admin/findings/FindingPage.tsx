@@ -123,7 +123,9 @@ export default function FindingPage() {
                         return (
                             <Card
                                 key={finding.id}
-                                className={`bg-card border-border shadow-sm transition-all group ${isOpen ? 'hover:border-primary/50 hover:shadow-md' : 'opacity-80'}`}>
+                                className={`bg-card border-border shadow-sm transition-all group ${isOpen ? 'hover:border-primary/50 hover:shadow-md' : 'opacity-80'}`}
+                                onClick={() => navigate(`/hallazgos/${finding.id}/editar`)}
+                                >
                                 <CardContent className="py-4">
                                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                         <div className="flex-1 min-w-0">

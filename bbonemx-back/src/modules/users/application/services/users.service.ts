@@ -80,8 +80,6 @@ export class UsersService {
 
     const hashedPassword = await this.passwordService.hash(input.password);
 
-    const primaryRoleId = roleIds[0];
-
     return this.usersRepository.create({
       employeeNumber: input.employeeNumber,
       password: hashedPassword,
@@ -89,7 +87,6 @@ export class UsersService {
       lastName: input.lastName,
       email: input.email,
       phone: input.phone,
-      roleId: primaryRoleId,
       roles,
       departmentId: input.departmentId,
     });
@@ -134,10 +131,7 @@ export class UsersService {
       if (roles.length !== uniqueRoleIds.length) {
         throw new BadRequestException('Uno o más roles no existen');
       }
-      rolePatch = {
-        roleId: uniqueRoleIds[0],
-        roles,
-      };
+      rolePatch = { roles };
     }
 
     if (input.departmentId !== undefined) {

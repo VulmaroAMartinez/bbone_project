@@ -15,7 +15,18 @@ export class PreventiveTasksRepository {
     async findAll(): Promise<PreventiveTask[]> {
         return this.repository.find({
             where: { isActive: true },
-            relations: ['machine', 'parentTask'],
+            withDeleted: true,
+            relations: ['machine', 'machine.area', 'machine.subArea', 'machine.subArea.area', 'parentTask'],
+            order: {
+                nextExecutionDate: 'ASC'
+            }
+        });
+    }
+
+    async findAllWithDeleted(): Promise<PreventiveTask[]> {
+        return this.repository.find({
+            withDeleted: true,
+            relations: ['machine', 'machine.area', 'machine.subArea', 'machine.subArea.area', 'parentTask'],
             order: {
                 nextExecutionDate: 'ASC'
             }
@@ -25,7 +36,8 @@ export class PreventiveTasksRepository {
     async findAllActive(): Promise<PreventiveTask[]> {
         return this.repository.find({
             where: { isActive: true, status: PreventiveTaskStatus.ACTIVE },
-            relations: ['machine'],
+            withDeleted: true,
+            relations: ['machine', 'machine.area', 'machine.subArea', 'machine.subArea.area'],
             order: {
                 nextExecutionDate: 'ASC'
             }
@@ -34,15 +46,26 @@ export class PreventiveTasksRepository {
 
     async findById(id: string): Promise<PreventiveTask | null> {
         return this.repository.findOne({
-            where: { id, isActive: true },
-            relations: ['machine', 'parentTask'],
+            where: { id },
+            withDeleted: true,
+            relations: ['machine', 'machine.area', 'machine.subArea', 'machine.subArea.area', 'parentTask'],
         })
+    }
+
+    /** Busca tarea por ID sin filtrar por isActive (para activate). */
+    async findByIdIncludeInactive(id: string): Promise<PreventiveTask | null> {
+        return this.repository.findOne({
+            where: { id },
+            withDeleted: true,
+            relations: ['machine', 'machine.area', 'machine.subArea', 'machine.subArea.area', 'parentTask'],
+        });
     }
 
     async findByMachineId(machineId: string): Promise<PreventiveTask[]> {
         return this.repository.find({
             where: { machineId, isActive: true },
-            relations: ['machine'],
+            withDeleted: true,
+            relations: ['machine', 'machine.area', 'machine.subArea', 'machine.subArea.area'],
             order: { nextExecutionDate: 'ASC' },
         });
     }
@@ -53,6 +76,9 @@ export class PreventiveTasksRepository {
         return this.repository
             .createQueryBuilder('pt')
             .leftJoinAndSelect('pt.machine', 'machine')
+            .leftJoinAndSelect('machine.area', 'machine_area')
+            .leftJoinAndSelect('machine.subArea', 'machine_subArea')
+            .leftJoinAndSelect('machine_subArea.area', 'machine_subArea_area')
             .where('pt.is_active = true')
             .andWhere('pt.status = :status', { status: PreventiveTaskStatus.ACTIVE })
             .andWhere('pt.next_execution_date IS NOT NULL')
@@ -68,6 +94,9 @@ export class PreventiveTasksRepository {
     ): Promise<{ data: PreventiveTask[]; total: number }> {
         const qb = this.repository.createQueryBuilder('pt')
             .leftJoinAndSelect('pt.machine', 'machine')
+            .leftJoinAndSelect('machine.area', 'machine_area')
+            .leftJoinAndSelect('machine.subArea', 'machine_subArea')
+            .leftJoinAndSelect('machine_subArea.area', 'machine_subArea_area')
             .leftJoinAndSelect('pt.parentTask', 'parentTask')
             .where('pt.is_active = true');
 
@@ -120,14 +149,14 @@ export class PreventiveTasksRepository {
     }
 
     async update(id: string, preventiveTask: Partial<PreventiveTask>): Promise<PreventiveTask> {
-        const existingPreventiveTask = await this.repository.findOne({ where: { id } });
+        const existingPreventiveTask = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!existingPreventiveTask) throw new NotFoundException('Tarea preventiva no encontrada');
         Object.assign(existingPreventiveTask, preventiveTask);
         return this.repository.save(existingPreventiveTask);
     }
 
     async softDelete(id: string): Promise<void> {
-        const existingPreventiveTask = await this.repository.findOne({ where: { id } });
+        const existingPreventiveTask = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!existingPreventiveTask) throw new NotFoundException('Tarea preventiva no encontrada');
         existingPreventiveTask.isActive = false;
         existingPreventiveTask.deletedAt = new Date();
@@ -144,7 +173,7 @@ export class PreventiveTasksRepository {
     }
 
     async countActive(): Promise<number> {
-        return this.repository.count({ where: { isActive: true, status: PreventiveTaskStatus.ACTIVE } });
+        return this.repository.count({ where: { isActive: true, status: PreventiveTaskStatus.ACTIVE }, withDeleted: true });
     }
 
     async findUpcomingInDays(days: number): Promise<PreventiveTask[]> {
@@ -154,6 +183,9 @@ export class PreventiveTasksRepository {
         return this.repository
             .createQueryBuilder('pt')
             .leftJoinAndSelect('pt.machine', 'machine')
+            .leftJoinAndSelect('machine.area', 'machine_area')
+            .leftJoinAndSelect('machine.subArea', 'machine_subArea')
+            .leftJoinAndSelect('machine_subArea.area', 'machine_subArea_area')
             .where('pt.is_active = true')
             .andWhere('pt.status = :status', { status: PreventiveTaskStatus.ACTIVE })
             .andWhere('pt.next_execution_date <= :futureDate', { futureDate })

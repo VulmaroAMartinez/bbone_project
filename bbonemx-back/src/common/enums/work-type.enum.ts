@@ -17,4 +17,17 @@ export enum WorkType {
 registerEnumType(WorkType, {
   name: 'WorkType',
   description: 'Tipos de trabajo para órdenes de trabajo',
+  valuesMap: {
+    PAINTING:          { description: 'Pintura' },
+    PNEUMATIC:         { description: 'Neumática' },
+    ELECTRONIC:        { description: 'Electrónico' },
+    ELECTRICAL:        { description: 'Eléctrico' },
+    BUILDING:          { description: 'Edificio' },
+    METROLOGY:         { description: 'Metrología' },
+    AUTOMATION:        { description: 'Automatización' },
+    MECHANICAL:        { description: 'Mecánico' },
+    HYDRAULIC:         { description: 'Hidráulico' },
+    ELECTRICAL_CONTROL:{ description: 'Control eléctrico' },
+    OTHER:             { description: 'Otro' },
+  },
 });

@@ -27,6 +27,10 @@ export class PreventiveTasksService {
         return this.preventiveTasksRepository.findAll();
     }
 
+    findAllWithDeleted(): Promise<PreventiveTask[]> {
+        return this.preventiveTasksRepository.findAllWithDeleted();
+    }
+
     findAllActive(): Promise<PreventiveTask[]> {
         return this.preventiveTasksRepository.findAllActive();
     }
@@ -86,10 +90,13 @@ export class PreventiveTasksService {
     }
 
     async activate(id: string): Promise<PreventiveTask> {
-        const task = await this.findByIdOrFail(id);
-        if (task.status == PreventiveTaskStatus.CLOSED) throw new BadRequestException('La tarea preventiva ya está cerrada');
+        const task = await this.preventiveTasksRepository.findByIdIncludeInactive(id);
+        if (!task) throw new NotFoundException('Tarea preventiva no encontrada');
+        if (task.status === PreventiveTaskStatus.CLOSED) throw new BadRequestException('La tarea preventiva ya está cerrada');
         await this.preventiveTasksRepository.update(id, {
             status: PreventiveTaskStatus.ACTIVE,
+            isActive: true,
+            deletedAt: undefined,
         });
         return this.findByIdOrFail(id);
     }
@@ -152,12 +159,28 @@ export class PreventiveTasksService {
         if (!task.isPreventiveTaskActive())
             throw new BadRequestException('La tarea preventiva no está activa');
 
+        // Asegurar que la máquina esté cargada con sus relaciones
+        if (!task.machine) {
+            const fullTask = await this.preventiveTasksRepository.findById(task.id);
+            if (!fullTask?.machine) throw new BadRequestException('La tarea preventiva no tiene máquina asociada');
+            task = fullTask;
+        }
+
         const description = `[Mantenimiento Preventivo]\n${task.description}\n\nFrecuencia: ${task.getFrequencyDescription()}`;
+
+        // Obtener el areaId efectivo: directo o vía sub-área
+        const effectiveAreaId = task.machine!.getEffectiveAreaId();
+        if (!effectiveAreaId) {
+            throw new BadRequestException(
+                `No se pudo determinar el área de la máquina ${task.machine!.name}. Verifique su configuración.`,
+            );
+        }
 
         const wo = await this.workOrdersService.create({
             description,
             machineId: task.machineId,
-            areaId: task.machine?.subArea?.areaId || "",
+            areaId: effectiveAreaId,
+            subAreaId: task.machine!.subAreaId || undefined,
         }, task.createdBy || '');
 
         // ──── EMITIR NOTIFICACIÓN ────
@@ -178,6 +201,7 @@ export class PreventiveTasksService {
         });
         return this.findByIdOrFail(task.id);
     }
+
 
     async recalculateNextExecution(id: string): Promise<PreventiveTask> {
         const task = await this.findByIdOrFail(id);

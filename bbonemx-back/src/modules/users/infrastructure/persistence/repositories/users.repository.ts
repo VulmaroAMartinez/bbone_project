@@ -1,23 +1,30 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, Not } from "typeorm";
-import { User } from "../../../domain/entities";
+import { User, UserRole } from "../../../domain/entities";
+import { Role } from "src/modules/catalogs/roles/domain/entities";
 
 @Injectable()
 export class UsersRepository {
-    
-    constructor (@InjectRepository(User) private readonly repository: Repository<User>) {}
+
+    constructor (
+        @InjectRepository(User) private readonly repository: Repository<User>,
+        @InjectRepository(UserRole) private readonly userRoleRepository: Repository<UserRole>,
+    ) {}
 
     async findAll(): Promise<User[]> {
         return this.repository.find({
             where: { isActive: true },
-            relations: ['role', 'userRoles', 'userRoles.role', 'department']
+            relations: ['userRoles', 'userRoles.role', 'department'],
+            order: { firstName: 'ASC', lastName: 'ASC' },
         });
     }
 
     async findAllWithDeleted(): Promise<User[]> {
         return this.repository.find({
-            withDeleted: true
+            withDeleted: true,
+            relations: ['userRoles', 'userRoles.role', 'department'],
+            order: { isActive: 'DESC', firstName: 'ASC', lastName: 'ASC' },
         });
     }
 
@@ -27,7 +34,7 @@ export class UsersRepository {
                 employeeNumber,
                 isActive: true 
             },
-            relations: ['role', 'userRoles', 'userRoles.role', 'department'],
+            relations: ['userRoles', 'userRoles.role', 'department'],
         });
     }
 
@@ -37,7 +44,7 @@ export class UsersRepository {
                 id,
                 isActive: true
             },
-            relations: ['role', 'userRoles', 'userRoles.role', 'department']
+            relations: ['userRoles', 'userRoles.role', 'department']
         });
     }
 
@@ -45,7 +52,7 @@ export class UsersRepository {
         return this.repository.findOne({
             where: { id },
             withDeleted: true,
-            relations: ['role', 'userRoles', 'userRoles.role', 'department'],
+            relations: ['userRoles', 'userRoles.role', 'department'],
         });
     }
 
@@ -58,7 +65,8 @@ export class UsersRepository {
 
     async existsByEmail(email: string): Promise<boolean> {
         const count = await this.repository.count({
-            where: { email }
+            where: { email },
+            withDeleted: true,
         });
         return count > 0;
     }
@@ -68,7 +76,8 @@ export class UsersRepository {
             where: {
                 employeeNumber,
                 id: Not(excludeUserId)
-            }
+            },
+            withDeleted: true,
         });
         return count > 0;
     }
@@ -78,33 +87,81 @@ export class UsersRepository {
             where: {
                 email,
                 id: Not(excludeUserId)
-            }
+            },
+            withDeleted: true,
         });
         return count > 0;
     }
 
     async create(userData: Partial<User>): Promise<User> {
-        const user = this.repository.create(userData);
+        const roles: Role[] | undefined = userData.roles as Role[] | undefined;
+        const { roles: _roles, ...userDataWithoutRoles } = userData as Partial<User>;
+        const user = this.repository.create(userDataWithoutRoles);
         const savedUser = await this.repository.save(user);
+
+        if (roles?.length) {
+            await this.saveUserRoles(savedUser.id, roles);
+        }
+
         return this.findById(savedUser.id) as Promise<User>;
     }
 
     async update(id: string, userData: Partial<User>): Promise<User | null> {
         const user = await this.repository.findOne({ where: { id }, relations: ['userRoles', 'userRoles.role'] });
         if (!user) return null;
-        
-        
-        if (userData.roleId !== undefined) {
-            user.role = undefined as any;
-        }
 
-        if (userData.departmentId !== undefined) {
+        const roles: Role[] | undefined = userData.roles as Role[] | undefined;
+        const { roles: _roles, ...patchWithoutRoles } = userData as any;
+
+        if (patchWithoutRoles.departmentId !== undefined) {
             user.department = undefined as any;
         }
 
-        const mergedUser = this.repository.merge(user, userData);
+        const mergedUser = this.repository.merge(user, patchWithoutRoles);
         await this.repository.save(mergedUser);
+
+        if (roles !== undefined) {
+            await this.saveUserRoles(id, roles);
+        }
+
         return this.findById(id);
+    }
+
+    async setBossRole(userId: string, bossRoleId: string, activate: boolean): Promise<void> {
+        const existing = await this.userRoleRepository.findOne({
+            where: { userId, roleId: bossRoleId },
+            withDeleted: true,
+        });
+
+        if (activate) {
+            if (existing) {
+                existing.isActive = true;
+                existing.deletedAt = null;
+                await this.userRoleRepository.save(existing);
+            } else {
+                const ur = this.userRoleRepository.create();
+                ur.userId = userId;
+                ur.roleId = bossRoleId;
+                ur.isActive = true;
+                await this.userRoleRepository.save(ur);
+            }
+        } else if (existing && existing.isActive) {
+            existing.isActive = false;
+            existing.deletedAt = new Date();
+            await this.userRoleRepository.save(existing);
+        }
+    }
+
+    private async saveUserRoles(userId: string, roles: Role[]): Promise<void> {
+        await this.userRoleRepository.delete({ userId });
+        if (roles.length === 0) return;
+        const userRoles = roles.map((role) => {
+            const ur = this.userRoleRepository.create();
+            ur.userId = userId;
+            ur.roleId = role.id;
+            return ur;
+        });
+        await this.userRoleRepository.save(userRoles);
     }
 
     async softDelete(id: string): Promise<void> {

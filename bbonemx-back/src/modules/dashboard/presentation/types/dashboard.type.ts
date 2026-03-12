@@ -94,6 +94,12 @@ export class DashboardCharts {
 
   @Field(() => [KeyValue])
   findingsConversion: KeyValue[];
+
+  @Field(() => [AreaMetric])
+  findingsByArea: AreaMetric[];
+
+  @Field(() => [AreaMetric])
+  workOrdersByArea: AreaMetric[];
 }
 
 @ObjectType()

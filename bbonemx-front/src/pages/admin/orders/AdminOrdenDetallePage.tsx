@@ -301,7 +301,7 @@ function AdminOrdenDetallePage() {
 
   // Firmas
   const signatures = workOrderRaw.signatures || [];
-  const adminSignature = signatures.find(s => s.signer.role.name === 'ADMIN');
+  const adminSignature = signatures.find((s) => s.signer.role?.name === 'ADMIN');
   const needsMySignature = (isCompleted || isTemporaryRepair) && !adminSignature;
 
   // Fotos
@@ -683,14 +683,11 @@ function AdminOrdenDetallePage() {
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     Solicitante
                   </p>
-                  {signatures.find(
-                    (s) => s.signer.role.name === 'REQUESTER',
-                  ) ? (
+                  {signatures.find((s) => s.signer.role?.name === 'REQUESTER') ? (
                     <img
                       src={
-                        signatures.find(
-                          (s) => s.signer.role.name === 'REQUESTER',
-                        )?.signatureImagePath
+                        signatures.find((s) => s.signer.role?.name === 'REQUESTER')
+                          ?.signatureImagePath
                       }
                       alt="Firma"
                       width={192}
@@ -707,14 +704,11 @@ function AdminOrdenDetallePage() {
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     Técnico
                   </p>
-                  {signatures.find(
-                    (s) => s.signer.role.name === 'TECHNICIAN',
-                  ) ? (
+                  {signatures.find((s) => s.signer.role?.name === 'TECHNICIAN') ? (
                     <img
                       src={
-                        signatures.find(
-                          (s) => s.signer.role.name === 'TECHNICIAN',
-                        )?.signatureImagePath
+                        signatures.find((s) => s.signer.role?.name === 'TECHNICIAN')
+                          ?.signatureImagePath
                       }
                       alt="Firma"
                       width={192}

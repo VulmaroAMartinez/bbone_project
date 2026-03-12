@@ -22,14 +22,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         const user = await this.authService.getUserById(payload.sub);
         if(!user) throw new UnauthorizedException('Usuario no encontrado');
         if(!user.isActive) throw new UnauthorizedException('Usuario inactivo');
-
-        const currentRoleIds = user.roles?.map((role) => role.id) ?? (user.roleId ? [user.roleId] : []);
-        const payloadRoleIds = payload.roleIds ?? [];
-        const rolesMatch =
-            currentRoleIds.length === payloadRoleIds.length &&
-            currentRoleIds.every((roleId) => payloadRoleIds.includes(roleId));
-
-        if (!rolesMatch) throw new UnauthorizedException('Usuario no autorizado');
         return user;
     }
 }

@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
     GetFindingsByAreaDocument,
     GetAreaDocument,
@@ -38,7 +38,6 @@ import {
     ChevronRight,
     Search,
     X,
-    Filter,
 } from 'lucide-react';
 
 const PAGE_LIMIT = 20;
@@ -128,10 +127,10 @@ export default function AreaFindingsPage() {
     const formatDate = (d?: string | null) =>
         d
             ? new Date(d).toLocaleDateString('es-MX', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-              })
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+            })
             : '—';
 
     return (
@@ -282,7 +281,11 @@ export default function AreaFindingsPage() {
                             const statusCfg =
                                 STATUS_CONFIG[finding.status] ?? STATUS_CONFIG.OPEN;
                             return (
-                                <Card key={finding.id} className="hover:shadow-md transition-shadow">
+                                <Card
+                                    key={finding.id}
+                                    className="hover:shadow-md transition-shadow cursor-pointer"
+                                    onClick={() => navigate(`/hallazgos/${finding.id}/editar`)}
+                                >
                                     <CardContent className="p-4 space-y-3">
                                         {/* Folio + Status */}
                                         <div className="flex items-center justify-between gap-2 flex-wrap">

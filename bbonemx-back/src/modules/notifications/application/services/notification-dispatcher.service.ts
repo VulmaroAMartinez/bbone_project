@@ -191,13 +191,14 @@ export class NotificationDispatcherService {
     private async getUserIdsByRole(roleName: string): Promise<string[]> {
         const users = await this.usersRepository
             .createQueryBuilder('u')
-            .innerJoin('u.role', 'role')
+            .innerJoin('u.userRoles', 'userRole')
+            .innerJoin('userRole.role', 'role')
             .where('role.name = :roleName', { roleName })
             .andWhere('u.isActive = :active', { active: true })
             .select('u.id')
             .getMany();
 
-        return users.map(u => u.id);
+        return users.map((u) => u.id);
     }
 
     private truncate(text: string, maxLength: number): string {

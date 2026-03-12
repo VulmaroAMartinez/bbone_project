@@ -11,16 +11,20 @@ export class SubAreasRepository {
         return this.repository.find({ relations: ['area'] });
     }
 
+    async findAllWithDeleted(): Promise<SubArea[]> {
+        return this.repository.find({ withDeleted: true, relations: ['area'] });
+    }
+
     async findAllActive(): Promise<SubArea[]> {
-        return this.repository.find({ where: { isActive: true }, relations: ['area'] });
+        return this.repository.find({ where: { isActive: true }, withDeleted: true, relations: ['area'] });
     }
 
     async findById(id: string): Promise<SubArea | null> {
-        return this.repository.findOne({ where: { id }, relations: ['area'] });
+        return this.repository.findOne({ where: { id }, withDeleted: true, relations: ['area'] });
     }
 
     async findByAreaId(areaId: string): Promise<SubArea[]> {
-        return this.repository.find({ where: { areaId, isActive: true }, relations: ['area'] });
+        return this.repository.find({ where: { areaId, isActive: true }, withDeleted: true, relations: ['area'] });
     }
 
     async create(data: Partial<SubArea>): Promise<SubArea> {
@@ -29,7 +33,7 @@ export class SubAreasRepository {
     }
 
     async update(id: string, data: Partial<SubArea>): Promise<SubArea | null> {
-        const subArea = await this.repository.findOne({ where: { id } });
+        const subArea = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!subArea) return null;
         Object.assign(subArea, data);
         await this.repository.save(subArea);
@@ -37,7 +41,7 @@ export class SubAreasRepository {
     }
 
     async softDelete(id: string): Promise<void> {
-        const subArea = await this.repository.findOne({ where: { id } });
+        const subArea = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!subArea) return;
         subArea.isActive = false;
         subArea.deletedAt = new Date();
@@ -48,7 +52,7 @@ export class SubAreasRepository {
         const subArea = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!subArea) return;
         subArea.isActive = true;
-        subArea.deletedAt = undefined;
+        subArea.deletedAt = null;
         await this.repository.save(subArea);
     }
 }

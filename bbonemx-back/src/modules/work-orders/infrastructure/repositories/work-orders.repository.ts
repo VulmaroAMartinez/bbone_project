@@ -14,6 +14,17 @@ export class WorkOrdersRepository {
     async findAll(): Promise<WorkOrder[]> {
         return this.repository.find({
             where: { isActive: true },
+            withDeleted: true,
+            relations: ['area', 'subArea', 'requester', 'requester.department', 'assignedShift', 'machine'],
+            order: {
+                createdAt: 'DESC'
+            }
+        });
+    }
+
+    async findAllWithDeleted(): Promise<WorkOrder[]> {
+        return this.repository.find({
+            withDeleted: true,
             relations: ['area', 'subArea', 'requester', 'requester.department', 'assignedShift', 'machine'],
             order: {
                 createdAt: 'DESC'
@@ -29,7 +40,8 @@ export class WorkOrdersRepository {
                 'area',
                 'subArea',
                 'requester',
-                'requester.role',
+                'requester.userRoles',
+                'requester.userRoles.role',
                 'requester.department',
                 'assignedShift',
                 'machine',
@@ -51,6 +63,22 @@ export class WorkOrdersRepository {
         });
     }
 
+    async findByMachineId(machineId: string): Promise<WorkOrder[]> {
+        return this.repository.find({
+            where: { machineId, isActive: true },
+            withDeleted: true,
+            relations: [
+                'area',
+                'subArea',
+                'requester',
+                'requester.department',
+                'assignedShift',
+                'machine',
+            ],
+            order: { createdAt: 'DESC' },
+        });
+    }
+
     async findByTechnicianId(technicianId: string): Promise<WorkOrder[]> {
         return this.repository
         .createQueryBuilder('wo')
@@ -61,12 +89,13 @@ export class WorkOrdersRepository {
         .leftJoinAndSelect('wo.area', 'area')
         .leftJoinAndSelect('wo.subArea', 'subArea')
         .leftJoinAndSelect('wo.requester', 'requester')
-        .leftJoinAndSelect('requester.role', 'requesterRole')
-        .leftJoinAndSelect('requester.department', 'requesterDepartment')
-        .leftJoinAndSelect('wo.assignedShift', 'assignedShift')
-        .leftJoinAndSelect('wo.machine', 'machine')
-        .orderBy('wo.created_at', 'DESC')
-        .getMany();
+        .leftJoinAndSelect('requester.userRoles', 'requesterUserRoles')
+            .leftJoinAndSelect('requesterUserRoles.role', 'requesterRole')
+            .leftJoinAndSelect('requester.department', 'requesterDepartment')
+            .leftJoinAndSelect('wo.assignedShift', 'assignedShift')
+            .leftJoinAndSelect('wo.machine', 'machine')
+            .orderBy('wo.created_at', 'DESC')
+            .getMany();
     }
 
     async findByRequesterId(requesterId: string): Promise<WorkOrder[]> {
@@ -81,14 +110,15 @@ export class WorkOrdersRepository {
 
     //Búsqued con filtros, páginación y ordenamiento
     async findWithFilters(
-        filters: WorkOrderFiltersInput, 
-        pagination: PaginationInput, 
+        filters: WorkOrderFiltersInput,
+        pagination: PaginationInput,
         sort: WorkOrderSortInput): Promise<{ data: WorkOrder[]; total: number }> {
-            const qb = this.repository.createQueryBuilder('wo')
+        const qb = this.repository.createQueryBuilder('wo')
             .leftJoinAndSelect('wo.area', 'area')
             .leftJoinAndSelect('wo.subArea', 'subArea')
             .leftJoinAndSelect('wo.requester', 'requester')
-            .leftJoinAndSelect('requester.role', 'role')
+            .leftJoinAndSelect('requester.userRoles', 'requesterUserRoles')
+            .leftJoinAndSelect('requesterUserRoles.role', 'requesterRole')
             .leftJoinAndSelect('requester.department', 'department')
             .leftJoinAndSelect('wo.assignedShift', 'assignedShift')
             .leftJoinAndSelect('wo.machine', 'machine')
@@ -186,7 +216,7 @@ export class WorkOrdersRepository {
         const workOrder = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!workOrder) return;
         workOrder.isActive = true;
-        workOrder.deletedAt = undefined;
+        workOrder.deletedAt = null as any;
         await this.repository.save(workOrder);
     }
 

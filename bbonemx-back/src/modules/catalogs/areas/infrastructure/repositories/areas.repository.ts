@@ -20,7 +20,7 @@ export class AreasRepository {
     }
 
     async findById(id: string): Promise<Area | null> {
-        return this.repository.findOne({ where: { id } });
+        return this.repository.findOne({ where: { id }, withDeleted: true });
     }
 
     async findByName(name: string): Promise<Area | null> {
@@ -51,7 +51,7 @@ export class AreasRepository {
         const area = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!area) return;
         area.isActive = true;
-        area.deletedAt = undefined;
+        area.deletedAt = null;
         await this.repository.save(area);
     }
 }

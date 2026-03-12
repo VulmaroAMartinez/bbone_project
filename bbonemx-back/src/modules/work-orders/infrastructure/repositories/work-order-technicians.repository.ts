@@ -10,7 +10,7 @@ export class WorkOrderTechniciansRepository {
     async findByWorkOrderId(workOrderId: string): Promise<WorkOrderTechnician[]> {
         return this.repository.find({
           where: { workOrderId: workOrderId, isActive: true },
-          relations: ['technician', 'technician.role', 'assigner'],
+          relations: ['technician', 'technician.userRoles', 'technician.userRoles.role', 'assigner'],
           order: { isLead: 'DESC', assignedAt: 'ASC' },
         });
     }
@@ -33,7 +33,7 @@ export class WorkOrderTechniciansRepository {
     async findById(id: string): Promise<WorkOrderTechnician | null> {
         return this.repository.findOne({
             where: { id, isActive: true },
-            relations: [ 'workOrder', 'technician', 'technician.role', 'assigner', 'assigner.role' ],
+            relations: [ 'workOrder', 'technician', 'technician.userRoles', 'technician.userRoles.role', 'assigner', 'assigner.userRoles', 'assigner.userRoles.role' ],
         });
     }
 

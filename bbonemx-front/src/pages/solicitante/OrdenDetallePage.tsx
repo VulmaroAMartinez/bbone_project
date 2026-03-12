@@ -87,12 +87,14 @@ export default function OrdenDetallePage() {
 
 
   const signatures = workOrderRaw.signatures || [];
-  const requesterSignature = signatures.find(s => s.signer.role.name === 'REQUESTER');
-  const adminSignature = signatures.find(s => s.signer.role.name === 'ADMIN');
-  const techSignature = signatures.find(s => s.signer.role.name === 'TECHNICIAN');
+  const requesterSignature = signatures.find((s) => s.signer.role?.name === 'REQUESTER');
+  const adminSignature = signatures.find((s) => s.signer.role?.name === 'ADMIN');
+  const techSignature = signatures.find((s) => s.signer.role?.name === 'TECHNICIAN');
 
   const isCompleted = order.status === 'COMPLETED';
-  const isRequester = user?.role?.name === 'REQUESTER';
+  const isRequester =
+    user?.roles?.some((r: { name: string }) => r.name === 'REQUESTER') ??
+    user?.role?.name === 'REQUESTER';
   const needsMySignature = isCompleted && isRequester && !requesterSignature;
 
   const photoBefore = workOrderRaw.photos.find(p => p.photoType === 'BEFORE');

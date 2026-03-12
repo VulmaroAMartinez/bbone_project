@@ -11,7 +11,7 @@ export class WorkOrderPhotosRepository {
     async findByWorkOrderId(workOrderId: string): Promise<WorkOrderPhoto[]> {
         return this.repository.find({
             where: { workOrderId: workOrderId, isActive: true },
-            relations: ['uploader', 'uploader.role'],
+            relations: ['uploader', 'uploader.userRoles', 'uploader.userRoles.role'],
             order: { uploadedAt: 'DESC' },
         });
     }

@@ -50,8 +50,8 @@ export class AuthService {
         const payload: JwtPayload = {
             sub: user.id,
             employeeNumber: user.employeeNumber,
-            roleIds: user.roles?.map((role) => role.id) ?? (user.roleId ? [user.roleId] : []),
-            roleNames: user.roles?.map((role) => role.name) ?? (user.role?.name ? [user.role.name] : []),
+            roleIds: user.roles?.map((role) => role.id) ?? [],
+            roleNames: user.roles?.map((role) => role.name) ?? [],
         };
 
         const accessToken = this.jwtService.sign(payload);

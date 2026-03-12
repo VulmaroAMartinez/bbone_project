@@ -20,7 +20,7 @@ export class MaterialsRepository {
     }
 
     async findById(id: string): Promise<Material | null> {
-        return this.repository.findOne({ where: { id } });
+        return this.repository.findOne({ where: { id }, withDeleted: true });
     }
 
     async findBySku(sku: string): Promise<Material | null> {
@@ -32,14 +32,14 @@ export class MaterialsRepository {
     }
 
     async update(id: string, data: Partial<Material>): Promise<Material | null> {
-        const material = await this.repository.findOne({ where: { id } });
+        const material = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!material) return null;
         Object.assign(material, data);
         return this.repository.save(material);
     }
 
     async softDelete(id: string): Promise<void> {
-        const material = await this.repository.findOne({ where: { id } });
+        const material = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!material) return;
         material.isActive = false;
         material.deletedAt = new Date();
@@ -50,7 +50,7 @@ export class MaterialsRepository {
         const material = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!material) return;
         material.isActive = true;
-        material.deletedAt = undefined;
+        material.deletedAt = null;
         await this.repository.save(material);
     }
 }

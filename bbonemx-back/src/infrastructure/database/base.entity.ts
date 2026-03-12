@@ -42,13 +42,13 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   })
   updatedAt: Date;
 
-  @Field({ nullable: true })
+  @Field(() => Date, { nullable: true })
   @DeleteDateColumn({ 
     name: 'deleted_at',
     type: 'timestamp with time zone',
     nullable: true,
   })
-  deletedAt?: Date;
+  deletedAt?: Date | null;
 
   @Field({ nullable: true })
   @Column({ 

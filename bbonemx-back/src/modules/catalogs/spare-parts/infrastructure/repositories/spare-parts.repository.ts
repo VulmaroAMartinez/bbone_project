@@ -12,7 +12,7 @@ export class SparePartsRepository {
     }
 
     async findAllWithDeleted(): Promise<SparePart[]> {
-        return this.repository.find({ withDeleted: true });
+        return this.repository.find({ withDeleted: true, relations: ['machine'] });
     }
 
     async findAllActive(): Promise<SparePart[]> {
@@ -20,7 +20,7 @@ export class SparePartsRepository {
     }
 
     async findById(id: string): Promise<SparePart | null> {
-        return this.repository.findOne({ where: { id }, relations: ['machine'] });
+        return this.repository.findOne({ where: { id }, relations: ['machine'], withDeleted: true });
     }
 
     async findByMachineId(machineId: string): Promise<SparePart[]> {
@@ -33,7 +33,7 @@ export class SparePartsRepository {
     }
 
     async update(id: string, data: Partial<SparePart>): Promise<SparePart | null> {
-        const sparePart = await this.repository.findOne({ where: { id } });
+        const sparePart = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!sparePart) return null;
         Object.assign(sparePart, data);
         await this.repository.save(sparePart);
@@ -41,7 +41,7 @@ export class SparePartsRepository {
     }
 
     async softDelete(id: string): Promise<void> {
-        const sparePart = await this.repository.findOne({ where: { id } });
+        const sparePart = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!sparePart) return;
         sparePart.isActive = false;
         sparePart.deletedAt = new Date();
@@ -52,7 +52,7 @@ export class SparePartsRepository {
         const sparePart = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!sparePart) return;
         sparePart.isActive = true;
-        sparePart.deletedAt = undefined;
+        sparePart.deletedAt = null;
         await this.repository.save(sparePart);
     }
 }

@@ -127,10 +127,26 @@ export default function PerfilPage() {
               <h2 className="text-xl font-bold text-foreground">{user.fullName}</h2>
               <p className="text-muted-foreground">{user.email}</p>
               <div className="mt-2">
-                <Badge variant="outline" className={getRoleColor(user.role.name)}>
-                  <Shield className="h-3 w-3 mr-1" />
-                  {getRoleLabel(user.role.name)}
-                </Badge>
+                {(() => {
+                  const roleNames =
+                    user.roles?.map((role) => role.name) ??
+                    (user.role?.name ? [user.role.name] : []);
+                  const primaryRole =
+                    roleNames?.includes('ADMIN')
+                      ? 'ADMIN'
+                      : roleNames?.includes('TECHNICIAN')
+                      ? 'TECHNICIAN'
+                      : roleNames?.includes('REQUESTER')
+                      ? 'REQUESTER'
+                      : roleNames?.[0];
+                  if (!primaryRole) return null;
+                  return (
+                    <Badge variant="outline" className={getRoleColor(primaryRole)}>
+                      <Shield className="h-3 w-3 mr-1" />
+                      {getRoleLabel(primaryRole)}
+                    </Badge>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -175,7 +191,15 @@ export default function PerfilPage() {
             <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
               <p className="text-muted-foreground">Rol</p>
-              <p className="text-foreground font-medium">{getRoleLabel(user.role.name)}</p>
+              <p className="text-foreground font-medium">
+                {(() => {
+                  const roleNames =
+                    user.roles?.map((role) => role.name) ??
+                    (user.role?.name ? [user.role.name] : []);
+                  if (!roleNames || roleNames.length === 0) return 'Sin rol';
+                  return roleNames.map((name) => getRoleLabel(name)).join(' / ');
+                })()}
+              </p>
             </div>
           </div>
 

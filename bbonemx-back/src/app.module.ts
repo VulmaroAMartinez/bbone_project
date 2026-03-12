@@ -8,6 +8,7 @@ import {
   graphqlConfig,
   jwtConfig,
   schedulerConfig,
+  emailConfig,
 } from './config';
 
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -16,7 +17,7 @@ import { CustomGraphqlModule } from './infrastructure/graphql/graphql.module';
 import { GraphqlExceptionFilter } from './common/filters';
 import { JwtAuthGuard } from './common/guards';
 import { LoggingInterceptor, UserContextInterceptor } from './common/interceptors';
-import { PasswordModule } from './common/modules';
+import { PasswordModule, EmailModule } from './common/modules';
 
 // Módulos de dominio
 import { FindingsModule } from './modules/findings';
@@ -37,13 +38,14 @@ import { DashboardModule } from './modules/dashboard';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
-      load: [appConfig, databaseConfig, graphqlConfig, jwtConfig, schedulerConfig],
+      load: [appConfig, databaseConfig, graphqlConfig, jwtConfig, schedulerConfig, emailConfig],
       cache: true,
     }),
 
     DatabaseModule,
     CustomGraphqlModule,
     PasswordModule,
+    EmailModule,
 
     // Módulo de auditoría (debe cargarse antes que otros módulos de dominio)
     AuditModule,
@@ -73,12 +75,12 @@ import { DashboardModule } from './modules/dashboard';
       provide: APP_INTERCEPTOR,
       useClass: UserContextInterceptor,
     },
-    
+
     {
-       provide: APP_GUARD,
-       useClass: JwtAuthGuard,
-   },
-    
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+
     // Interceptor de logging global (opcional)
     // {
     //   provide: APP_INTERCEPTOR,
@@ -86,4 +88,4 @@ import { DashboardModule } from './modules/dashboard';
     // },
   ],
 })
-export class AppModule {}
+export class AppModule { }

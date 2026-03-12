@@ -20,6 +20,16 @@ query GetDashboardData($input: DashboardInput!) {
           key
           value
         }
+        findingsByArea {
+          areaId
+          areaName
+          value
+        }
+        workOrdersByArea {
+          areaId
+          areaName
+          value
+        }
         maintenanceMixByPeriod {
           period
           type

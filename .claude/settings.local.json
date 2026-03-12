@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front && npm run codegen 2>&1)"
+    ]
+  }
+}

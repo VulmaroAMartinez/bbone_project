@@ -63,9 +63,7 @@ function LoginPage() {
     try {
       const success = await login(values.employeeNumber, values.password);
 
-      if (success) {
-        navigate(from, { replace: true });
-      } else {
+      if (!success) {
         setFormError('Credenciales incorrectas. Verifica tu número de empleado y contraseña.');
       }
     } catch (err) {

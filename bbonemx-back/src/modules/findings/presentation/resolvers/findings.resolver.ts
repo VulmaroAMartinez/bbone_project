@@ -22,6 +22,11 @@ export class FindingsResolver {
         return this.findingsService.findAll();
     }
 
+    @Query(() => [FindingType], { name: "findingsWithDeleted" })
+    async findingsWithDeleted() {
+        return this.findingsService.findAllWithDeleted();
+    }
+
     @Query(() => [FindingType], { name: "findingsOpen" })
     async findingsOpen() {
         return this.findingsService.findAllOpen();

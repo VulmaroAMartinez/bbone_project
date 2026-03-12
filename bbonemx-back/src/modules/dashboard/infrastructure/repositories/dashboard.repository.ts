@@ -280,6 +280,49 @@ export class DashboardRepository {
 
   }
 
+  async getFindingsByArea(input: DashboardInput): Promise<AreaMetric[]> {
+    const { dateFrom, dateToExclusive } = this.getDateBounds(input);
+    const qb = this.findingsRepo.createQueryBuilder('f').where('f.is_active = true');
+
+    qb.andWhere('f.created_at >= :dateFrom AND f.created_at < :dateToExclusive', { dateFrom, dateToExclusive });
+
+    if (input.areaIds?.length) qb.andWhere('f.area_id IN (:...areaIds)', { areaIds: input.areaIds });
+    if (input.shiftIds?.length) qb.andWhere('f.shift_id IN (:...shiftIds)', { shiftIds: input.shiftIds });
+
+    const rows = await qb
+      .leftJoin('f.area', 'area')
+      .select('f.area_id', 'areaId')
+      .addSelect("COALESCE(area.name, 'Sin área')", 'areaName')
+      .addSelect('COUNT(*)::int', 'value')
+      .groupBy('f.area_id')
+      .addGroupBy('area.name')
+      .orderBy('value', 'DESC')
+      .getRawMany<{ areaId: string; areaName: string; value: string }>();
+
+    return rows.map((r) => ({ areaId: r.areaId, areaName: r.areaName, value: Number(r.value) }));
+  }
+
+  async getWorkOrdersByArea(input: DashboardInput): Promise<AreaMetric[]> {
+    const qb = this.workOrdersRepo.createQueryBuilder('wo');
+    this.applyWorkOrderFilters(qb, input, true);
+
+    if (input.woStatuses?.length) {
+      qb.andWhere('wo.status IN (:...woStatuses)', { woStatuses: input.woStatuses });
+    }
+
+    const rows = await qb
+      .leftJoin('wo.area', 'area')
+      .select('wo.area_id', 'areaId')
+      .addSelect("COALESCE(area.name, 'Sin área')", 'areaName')
+      .addSelect('COUNT(*)::int', 'value')
+      .groupBy('wo.area_id')
+      .addGroupBy('area.name')
+      .orderBy('value', 'DESC')
+      .getRawMany<{ areaId: string; areaName: string; value: string }>();
+
+    return rows.map((r) => ({ areaId: r.areaId, areaName: r.areaName, value: Number(r.value) }));
+  }
+
   async getTopTechniciansByClosures(input: DashboardInput): Promise<TechnicianMetric[]> {
     const { dateFrom, dateToExclusive } = this.getDateBounds(input);
     const qb = this.workOrdersRepo.createQueryBuilder('wo');

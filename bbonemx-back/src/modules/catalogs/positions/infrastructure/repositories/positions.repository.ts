@@ -20,7 +20,7 @@ export class PositionsRepository {
     }
 
     async findById(id: string): Promise<Position | null> {
-        return this.repository.findOne({ where: { id } });
+        return this.repository.findOne({ where: { id }, withDeleted: true });
     }
 
     async create(data: Partial<Position>): Promise<Position> {
@@ -28,14 +28,14 @@ export class PositionsRepository {
     }
     
     async update(id: string, data: Partial<Position>): Promise<Position | null> {
-        const position = await this.repository.findOne({ where: { id } });
+        const position = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!position) return null;
         Object.assign(position, data);
         return this.repository.save(position);
     }
 
     async softDelete(id: string): Promise<void> {
-        const position = await this.repository.findOne({ where: { id } });
+        const position = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!position) return;
         position.isActive = false;
         position.deletedAt = new Date();
@@ -46,7 +46,7 @@ export class PositionsRepository {
         const position = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!position) return;
         position.isActive = true;
-        position.deletedAt = undefined;
+        position.deletedAt = null;
         await this.repository.save(position);
     }
 

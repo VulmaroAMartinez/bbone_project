@@ -22,6 +22,7 @@ import {
   Building2,
   Bolt,
   Clock,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -43,7 +44,7 @@ type NavItem = {
 export function MobileNav({ onClose }: MobileNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, isAdmin, isTechnician, isRequester } = useAuth();
+  const { user, logout, isAdmin, isTechnician, isRequester, isBoss, canSwitchRoles, activeRole, selectRole } = useAuth();
 
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
@@ -51,6 +52,13 @@ export function MobileNav({ onClose }: MobileNavProps) {
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const handleSwitchRole = () => {
+    const next = isAdmin ? 'TECHNICIAN' : 'ADMIN';
+    selectRole(next);
+    onClose();
+    navigate('/', { replace: true });
   };
 
   const getNavItems = (): NavItem[] => {
@@ -86,11 +94,18 @@ export function MobileNav({ onClose }: MobileNavProps) {
       ];
     }
     if (isTechnician) {
-      return [
+      const items: NavItem[] = [
         { href: '/tecnico/pendientes', label: 'Mis Pendientes', icon: ClipboardList },
         { href: '/horario', label: 'Mi Horario', icon: Calendar },
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
       ];
+      if (isBoss || isAdmin) {
+        items.push(
+          { href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle },
+          { href: '/solicitud-material/nueva', label: 'Solicitud de Material', icon: FileCog2 },
+        );
+      }
+      return items;
     }
     if (isRequester) {
       return [
@@ -100,7 +115,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
     }
     return [];
   };
-  
+
   const navItems = getNavItems();
 
   const handleNavigation = (href: string) => {
@@ -141,13 +156,11 @@ export function MobileNav({ onClose }: MobileNavProps) {
               const hasChildren = !!item.children?.length;
               const isExpanded = expandedItems[item.label];
 
-              // Verificamos si la ruta actual es el item padre, o uno de sus hijos
               const isChildActive = item.children?.some(child => location.pathname === child.href || location.pathname.startsWith(`${child.href}/`));
               const isActive = (item.href && (location.pathname === item.href || location.pathname.startsWith(`${item.href}/`))) || isChildActive;
 
               return (
                 <li key={item.label} className="space-y-1">
-                  {/* Botón Principal (Padre) */}
                   <button
                     onClick={() => {
                       if (hasChildren) {
@@ -170,7 +183,6 @@ export function MobileNav({ onClose }: MobileNavProps) {
                       </span>
                       <span className="text-sm font-medium">{item.label}</span>
                     </div>
-                    {/* Flecha indicadora si tiene hijos */}
                     {hasChildren && (
                       <ChevronDown
                         className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isExpanded && "rotate-180")}
@@ -178,7 +190,6 @@ export function MobileNav({ onClose }: MobileNavProps) {
                     )}
                   </button>
 
-                  {/* Sub-menú Desplegable */}
                   {hasChildren && isExpanded && (
                     <ul className="mt-1 space-y-1 pl-10 pr-2">
                       {item.children!.map((child) => {
@@ -236,8 +247,25 @@ export function MobileNav({ onClose }: MobileNavProps) {
       <div className="border-t border-sidebar-border p-4 shrink-0">
         <div className="mb-3 px-2">
           <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.fullName}</p>
-          <p className="text-xs text-muted-foreground capitalize">{getRoleLabel(user?.role?.name)}</p>
+          <p className="text-xs text-muted-foreground capitalize">
+            {getRoleLabel(activeRole ?? undefined)}
+            {isBoss && isTechnician && (
+              <span className="ml-1 text-primary font-medium">· Jefe</span>
+            )}
+          </p>
         </div>
+
+        {canSwitchRoles && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSwitchRole}
+            className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-primary/10 mb-1"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {isAdmin ? 'Cambiar a Técnico' : 'Cambiar a Admin'}
+          </Button>
+        )}
 
         <Button
           variant="ghost"

@@ -1,6 +1,6 @@
 import { InputType, Field, ID, PartialType, Int } from '@nestjs/graphql';
-import { 
-  IsNotEmpty, IsString, IsUUID, IsOptional, IsEnum, IsInt, Min, ValidateIf, IsDateString 
+import {
+  IsNotEmpty, IsString, IsUUID, IsOptional, IsEnum, IsInt, Min, ValidateIf, IsDateString, IsObject
 } from 'class-validator';
 import { 
   WorkOrderStatus, WorkOrderPriority, MaintenanceType, StopType, WorkType 
@@ -85,6 +85,11 @@ export class StartWorkOrderInput {
   @IsOptional()
   @IsString()
   breakdownDescription?: string;
+
+  @Field({ nullable: true, description: 'Descripción de la avería al iniciar (si aplica)' })
+  @IsOptional()
+  @IsString()
+  observations?: string;
 }
 
 @InputType()
@@ -118,18 +123,29 @@ export class CompleteWorkOrderInput {
   @IsString()
   toolsUsed?: string;
 
+  @Field({ nullable: true, description: 'Refacción no listada en catálogo' })
+  @IsOptional()
+  @IsString()
+  customSparePart?: string;
+
+  @Field({ nullable: true, description: 'Material no listado en catálogo' })
+  @IsOptional()
+  @IsString()
+  customMaterial?: string;
+
   @Field(() => Int, { nullable: true })
   @IsOptional()
   @IsInt()
   @Min(0)
   downtimeMinutes?: number;
 
-  @Field(() => WorkOrderStatus, { 
+  @Field(() => WorkOrderStatus, {
     defaultValue: WorkOrderStatus.COMPLETED,
-    description: 'COMPLETED o TEMPORARY_REPAIR' 
+    description: 'COMPLETED o TEMPORARY_REPAIR',
   })
   @IsEnum(WorkOrderStatus)
   finalStatus: WorkOrderStatus;
+
 }
 
 

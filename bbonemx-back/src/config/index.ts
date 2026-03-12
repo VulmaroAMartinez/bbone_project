@@ -3,3 +3,4 @@ export { default as databaseConfig } from './database.config';
 export { default as graphqlConfig } from './graphql.config';
 export { default as jwtConfig } from './jwt.config';
 export { default as schedulerConfig } from './scheduler.config';
+export { default as emailConfig } from './email.config';

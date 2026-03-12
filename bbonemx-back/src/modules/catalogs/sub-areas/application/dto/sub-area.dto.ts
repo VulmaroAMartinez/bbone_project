@@ -22,4 +22,9 @@ export class CreateSubAreaInput {
 }
 
 @InputType()
-export class UpdateSubAreaInput extends PartialType(CreateSubAreaInput) {}
+export class UpdateSubAreaInput extends PartialType(CreateSubAreaInput) {
+    @Field(() => ID, { nullable: true })
+    @IsOptional()
+    @IsUUID()
+    areaId?: string;
+}

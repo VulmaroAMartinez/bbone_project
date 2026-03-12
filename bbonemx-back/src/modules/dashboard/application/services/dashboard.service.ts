@@ -19,6 +19,8 @@ export class DashboardService {
             findingsConversion,
             topMachinesByDowntime,
             topTechniciansByClosures,
+            findingsByArea,
+            workOrdersByArea,
         ] = await Promise.all([
             this.dashboardRepository.getActiveBacklog(input),
             this.dashboardRepository.getLeadTimeHoursAvg(input),
@@ -30,6 +32,8 @@ export class DashboardService {
             this.dashboardRepository.getFindingsConversion(input),
             this.dashboardRepository.getTopMachinesByDowntime(input),
             this.dashboardRepository.getTopTechniciansByClosures(input),
+            this.dashboardRepository.getFindingsByArea(input),
+            this.dashboardRepository.getWorkOrdersByArea(input),
         ]);
 
         return {
@@ -44,6 +48,8 @@ export class DashboardService {
                 maintenanceMixByPeriod,
                 downtimeByAreaTop5,
                 findingsConversion,
+                findingsByArea,
+                workOrdersByArea,
             },
             rankings: {
                 topMachinesByDowntime,

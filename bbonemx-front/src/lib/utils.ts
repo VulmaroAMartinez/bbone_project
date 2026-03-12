@@ -5,6 +5,7 @@ const ROLE_LABEL_ES: Record<string, string> = {
   ADMIN: 'Administrador',
   TECHNICIAN: 'Técnico',
   REQUESTER: 'Solicitante',
+  BOSS: 'Jefe de Técnicos',
 };
 
 export function getRoleLabel(roleName: string | undefined | null): string {
@@ -12,12 +13,15 @@ export function getRoleLabel(roleName: string | undefined | null): string {
   return ROLE_LABEL_ES[roleName] ?? roleName;
 }
 
-export function getDateRange(preset: '7d' | '30d' | 'this_month' | 'this_year'): { dateFrom: string; dateTo: string; preset: '7d' | '30d' | 'this_month' | 'this_year' } {
+export function getDateRange(preset: 'today' | '7d' | '30d' | 'this_month' | 'this_year'): { dateFrom: string; dateTo: string; preset: 'today' | '7d' | '30d' | 'this_month' | 'this_year' } {
   const today = new Date();
   const dateTo = today.toISOString().split('T')[0];
   let dateFrom = '';
 
   switch (preset) {
+    case 'today':
+      dateFrom = dateTo;
+      break;
     case '7d':
       const sevenDaysAgo = new Date(today);
       sevenDaysAgo.setDate(today.getDate() - 7);
@@ -38,6 +42,11 @@ export function getDateRange(preset: '7d' | '30d' | 'this_month' | 'this_year'):
       const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
       dateFrom = firstDayOfYear.toISOString().split('T')[0];
       break;
+    default:
+      // Fallback: últimos 30 días
+      const fallback = new Date(today);
+      fallback.setDate(today.getDate() - 30);
+      dateFrom = fallback.toISOString().split('T')[0];
   }
 
   return { dateFrom, dateTo, preset };

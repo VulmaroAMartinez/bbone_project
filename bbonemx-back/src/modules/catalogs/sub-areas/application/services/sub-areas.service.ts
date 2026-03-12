@@ -5,6 +5,8 @@ import { CreateSubAreaInput, UpdateSubAreaInput } from "../dto";
 import { AreasService } from "src/modules/catalogs/areas/application/services";
 import { AreaType } from "src/common";
 
+const AREA_TYPES_WITH_SUBAREAS = [AreaType.OPERATIONAL, AreaType.PRODUCTION];
+
 @Injectable()
 export class SubAreasService {
     constructor(
@@ -14,6 +16,10 @@ export class SubAreasService {
 
     async findAll(): Promise<SubArea[]> {
         return this.subAreasRepository.findAll();
+    }
+
+    async findAllWithDeleted(): Promise<SubArea[]> {
+        return this.subAreasRepository.findAllWithDeleted();
     }
 
     async findAllActive(): Promise<SubArea[]> {
@@ -38,8 +44,10 @@ export class SubAreasService {
 
     async create(input: CreateSubAreaInput): Promise<SubArea> {
         const area = await this.areasService.findByIdOrFail(input.areaId);
-        if (area.type !== AreaType.OPERATIONAL) {
-            throw new BadRequestException('Solo se pueden crear sub-áreas en áreas de tipo OPERATIONAL');
+        if (!AREA_TYPES_WITH_SUBAREAS.includes(area.type)) {
+            throw new BadRequestException(
+                `Solo se pueden crear sub-áreas en áreas de tipo ${AREA_TYPES_WITH_SUBAREAS.join(' o ')}. El área "${area.name}" es de tipo ${area.type}.`,
+            );
         }
         return this.subAreasRepository.create(input);
     }
@@ -48,8 +56,10 @@ export class SubAreasService {
         await this.findByIdOrFail(id);
         if (input.areaId) {
             const area = await this.areasService.findByIdOrFail(input.areaId);
-            if (area.type !== AreaType.OPERATIONAL) {
-                throw new BadRequestException('Solo se pueden crear sub-áreas en áreas de tipo OPERATIONAL');
+            if (!AREA_TYPES_WITH_SUBAREAS.includes(area.type)) {
+                throw new BadRequestException(
+                    `Solo se pueden asociar sub-áreas a áreas de tipo ${AREA_TYPES_WITH_SUBAREAS.join(' o ')}. El área seleccionada es de tipo ${area.type}.`,
+                );
             }
         }
         return this.subAreasRepository.update(id, input);

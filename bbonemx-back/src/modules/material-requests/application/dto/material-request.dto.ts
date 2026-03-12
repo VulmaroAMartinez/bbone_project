@@ -1,70 +1,97 @@
-import { InputType, Field, ID, PartialType, Int } from "@nestjs/graphql";
-import { IsNotEmpty, IsString, IsUUID, IsOptional, IsEnum, IsBoolean, MaxLength } from "class-validator";
-import { MaterialRequestPriority, MaterialRequestImportance } from "src/common";
+import { InputType, Field, ID, PartialType } from "@nestjs/graphql";
+import { IsNotEmpty, IsString, IsUUID, IsOptional, ValidateNested, IsEnum, IsBoolean } from "class-validator";
+import { CreateMaterialRequestItemInput } from "./material-request-item.dto";
+import { Type } from "class-transformer";
+import { RequestCategory, RequestImportance, RequestPriority } from "src/common";
 
 @InputType()
 export class CreateMaterialRequestInput {
     @Field(() => ID)
-    @IsNotEmpty({ message: 'La máquina es requerida' })
+    @IsNotEmpty({message: 'El solicitante es requerido'})
+    @IsUUID()
+    requesterId: string;
+
+    @Field(() => ID)
+    @IsNotEmpty({message: 'La máquina es requerida'})
     @IsUUID()
     machineId: string;
 
+    @Field(() => [CreateMaterialRequestItemInput], { nullable: true })
+    @IsOptional()
+    @ValidateNested({each: true})
+    @Type(() => CreateMaterialRequestItemInput)
+    items?: CreateMaterialRequestItemInput[];
+
     @Field()
-    @IsNotEmpty({ message: 'El texto de la solicitud es requerido' })
+    @IsNotEmpty({message: 'El jefe es requerido'})
     @IsString()
-    requestText: string;
+    boss: string;
 
-    @Field(() => MaterialRequestPriority)
-    @IsNotEmpty({ message: 'La prioridad es requerida' })
-    @IsEnum(MaterialRequestPriority)
-    priority: MaterialRequestPriority;
+    @Field()
+    @IsNotEmpty({message: 'La categoría es requerida'})
+    @IsEnum(RequestCategory)
+    category: RequestCategory;
 
-    @Field({ nullable: true })
+    @Field()
+    @IsNotEmpty({message: 'La importancia es requerida'})
+    @IsEnum(RequestImportance)
+    importance: RequestImportance;
+
+    @Field()
+    @IsNotEmpty({message: 'La prioridad es requerida'})
+    @IsEnum(RequestPriority)
+    priority: RequestPriority;
+    
+    @Field()
+    @IsOptional()
+    @IsString()
+    customMachineName?: string;
+
+    @Field()
+    @IsOptional()
+    @IsString()
+    customMachineBrand?: string;
+
+    @Field()
+    @IsOptional()
+    @IsString()
+    customMachineModel?: string;
+
+    @Field()
+    @IsOptional()
+    @IsString()
+    customMachineManufacturer?: string;
+
+    @Field({nullable: true})
+    @IsOptional()
+    @IsString()
+    description?: string;
+
+    @Field({nullable: true})
     @IsOptional()
     @IsString()
     justification?: string;
 
-    @Field({ nullable: true, defaultValue: false })
-    @IsOptional()
+    @Field()
+    @IsNotEmpty({message: 'La autorización de material genérico es requerida'})
     @IsBoolean()
-    isGenericOrAlternativeModel?: boolean;
+    isGenericAllowed: boolean;
 
-    @Field({ nullable: true })
+    @Field({nullable: true})
+    @IsOptional()
+    @IsString()
+    suggestedSupplier?: string;
+
+    @Field({nullable: true})
     @IsOptional()
     @IsString()
     comments?: string;
-
-    @Field({ nullable: true })
-    @IsOptional()
-    @IsString()
-    @MaxLength(200)
-    suggestedSupplier?: string;
 }
 
 @InputType()
-export class UpdateMaterialRequestInput extends PartialType(CreateMaterialRequestInput) {}
-
-@InputType()
-export class AddMaterialToRequestInput {
+export class UpdateMaterialRequestInput extends PartialType(CreateMaterialRequestInput) {
     @Field(() => ID)
-    @IsNotEmpty({ message: 'El material es requerido' })
+    @IsNotEmpty({message: 'El ID de la solicitud de material es requerido'})
     @IsUUID()
-    materialId: string;
-
-    @Field(() => Int)
-    @IsNotEmpty({ message: 'La cantidad es requerida' })
-    quantity: number;
-
-    @Field(() => MaterialRequestImportance, { nullable: true })
-    @IsOptional()
-    @IsEnum(MaterialRequestImportance)
-    importance?: MaterialRequestImportance;
-
-    @Field(() => Int, { nullable: true })
-    @IsOptional()
-    minimumStock?: number;
-
-    @Field(() => Int, { nullable: true })
-    @IsOptional()
-    maximumStock?: number;
+    id: string;
 }

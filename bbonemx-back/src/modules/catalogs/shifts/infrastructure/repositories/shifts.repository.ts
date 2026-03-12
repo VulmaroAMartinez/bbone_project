@@ -20,7 +20,7 @@ export class ShiftsRepository {
     }
 
     async findById(id: string): Promise<Shift | null> {
-        return this.repository.findOne({ where: { id } });
+        return this.repository.findOne({ where: { id }, withDeleted: true });
     }
 
     async findByName(name: string): Promise<Shift | null> {
@@ -32,14 +32,14 @@ export class ShiftsRepository {
     }
 
     async update(id: string, data: Partial<Shift>): Promise<Shift | null> {
-        const shift = await this.repository.findOne({ where: { id } });
+        const shift = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!shift) return null;
         Object.assign(shift, data);
         return this.repository.save(shift);
     }
 
     async softDelete(id: string): Promise<void> {
-        const shift = await this.repository.findOne({ where: { id } });
+        const shift = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!shift) return;
         shift.isActive = false;
         shift.deletedAt = new Date();
@@ -50,7 +50,7 @@ export class ShiftsRepository {
         const shift = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!shift) return;
         shift.isActive = true;
-        shift.deletedAt = undefined;
+        shift.deletedAt = null;
         await this.repository.save(shift);
     }
 

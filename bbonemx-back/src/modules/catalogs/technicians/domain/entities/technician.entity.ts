@@ -2,6 +2,7 @@ import { Entity, Column, OneToOne, JoinColumn, ManyToOne } from "typeorm";
 import { BaseEntity } from "src/infrastructure/database/base.entity";
 import { User } from "src/modules/users/domain/entities";
 import { Position } from "src/modules/catalogs/positions/domain/entities";
+import { dateColumnTransformer } from "src/common/transformers";
 
 @Entity({name: 'technicians'})
 export class Technician extends BaseEntity {
@@ -33,7 +34,7 @@ export class Technician extends BaseEntity {
     @Column({ name: 'emergency_contact_relationship', type: 'varchar', length: 50 })
     emergencyContactRelationship: string;
 
-    @Column({ name: 'birth_date', type: 'date' })
+    @Column({ name: 'birth_date', type: 'date', transformer: dateColumnTransformer })
     birthDate: Date;
 
     @Column({ name: 'address', type: 'text' })
@@ -57,7 +58,7 @@ export class Technician extends BaseEntity {
     @Column({name:'transport_route', type: 'varchar', length: 100})
     transportRoute: string;
 
-    @Column({name: 'hire_date', type: 'date'})
+    @Column({name: 'hire_date', type: 'date', transformer: dateColumnTransformer})
     hireDate: Date;
 
     @Column({name: 'vacation_period', type: 'int', default: 0})

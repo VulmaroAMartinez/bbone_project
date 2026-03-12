@@ -12,6 +12,10 @@ export class AbsenceReasonsService {
         return this.absenceReasonsRepository.findAll();
     }
 
+    async findAllWithDeleted(): Promise<AbsenceReason[]> {
+        return this.absenceReasonsRepository.findAllWithDeleted();
+    }
+
     async findAllActive(): Promise<AbsenceReason[]> {
         return this.absenceReasonsRepository.findAllActive();
     }

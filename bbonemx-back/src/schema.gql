@@ -11,14 +11,6 @@ type AbsenceReason {
   updatedAt: DateTime!
 }
 
-input AddMaterialToRequestInput {
-  importance: MaterialRequestImportance
-  materialId: ID!
-  maximumStock: Int
-  minimumStock: Int
-  quantity: Int!
-}
-
 input AddWorkOrderMaterialInput {
   materialId: ID!
   notes: String
@@ -54,6 +46,11 @@ enum AreaType {
   """Área operativa - Puede tener sub-áreas y máquinas"""
   OPERATIONAL
 
+  """
+  Área de producción - Puede tener líneas (sub-áreas) y máquinas directas
+  """
+  PRODUCTION
+
   """Área de servicio - No tiene sub-áreas"""
   SERVICE
 }
@@ -88,10 +85,16 @@ input AssignWorkOrderInput {
   machineId: ID
   maintenanceType: MaintenanceType!
   priority: WorkOrderPriority!
+
+  """
+  Fecha programada (requerida cuando maintenanceType = CORRECTIVE_SCHEDULED)
+  """
+  scheduledDate: String
   stopType: StopType
 
   """IDs de técnicos a asignar"""
   technicianIds: [ID!]!
+  workType: WorkType!
 }
 
 input BulkUpdatePreferencesInput {
@@ -114,6 +117,12 @@ input ClosePreventiveTaskInput {
 input CompleteWorkOrderInput {
   actionTaken: String!
   cause: String
+
+  """Material no listado en catálogo"""
+  customMaterial: String
+
+  """Refacción no listada en catálogo"""
+  customSparePart: String
   downtimeMinutes: Int
 
   """COMPLETED o TEMPORARY_REPAIR"""
@@ -159,12 +168,14 @@ input CreateDepartmentInput {
 input CreateFindingInput {
   areaId: ID!
   description: String!
-  machineId: ID!
-  photoPath: String!
+  machineId: ID
+  photoPath: String
   shiftId: ID!
 }
 
 input CreateMachineInput {
+  """ID del área (si la máquina pertenece directamente al área)"""
+  areaId: ID
   brand: String
   code: String!
   description: String
@@ -174,7 +185,9 @@ input CreateMachineInput {
   name: String!
   operationalManualUrl: String
   serialNumber: String
-  subAreaId: String!
+
+  """ID de la sub-área (si la máquina pertenece a una sub-área)"""
+  subAreaId: ID
 }
 
 input CreateMaterialInput {
@@ -188,13 +201,37 @@ input CreateMaterialInput {
 }
 
 input CreateMaterialRequestInput {
+  boss: String!
+  category: String!
   comments: String
-  isGenericOrAlternativeModel: Boolean = false
+  customMachineBrand: String!
+  customMachineManufacturer: String!
+  customMachineModel: String!
+  customMachineName: String!
+  description: String
+  importance: String!
+  isGenericAllowed: Boolean!
+  items: [CreateMaterialRequestItemInput!]
   justification: String
   machineId: ID!
-  priority: MaterialRequestPriority!
-  requestText: String!
+  priority: String!
+  requesterId: ID!
   suggestedSupplier: String
+}
+
+input CreateMaterialRequestItemInput {
+  brand: String
+  description: String
+  materialId: ID
+  materialRequestId: ID
+  model: String
+  partNumber: String
+  proposedMaxStock: Int
+  proposedMinStock: Int
+  requestedQuantity: Int
+  sku: String
+  sparePartId: ID
+  unitOfMeasure: String
 }
 
 input CreatePositionInput {
@@ -265,6 +302,9 @@ input CreateTechnicianInput {
   emergencyContactPhone: String!
   emergencyContactRelationship: String!
   hireDate: DateTime!
+
+  """Si el técnico tiene rol de jefe"""
+  isBoss: Boolean
   nss: String
   pantsSize: String!
   positionId: String!
@@ -284,7 +324,7 @@ input CreateUserInput {
   lastName: String!
   password: String!
   phone: String
-  roleId: String!
+  roleIds: [String!]!
 }
 
 input CreateWorkOrderInput {
@@ -317,9 +357,11 @@ type CronJobStatus {
 
 type DashboardCharts {
   downtimeByAreaTop5: [AreaMetric!]!
+  findingsByArea: [AreaMetric!]!
   findingsConversion: [KeyValue!]!
   maintenanceMixByPeriod: [MixPoint!]!
   throughputByWeek: [TimeCount!]!
+  workOrdersByArea: [AreaMetric!]!
 }
 
 type DashboardData {
@@ -342,6 +384,7 @@ input DashboardInput {
   shiftIds: [ID!]
   technicianIds: [ID!]
   timezone: String! = "America/Mexico_City"
+  woStatuses: [WorkOrderStatus!]
 }
 
 type DashboardKpis {
@@ -398,9 +441,9 @@ type Finding {
   description: String!
   folio: String!
   id: ID!
-  machine: Machine!
-  machineId: ID!
-  photoPath: String!
+  machine: Machine
+  machineId: ID
+  photoPath: String
   sequence: Int!
   shift: Shift!
   status: FindingStatus!
@@ -503,6 +546,11 @@ type LoginResponse {
 }
 
 type Machine {
+  """Área directa (null si pertenece a sub-área)"""
+  area: Area
+
+  """ID del área directa (null si pertenece a sub-área)"""
+  areaId: ID
   brand: String
   code: String!
   createdAt: DateTime!
@@ -511,13 +559,21 @@ type Machine {
   installationDate: DateTime
   isActive: Boolean!
   machinePhotoUrl: String
+  manufacturer: String
+  materialRequests: [MaterialRequest!]
   model: String
   name: String!
   operationalManualUrl: String
   serialNumber: String
-  subArea: SubArea!
-  subAreaId: ID!
+  spareParts: [SparePart!]
+
+  """Sub-área (null si pertenece directamente al área)"""
+  subArea: SubArea
+
+  """ID de la sub-área (null si pertenece directamente al área)"""
+  subAreaId: ID
   updatedAt: DateTime!
+  workOrders: [WorkOrder!]
 }
 
 type MachineMetric {
@@ -556,64 +612,49 @@ type Material {
 }
 
 type MaterialRequest {
+  boss: String!
+  category: RequestCategory!
   comments: String
   createdAt: DateTime!
+  customMachineBrand: String
+  customMachineManufacturer: String
+  customMachineModel: String
+  customMachineName: String
+  description: String
   folio: String!
   id: ID!
+  importance: RequestImportance!
   isActive: Boolean!
-  isGenericOrAlternativeModel: Boolean!
+  isGenericAllowed: Boolean!
+  items: [MaterialRequestItem!]!
   justification: String
   machine: Machine!
   machineId: ID!
-  materials: [MaterialRequestMaterial!]!
-  priority: MaterialRequestPriority!
-  requestText: String!
+  priority: RequestPriority!
+  requester: User!
+  requesterId: ID!
   sequence: Int!
   suggestedSupplier: String
   updatedAt: DateTime!
 }
 
-"""Importancia del material en la solicitud"""
-enum MaterialRequestImportance {
-  """Crítica"""
-  CRITICAL
-
-  """Alta"""
-  HIGH
-
-  """Baja"""
-  LOW
-
-  """Media"""
-  MEDIUM
-}
-
-type MaterialRequestMaterial {
+type MaterialRequestItem {
+  brand: String
   createdAt: DateTime!
+  description: String
   id: ID!
-  importance: MaterialRequestImportance
-  material: Material!
-  materialId: ID!
-  materialRequestId: ID!
-  maximumStock: Int
-  minimumStock: Int
-  quantity: Int!
+  material: Material
+  materialId: ID
+  model: String
+  partNumber: String
+  proposedMaxStock: Int
+  proposedMinStock: Int
+  requestedQuantity: Int
+  sku: String
+  sparePart: SparePart
+  sparePartId: ID
+  unitOfMeasure: String
   updatedAt: DateTime!
-}
-
-"""Prioridad de solicitud de material"""
-enum MaterialRequestPriority {
-  """Crítica"""
-  CRITICAL
-
-  """Alta"""
-  HIGH
-
-  """Baja"""
-  LOW
-
-  """Media"""
-  MEDIUM
 }
 
 type MixPoint {
@@ -635,7 +676,8 @@ type Mutation {
   activateSparePart(id: ID!): SparePart!
   activateSubArea(id: ID!): SubArea!
   activateTechnician(id: ID!): Technician!
-  addMaterialToRequest(input: AddMaterialToRequestInput!, materialRequestId: ID!): MaterialRequestMaterial!
+  activateUser(id: ID!): User!
+  addMaterialToRequest(input: CreateMaterialRequestItemInput!, materialRequestId: ID!): MaterialRequestItem!
   addWorkOrderMaterial(input: AddWorkOrderMaterialInput!): WorkOrderMaterial!
   addWorkOrderSparePart(input: AddWorkOrderSparePartInput!): WorkOrderSparePart!
   assignTechnician(input: AssignTechnicianInput!): WorkOrderTechnician!
@@ -922,14 +964,17 @@ type Query {
   absenceReason(id: ID!): AbsenceReason
   absenceReasons: [AbsenceReason!]!
   absenceReasonsActive: [AbsenceReason!]!
+  absenceReasonsWithDeleted: [AbsenceReason!]!
   area(id: ID!): Area
   areaByName(name: String!): Area
   areas: [Area!]!
   areasActive: [Area!]!
+  areasWithDeleted: [Area!]!
   dashboardData(input: DashboardInput!): DashboardData!
   department(id: ID!): Department
   departments: [Department!]!
   departmentsActive: [Department!]!
+  departmentsWithDeleted: [Department!]!
   finding(id: ID!): Finding
   findingByFolio(folio: String!): Finding
   findings: [Finding!]!
@@ -937,16 +982,24 @@ type Query {
   findingsFiltered(filters: FindingFiltersInput, pagination: FindingPaginationInput, sort: FindingSortInput): FindingPaginatedResponse!
   findingsOpen: [Finding!]!
   findingsStats: [FindingStats!]!
+  findingsWithDeleted: [Finding!]!
   machine(id: ID!): Machine
   machines: [Machine!]!
   machinesActive: [Machine!]!
+
+  """Búsqueda flexible de máquinas por área y/o sub-área"""
+  machinesByArea(areaId: ID, subAreaId: ID): [Machine!]!
+  machinesByAreaOrSubArea(areaId: ID, subAreaId: ID): [Machine!]!
+  machinesWithDeleted: [Machine!]!
   material(id: ID!): Material
   materialRequest(id: ID!): MaterialRequest
   materialRequestByFolio(folio: String!): MaterialRequest
   materialRequests: [MaterialRequest!]!
   materialRequestsActive: [MaterialRequest!]!
+  materialRequestsWithDeleted: [MaterialRequest!]!
   materials: [Material!]!
   materialsActive: [Material!]!
+  materialsWithDeleted: [Material!]!
 
   """Obtiene el usuario actualmente autenticado"""
   me: User!
@@ -964,6 +1017,7 @@ type Query {
   position(id: ID!): Position
   positions: [Position!]!
   positionsActive: [Position!]!
+  positionsWithDeleted: [Position!]!
   preventiveTaskById(id: ID!): PreventiveTask
   preventiveTaskCountActive: Int!
   preventiveTaskStats: [PreventiveTaskStats!]!
@@ -972,21 +1026,26 @@ type Query {
   preventiveTasksByMachineId(machineId: ID!): [PreventiveTask!]!
   preventiveTasksCronStatus: CronJobStatus!
   preventiveTasksFiltered(filters: PreventiveTaskFiltersInput, pagination: PreventiveTaskPaginationInput, sort: PreventiveTaskSortInput): PreventiveTaskPaginatedResponse!
+  preventiveTasksWithDeleted: [PreventiveTask!]!
   role(id: ID!): Role
   roles: [Role!]!
-  rolesActive: Role!
+  rolesActive: [Role!]!
+  rolesWithDeleted: [Role!]!
   schedulerStatus: SchedulerStatus!
   shift(id: ID!): Shift
   shifts: [Shift!]!
   shiftsActive: [Shift!]!
+  shiftsWithDeleted: [Shift!]!
   sparePart(id: ID!): SparePart
   spareParts: [SparePart!]!
   sparePartsActive: [SparePart!]!
   sparePartsByMachine(machineId: ID!): [SparePart!]!
+  sparePartsWithDeleted: [SparePart!]!
   subArea(id: ID!): SubArea
   subAreas: [SubArea!]!
   subAreasActive: [SubArea!]!
   subAreasByArea(areaId: ID!): [SubArea!]!
+  subAreasWithDeleted: [SubArea!]!
   technician(id: ID!): Technician
 
   """Obtiene un horario por ID"""
@@ -1000,15 +1059,20 @@ type Query {
   """
   technicianSchedulesFiltered(filters: ScheduleFiltersInput!): [TechnicianSchedule!]!
 
+  """Obtiene todos los horarios de técnicos incluyendo eliminados"""
+  technicianSchedulesWithDeleted: [TechnicianSchedule!]!
+
   """Obtiene los horarios de un técnico en una semana específica"""
   technicianWeekSchedule(technicianId: ID!, weekNumber: Int!, year: Int!): [TechnicianSchedule!]!
   technicians: [Technician!]!
   techniciansActive: [Technician!]!
+  techniciansWithDeleted: [Technician!]!
 
   """Contador de notificaciones no leídas"""
   unreadNotificationsCount: Int!
   user(id: ID!): User
   users: [User!]!
+  usersWithDeleted: [User!]!
 
   """Obtiene los horarios de una semana completa con resumen"""
   weekSchedule(weekNumber: Int!, year: Int!): WeekScheduleSummary!
@@ -1017,6 +1081,7 @@ type Query {
   workOrderStats: [WorkOrderStats!]!
   workOrders: [WorkOrder!]!
   workOrdersFiltered(filters: WorkOrderFiltersInput, pagination: PaginationInput, sort: WorkOrderSortInput): WorkOrderPaginatedResponse!
+  workOrdersWithDeleted: [WorkOrder!]!
 }
 
 input RegisterDeviceTokenInput {
@@ -1028,6 +1093,66 @@ input RegisterDeviceTokenInput {
 
   """La plataforma del dispositivo"""
   platform: DevicePlatform! = WEB
+}
+
+"""Categoría de la solicitud"""
+enum RequestCategory {
+  """Equipo"""
+  EQUIPMENT
+
+  """Material con SKU"""
+  MATERIAL_WITH_SKU
+
+  """Material noInventariado"""
+  NON_INVENTORY_MATERIAL
+
+  """Pieza de repuesto noInventariada"""
+  NON_INVENTORY_SPARE_PART
+
+  """Protección personal"""
+  PPE
+
+  """Solicitud de material con SKU"""
+  REQUEST_SKU_MATERIAL
+
+  """Solicitud de pieza de repuesto con SKU"""
+  REQUEST_SKU_SPARE_PART
+
+  """Servicio"""
+  SERVICE
+
+  """Servicio con material"""
+  SERVICE_WITH_MATERIAL
+
+  """Pieza de repuesto con SKU"""
+  SPARE_PART_WITH_SKU
+
+  """Herramientas"""
+  TOOLS
+
+  """Actualización de SKU"""
+  UPDATE_SKU
+}
+
+"""Importancia de la solicitud"""
+enum RequestImportance {
+  """Importante"""
+  IMPORTANT
+
+  """poco importante"""
+  UNIMPORTANT
+
+  """Muy importante"""
+  VERY_IMPORTANT
+}
+
+"""Prioridad de la solicitud"""
+enum RequestPriority {
+  """Programada"""
+  SCHEDULED
+
+  """Urgente"""
+  URGENT
 }
 
 type Role {
@@ -1095,6 +1220,9 @@ type SparePart {
 
 input StartWorkOrderInput {
   breakdownDescription: String
+
+  """Descripción de la avería al iniciar (si aplica)"""
+  observations: String
 }
 
 """Tipo de parada de la orden de trabajo"""
@@ -1164,7 +1292,7 @@ type TechnicianSchedule {
   id: ID!
   isActive: Boolean!
   notes: String
-  scheduleDate: DateTime!
+  scheduleDate: String!
   shift: Shift
   shiftId: ID
   technician: User!
@@ -1210,6 +1338,8 @@ input UpdateFindingInput {
 }
 
 input UpdateMachineInput {
+  """ID del área (si la máquina pertenece directamente al área)"""
+  areaId: ID
   brand: String
   code: String
   description: String
@@ -1219,7 +1349,9 @@ input UpdateMachineInput {
   name: String
   operationalManualUrl: String
   serialNumber: String
-  subAreaId: String
+
+  """ID de la sub-área (si la máquina pertenece a una sub-área)"""
+  subAreaId: ID
 }
 
 input UpdateMaterialInput {
@@ -1233,12 +1365,22 @@ input UpdateMaterialInput {
 }
 
 input UpdateMaterialRequestInput {
+  boss: String
+  category: String
   comments: String
-  isGenericOrAlternativeModel: Boolean = false
+  customMachineBrand: String
+  customMachineManufacturer: String
+  customMachineModel: String
+  customMachineName: String
+  description: String
+  id: ID!
+  importance: String
+  isGenericAllowed: Boolean
+  items: [CreateMaterialRequestItemInput!]
   justification: String
   machineId: ID
-  priority: MaterialRequestPriority
-  requestText: String
+  priority: String
+  requesterId: ID
   suggestedSupplier: String
 }
 
@@ -1318,6 +1460,9 @@ input UpdateTechnicianInput {
   emergencyContactRelationship: String
   hireDate: DateTime
   id: ID!
+
+  """Si el técnico tiene rol de jefe"""
+  isBoss: Boolean
   nss: String
   pantsSize: String
   positionId: String
@@ -1336,7 +1481,8 @@ input UpdateUserInput {
   lastName: String
   password: String
   phone: String
-  roleId: String
+  roleId: String @deprecated(reason: "Usar roleIds")
+  roleIds: [String!]
 }
 
 input UpdateWorkOrderInput {
@@ -1350,7 +1496,9 @@ input UpdateWorkOrderInput {
   maintenanceType: MaintenanceType
   observations: String
   priority: WorkOrderPriority
+  scheduledDate: String
   stopType: StopType
+  workType: WorkType
 }
 
 type User {
@@ -1365,8 +1513,14 @@ type User {
   isActive: Boolean!
   lastName: String!
   phone: String
-  role: Role!
-  roleId: ID!
+
+  """Rol primario (primer rol)"""
+  role: Role
+
+  """ID del rol primario (primer rol)"""
+  roleId: ID
+  roleIds: [String!]!
+  roles: [Role!]!
   updatedAt: DateTime!
 }
 
@@ -1399,6 +1553,8 @@ type WorkOrder {
   breakdownDescription: String
   cause: String
   createdAt: DateTime!
+  customMaterial: String
+  customSparePart: String
   description: String!
   downtimeMinutes: Int
   endDate: DateTime
@@ -1422,6 +1578,7 @@ type WorkOrder {
   priority: WorkOrderPriority
   requester: User!
   requesterId: ID!
+  scheduledDate: DateTime
   sequence: Int!
   signatures: [WorkOrderSignature!]!
   signaturesCount: Int!
@@ -1435,6 +1592,7 @@ type WorkOrder {
   technicians: [WorkOrderTechnician!]!
   toolsUsed: String
   updatedAt: DateTime!
+  workType: WorkType
 }
 
 input WorkOrderFiltersInput {
@@ -1450,11 +1608,18 @@ input WorkOrderFiltersInput {
   priority: WorkOrderPriority
   requesterId: ID
 
+  """Fecha programada desde (ISO)"""
+  scheduledFrom: String
+
+  """Fecha programada hasta (ISO)"""
+  scheduledTo: String
+
   """Búsqueda por folio o descripción"""
   search: String
   status: WorkOrderStatus
   statuses: [WorkOrderStatus!]
   technicianId: ID
+  workType: WorkType
 }
 
 type WorkOrderMaterial {
@@ -1566,4 +1731,40 @@ type WorkOrderTechnician {
   technician: User!
   technicianId: ID!
   workOrderId: ID!
+}
+
+"""Tipos de trabajo para órdenes de trabajo"""
+enum WorkType {
+  """Automatización"""
+  AUTOMATION
+
+  """Edificio"""
+  BUILDING
+
+  """Eléctrico"""
+  ELECTRICAL
+
+  """Control eléctrico"""
+  ELECTRICAL_CONTROL
+
+  """Electrónico"""
+  ELECTRONIC
+
+  """Hidráulico"""
+  HYDRAULIC
+
+  """Mecánico"""
+  MECHANICAL
+
+  """Metrología"""
+  METROLOGY
+
+  """Otro"""
+  OTHER
+
+  """Pintura"""
+  PAINTING
+
+  """Neumática"""
+  PNEUMATIC
 }

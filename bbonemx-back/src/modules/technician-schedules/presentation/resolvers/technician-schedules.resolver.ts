@@ -27,6 +27,14 @@ export class TechnicianSchedulesResolver {
         return this.schedulesService.findAll() as unknown as TechnicianScheduleType[];
     }
 
+    @Query(() => [TechnicianScheduleType], {
+        name: 'technicianSchedulesWithDeleted',
+        description: 'Obtiene todos los horarios de técnicos incluyendo eliminados',
+    })
+    async findAllWithDeleted(): Promise<TechnicianScheduleType[]> {
+        return this.schedulesService.findAllWithDeleted() as unknown as TechnicianScheduleType[];
+    }
+
     @Query(() => TechnicianScheduleType, {
         name: 'technicianSchedule',
         nullable: true,
@@ -57,6 +65,7 @@ export class TechnicianSchedulesResolver {
         };
     }
 
+    @Roles(Role.TECHNICIAN)
     @Query(() => [TechnicianScheduleType], {
         name: 'technicianWeekSchedule',
         description: 'Obtiene los horarios de un técnico en una semana específica',

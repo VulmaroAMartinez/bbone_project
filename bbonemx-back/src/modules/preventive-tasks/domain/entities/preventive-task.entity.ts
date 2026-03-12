@@ -1,7 +1,8 @@
 import { BaseEntity } from "src/infrastructure/database/base.entity";
-import { Machine } from "src/modules/catalogs";
+import { Machine } from "src/modules/catalogs/machines/domain/entities";
 import { Column, Entity, ManyToOne, JoinColumn, BeforeInsert } from "typeorm";
 import { DateUtil, FrequencyType, FrequencyUnit, PreventiveTaskStatus } from "src/common";
+import { dateColumnTransformer } from "src/common/transformers";
 
 @Entity({ name: 'preventive_tasks' })
 export class PreventiveTask extends BaseEntity {
@@ -24,7 +25,7 @@ export class PreventiveTask extends BaseEntity {
     @Column({ name: 'frequency_value', type: 'integer', nullable: true })
     frequencyValue?: number;
 
-    @Column({ name: 'start_date', type: 'date'})
+    @Column({ name: 'start_date', type: 'date', transformer: dateColumnTransformer })
     startDate: Date;
 
     @Column({ name: 'next_execution_date', type: 'timestamp', nullable: true })
@@ -36,7 +37,7 @@ export class PreventiveTask extends BaseEntity {
     @Column({ type: 'enum', enum: PreventiveTaskStatus, default: PreventiveTaskStatus.ACTIVE })
     status: PreventiveTaskStatus;
 
-    @Column({ name: 'end_date', type: 'date', nullable: true })
+    @Column({ name: 'end_date', type: 'date', nullable: true, transformer: dateColumnTransformer })
     endDate?: Date;
 
     @Column({ name: 'policy_change_note', type: 'text', nullable: true })

@@ -20,7 +20,7 @@ export class DepartmentsRepository {
     }
 
     async findById(id: string): Promise<Department | null> {
-        return this.repository.findOne({ where: { id } });
+        return this.repository.findOne({ where: { id }, withDeleted: true });
     }
 
     async findByName(name: string): Promise<Department | null> {
@@ -32,14 +32,14 @@ export class DepartmentsRepository {
     }
 
     async update(id: string, data: Partial<Department>): Promise<Department | null> {
-        const department = await this.repository.findOne({ where: { id } });
+        const department = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!department) return null;
         Object.assign(department, data);
         return this.repository.save(department);
     }
 
     async softDelete(id: string): Promise<void> {
-        const department = await this.repository.findOne({ where: { id } });
+        const department = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!department) return;
         department.isActive = false;
         department.deletedAt = new Date();
@@ -50,7 +50,7 @@ export class DepartmentsRepository {
         const department = await this.repository.findOne({ where: { id }, withDeleted: true });
         if (!department) return;
         department.isActive = true;
-        department.deletedAt = undefined;
+        department.deletedAt = null;
         await this.repository.save(department);
     }
 }

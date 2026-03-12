@@ -17,6 +17,7 @@ export class TechniciansResolver {
     }
 
     @Query(() => [TechnicianType], { name: "techniciansActive" })
+    @Roles(Role.ADMIN, Role.BOSS)
     async techniciansActive() {
         return this.techniciansService.findAllActive();
     }

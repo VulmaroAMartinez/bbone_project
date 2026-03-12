@@ -8,11 +8,8 @@ import {
     CreateFindingDocument,
     type CreateFindingInput,
     AreaBasicFragmentDoc,
-    SubAreaBasicFragmentDoc,
-    MachineBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated';
-import { useAreaMachineSelector } from '@/hooks/useAreaMachineSelector';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -28,33 +25,13 @@ export default function NewFindingPage() {
     const { data: shiftsData, loading: shiftsLoading } = useQuery(GetShiftsDocument);
     const [createFinding] = useMutation(CreateFindingDocument);
 
-    // ── Hook de cascada dinámica ──
-    const {
-        subAreasData,
-        machinesData: machinesByAreaData,
-        isLoadingSubAreas,
-        isLoadingMachines,
-        hasSubAreas,
-        subAreasLoaded,
-        handleAreaChange: hookAreaChange,
-        handleSubAreaChange: hookSubAreaChange,
-    } = useAreaMachineSelector();
-
     // ── Unmask fragments ──
     const areas = useFragment(AreaBasicFragmentDoc, areasData?.areas ?? []);
-    const subAreas = subAreasData?.subAreasByArea
-        ? useFragment(SubAreaBasicFragmentDoc, subAreasData.subAreasByArea)
-        : [];
-    const availableMachines = machinesByAreaData?.machinesByArea
-        ? useFragment(MachineBasicFragmentDoc, machinesByAreaData.machinesByArea)
-        : [];
     const shifts = shiftsData?.shiftsActive || [];
 
     // ── Estado del formulario ──
     const [form, setForm] = useState({
         areaId: '',
-        subAreaId: '',
-        machineId: '',
         shiftId: '',
         description: '',
     });
@@ -65,25 +42,12 @@ export default function NewFindingPage() {
     const [success, setSuccess] = useState<{ folio: string } | null>(null);
     const [formError, setFormError] = useState('');
 
-    // ── Derivados ──
-    const showSubAreas = !!form.areaId && subAreasLoaded && hasSubAreas;
-    const showMachine = !!form.areaId && availableMachines.length > 0;
-
     // ── Validación: solo Área, Turno y Descripción son obligatorios ──
     const isValid = !!form.areaId && !!form.shiftId && form.description.trim().length > 0;
 
     // ── Handlers ──
     const handleChange = (field: string, value: string | undefined) => {
         setForm((prev) => ({ ...prev, [field]: value || '' }));
-
-        if (field === 'areaId') {
-            setForm((prev) => ({ ...prev, subAreaId: '', machineId: '' }));
-            hookAreaChange(value || '');
-        }
-        if (field === 'subAreaId') {
-            setForm((prev) => ({ ...prev, machineId: '' }));
-            hookSubAreaChange(value || '');
-        }
     };
 
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,7 +75,6 @@ export default function NewFindingPage() {
                 description: form.description.trim(),
                 photoPath,
                 shiftId: form.shiftId,
-                ...(form.machineId ? { machineId: form.machineId } : {}),
             };
 
             const { data } = await createFinding({
@@ -201,45 +164,6 @@ export default function NewFindingPage() {
                                 </Select>
                             </div>
                         </div>
-
-                        {/* Sub-área y Máquina (opcionales, dinámicos) */}
-                        {form.areaId && (showSubAreas || showMachine) && (
-                            <div className="grid gap-4 md:grid-cols-2 bg-muted/20 p-4 rounded-lg border border-border/50">
-                                {showSubAreas && (
-                                    <div className="space-y-2">
-                                        <Label>Sub-área (Opcional)</Label>
-                                        <Select value={form.subAreaId} onValueChange={(v) => handleChange('subAreaId', v)}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder={isLoadingSubAreas ? 'Cargando...' : 'Seleccionar sub-área'} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {subAreas.map((sa) => (
-                                                    <SelectItem key={sa.id} value={sa.id}>{sa.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-
-                                {showMachine && (
-                                    <div className="space-y-2">
-                                        <Label>Máquina Afectada (Opcional)</Label>
-                                        <Select value={form.machineId} onValueChange={(v) => handleChange('machineId', v)} disabled={isLoadingMachines}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder={isLoadingMachines ? 'Cargando...' : 'Seleccionar máquina'} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {availableMachines.map((m) => (
-                                                    <SelectItem key={m.id} value={m.id}>
-                                                        {m.name} [{m.code}]
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
                         {/* Descripción */}
                         <div className="space-y-2">

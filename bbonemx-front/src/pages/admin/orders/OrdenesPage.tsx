@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
   GetWorkOrdersFilteredDocument,
+  GetShiftsDocument,
   type WorkOrderStatus,
   type WorkOrderPriority,
   WorkOrderItemFragmentDoc,
@@ -61,6 +62,9 @@ function OrdenesPage() {
   const [statusFilter, setStatusFilter] = useState<WorkOrderStatus | 'all'>(
     (searchParams.get('status') as WorkOrderStatus) || 'all'
   );
+  const [shiftFilter, setShiftFilter] = useState<string>('all');
+
+  const { data: shiftsData } = useQuery(GetShiftsDocument);
 
   const handleStatusChange = (val: WorkOrderStatus | 'all') => {
     setStatusFilter(val);
@@ -76,6 +80,7 @@ function OrdenesPage() {
     variables: {
       status: statusFilter !== 'all' ? statusFilter : undefined,
       priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+      assignedShiftId: shiftFilter !== 'all' ? shiftFilter : undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -159,6 +164,17 @@ function OrdenesPage() {
                 <SelectContent>
                   {PRIORITY_TABS.map((tab) => (
                     <SelectItem key={tab.value} value={tab.value}>{tab.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={shiftFilter} onValueChange={setShiftFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Turno" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los turnos</SelectItem>
+                  {(shiftsData?.shiftsActive || []).map((shift) => (
+                    <SelectItem key={shift.id} value={shift.id}>{shift.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

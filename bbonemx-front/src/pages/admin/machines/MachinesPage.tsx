@@ -117,18 +117,21 @@ const EMPTY_FORM: MachineFormValues = {
 };
 
 const getMachineLocationText = (machine: MachineBasicFragment) => {
-    if (machine.subArea) {
-        return `${machine.subArea.area.name} → ${machine.subArea.name}`;
+    if (machine.area) {
+        return `${machine.area?.name}`;
+    } else if (machine.subArea) {
+        return `${machine.subArea?.area?.name} → ${machine.subArea?.name}`;
     }
     return 'Sin ubicación';
-};
+}; 
 
 // ─── Componente principal ───────────────────────────────────
 
 export default function MachinesPage() {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const isAdmin = user?.role?.name === 'ADMIN';
+    const isAdmin =
+        user?.roles?.some((r) => r.name === 'ADMIN') ?? user?.role?.name === 'ADMIN';
 
     // ─── Data fetching
     const { data, loading, refetch } = useQuery(GetMachinesPageDataDocument, {
@@ -155,9 +158,7 @@ export default function MachinesPage() {
         selectedAreaId,
         selectedSubAreaId: _hookSubAreaId, // no usamos este, react-hook-form lo maneja
         subAreasData,
-        machinesData: machinesByAreaData,
         isLoadingSubAreas: subAreasLoading,
-        isLoadingMachines: machinesLoading,
         hasSubAreas,
         subAreasLoaded,
         handleAreaChange: hookAreaChange,
@@ -179,7 +180,7 @@ export default function MachinesPage() {
     });
 
     // ─── Datos derivados
-    const machines = unmaskFragment(MachineBasicFragmentDoc, data?.machines ?? []);
+    const machines = unmaskFragment(MachineBasicFragmentDoc, data?.machinesWithDeleted ?? []);
     const areas = data?.areasActive ?? [];
 
     const subAreas = subAreasData?.subAreasByArea
@@ -524,7 +525,6 @@ export default function MachinesPage() {
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {areas
-                                                        .filter((a) => a.type === 'OPERATIONAL')
                                                         .map((a) => (
                                                             <SelectItem key={a.id} value={a.id}>
                                                                 {a.name}

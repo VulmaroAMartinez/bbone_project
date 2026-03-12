@@ -1,5 +1,6 @@
 import { InputType, Field, ID } from "@nestjs/graphql";
-import { IsArray, IsDateString, IsOptional, IsUUID } from "class-validator";
+import { IsArray, IsDateString, IsEnum, IsOptional, IsUUID } from "class-validator";
+import { WorkOrderStatus } from "src/common";
 
 @InputType()
 export class DashboardInput { 
@@ -34,6 +35,12 @@ export class DashboardInput {
     @IsArray()
     @IsUUID(4, {each: true})
     technicianIds?: string[];
+
+    @Field(() => [WorkOrderStatus], {nullable: true})
+    @IsOptional()
+    @IsArray()
+    @IsEnum(WorkOrderStatus, {each: true})
+    woStatuses?: WorkOrderStatus[];
 
     @Field({defaultValue: 'America/Mexico_City'})
     @IsOptional()

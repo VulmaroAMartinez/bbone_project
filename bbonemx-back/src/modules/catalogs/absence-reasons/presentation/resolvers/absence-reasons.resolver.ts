@@ -16,6 +16,11 @@ export class AbsenceReasonsResolver {
         return this.absenceReasonsService.findAll();
     }
 
+    @Query(() => [AbsenceReasonType], { name: "absenceReasonsWithDeleted" })
+    async absenceReasonsWithDeleted() {
+        return this.absenceReasonsService.findAllWithDeleted();
+    }
+
     @Query(() => [AbsenceReasonType], { name: "absenceReasonsActive" })
     async absenceReasonsActive() {
         return this.absenceReasonsService.findAllActive();

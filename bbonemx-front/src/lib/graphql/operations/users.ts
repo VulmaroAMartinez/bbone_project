@@ -62,6 +62,9 @@ export const DEACTIVATE_USER_MUTATION = gql`
 
 export const ACTIVATE_USER_MUTATION = gql`
   mutation ActivateUser($id: ID!) {
-    activateUser(id: $id)
+    activateUser(id: $id) {
+      id
+      isActive
+    }
   }
 `;

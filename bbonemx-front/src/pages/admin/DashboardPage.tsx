@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@apollo/client/react';
-import { GetDashboardDataDocument } from '@/lib/graphql/generated/graphql';
+import { GetDashboardDataDocument, GetShiftsDocument, type WorkOrderStatus } from '@/lib/graphql/generated/graphql';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DashboardSkeleton } from '@/components/ui/skeleton-loaders';
@@ -58,33 +58,56 @@ const TYPE_COLORS: Record<string, string> = {
   UNSPECIFIED: '#888888'
 };
 
+const WO_STATUS_OPTIONS: { value: WorkOrderStatus | 'all'; label: string }[] = [
+  { value: 'all', label: 'Todos los estados' },
+  { value: 'PENDING' as WorkOrderStatus, label: 'Pendientes' },
+  { value: 'IN_PROGRESS' as WorkOrderStatus, label: 'En Progreso' },
+  { value: 'PAUSED' as WorkOrderStatus, label: 'En Pausa' },
+  { value: 'COMPLETED' as WorkOrderStatus, label: 'Completadas' },
+  { value: 'TEMPORARY_REPAIR' as WorkOrderStatus, label: 'Rep. Temporal' },
+];
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentRange, setCurrentRange] = useState(() => getDateRange((searchParams.get('range') as any) || '30d'));
+  const VALID_PRESETS = ['today', '7d', '30d', 'this_month', 'this_year'];
+  const initialPreset = searchParams.get('range');
+  const [rangePreset, setRangePreset] = useState(
+    initialPreset && VALID_PRESETS.includes(initialPreset) ? initialPreset : '30d'
+  );
+  const [shiftFilter, setShiftFilter] = useState<string>('all');
+  const [woStatusFilter, setWoStatusFilter] = useState<WorkOrderStatus | 'all'>('all');
 
+  const currentRange = useMemo(() => {
+    return getDateRange(rangePreset as any);
+  }, [rangePreset]);
+
+  const { data: shiftsData } = useQuery(GetShiftsDocument);
 
   const { data, loading, error } = useQuery(GetDashboardDataDocument, {
     variables: {
       input: {
         dateFrom: currentRange.dateFrom,
         dateTo: currentRange.dateTo,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Mexico_City'
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Mexico_City',
+        shiftIds: shiftFilter !== 'all' ? [shiftFilter] : undefined,
+        woStatuses: woStatusFilter !== 'all' ? [woStatusFilter] : undefined,
       }
     },
     fetchPolicy: 'cache-and-network'
   });
 
   const handleRangeChange = (value: string) => {
-    setCurrentRange(getDateRange(value as any));
+    setRangePreset(value);
     setSearchParams({ range: value });
-  }
+  };
 
   const rangeLabels: Record<string, string> = {
+    'today': 'Hoy',
     '7d': 'Últimos 7 días',
     '30d': 'Últimos 30 días',
     'this_month': 'Este mes',
-    'this_year': 'Este año'
+    'this_year': 'Este año',
   };
 
   // Agrupación para PieChart del Maintenance Mix (el backend lo da por periodo, nosotros lo sumamos total para el pastel)
@@ -127,19 +150,41 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground text-balance">Métricas de Mantenimiento</h1>
           <p className="text-muted-foreground text-sm">
-            {rangeLabels[currentRange.preset]} ({currentRange.dateFrom} al {currentRange.dateTo})
+            {rangeLabels[rangePreset] ?? 'Rango personalizado'} ({currentRange.dateFrom} al {currentRange.dateTo})
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Select value={currentRange.preset} onValueChange={handleRangeChange}>
+        <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+          <Select value={rangePreset} onValueChange={handleRangeChange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Seleccionar periodo" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="today">Hoy</SelectItem>
               <SelectItem value="7d">Últimos 7 días</SelectItem>
               <SelectItem value="30d">Últimos 30 días</SelectItem>
               <SelectItem value="this_month">Este mes</SelectItem>
               <SelectItem value="this_year">Este año</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={shiftFilter} onValueChange={setShiftFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Turno" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los turnos</SelectItem>
+              {(shiftsData?.shiftsActive || []).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={woStatusFilter} onValueChange={(v) => setWoStatusFilter(v as WorkOrderStatus | 'all')}>
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Estado OT" />
+            </SelectTrigger>
+            <SelectContent>
+              {WO_STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Button onClick={() => navigate('/admin/ordenes')}>
@@ -293,6 +338,51 @@ export default function DashboardPage() {
                   <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val} min`, 'Downtime']} />
                   <Bar dataKey="value" fill="#dc2626" radius={[0, 4, 4, 0]} />
                 </BarChart>
+            </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Hallazgos y OTs por Área */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-foreground flex items-center gap-2 text-base">
+              <AlertTriangle className="h-4 w-4 text-amber-500" /> Hallazgos por Área
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div role="img" aria-label="Gráfica de barras con número de hallazgos por área">
+            <ResponsiveContainer width="100%" height={280} minWidth={0}>
+              <BarChart data={charts.findingsByArea}>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
+                <XAxis dataKey="areaName" stroke="oklch(0.65 0 0)" tick={{ fontSize: 11 }} />
+                <YAxis stroke="oklch(0.65 0 0)" allowDecimals={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="value" name="Hallazgos" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-foreground flex items-center gap-2 text-base">
+              <ClipboardList className="h-4 w-4 text-primary" /> Órdenes de Trabajo por Área
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div role="img" aria-label="Gráfica de barras con número de órdenes de trabajo por área">
+            <ResponsiveContainer width="100%" height={280} minWidth={0}>
+              <BarChart data={charts.workOrdersByArea}>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
+                <XAxis dataKey="areaName" stroke="oklch(0.65 0 0)" tick={{ fontSize: 11 }} />
+                <YAxis stroke="oklch(0.65 0 0)" allowDecimals={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="value" name="OTs" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
             </div>
           </CardContent>

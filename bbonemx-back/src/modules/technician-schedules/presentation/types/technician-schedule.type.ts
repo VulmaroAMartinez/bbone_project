@@ -14,7 +14,7 @@ export class TechnicianScheduleType {
     technician: UserType;
 
     @Field()
-    scheduleDate: Date;
+    scheduleDate: string;
 
     @Field(() => Int)
     weekNumber: number;

@@ -22,19 +22,15 @@ export class UserType {
     @Field({ nullable: true })
     phone?: string;
 
-    @Field(() => ID)
-    roleId: string;
+    @Field(() => ID, { nullable: true, description: 'ID del rol primario (primer rol)' })
+    roleId?: string;
 
-    @Field(() => RoleType)
-    role: RoleType;
+    @Field(() => RoleType, { nullable: true, description: 'Rol primario (primer rol)' })
+    role?: RoleType;
 
     @Field(() => [String])
     get roleIds(): string[] {
-        const ids = this.roles?.map((role) => role.id) ?? [];
-        if (ids.length) {
-            return ids;
-        }
-        return this.roleId ? [this.roleId] : [];
+        return this.roles?.map((role) => role.id) ?? [];
     }
 
     @Field(() => [RoleType])

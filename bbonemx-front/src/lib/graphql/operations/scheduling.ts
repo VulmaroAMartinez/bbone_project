@@ -50,6 +50,7 @@ export const GET_SCHEDULE_TECHNICIANS_QUERY = gql`
   query GetScheduleTechnicians {
     techniciansWithDeleted {
       id
+      isActive
       user {
         id
         fullName
