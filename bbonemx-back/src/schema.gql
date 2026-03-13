@@ -221,6 +221,7 @@ input CreateMaterialRequestInput {
 
 input CreateMaterialRequestItemInput {
   brand: String
+  customName: String
   description: String
   materialId: ID
   materialRequestId: ID
@@ -232,6 +233,15 @@ input CreateMaterialRequestItemInput {
   sku: String
   sparePartId: ID
   unitOfMeasure: String
+}
+
+input CreateOvertimeInput {
+  activity: String!
+  endTime: String!
+  reasonForPayment: ReasonForPayment
+  startTime: String!
+  technicianId: ID
+  workDate: String!
 }
 
 input CreatePositionInput {
@@ -641,6 +651,7 @@ type MaterialRequest {
 type MaterialRequestItem {
   brand: String
   createdAt: DateTime!
+  customName: String
   description: String
   id: ID!
   material: Material
@@ -704,6 +715,7 @@ type Mutation {
   createMachine(input: CreateMachineInput!): Machine!
   createMaterial(input: CreateMaterialInput!): Material!
   createMaterialRequest(input: CreateMaterialRequestInput!): MaterialRequest!
+  createOvertime(input: CreateOvertimeInput!): Overtime!
   createPosition(input: CreatePositionInput!): Position!
   createPreventiveTask(input: CreatePreventiveTaskInput!): PreventiveTask!
   createRole(input: CreateRoleInput!): Role!
@@ -734,6 +746,7 @@ type Mutation {
 
   """Elimina una notificación (soft delete)"""
   deleteNotification(id: ID!): Boolean!
+  deleteOvertime(id: ID!): Boolean!
 
   """Elimina (soft-delete) una asignación de horario"""
   deleteTechnicianSchedule(id: ID!): Boolean!
@@ -779,6 +792,7 @@ type Mutation {
 
   """Actualiza una preferencia de notificación"""
   updateNotificationPreference(input: UpdateNotificationPreferenceInput!): NotificationPreference!
+  updateOvertime(input: UpdateOvertimeInput!): Overtime!
   updatePosition(id: ID!, input: UpdatePositionInput!): Position!
   updatePreventiveTask(id: ID!, input: UpdatePreventiveTaskInput!): PreventiveTask!
   updateRole(id: ID!, input: UpdateRoleInput!): Role!
@@ -858,6 +872,21 @@ enum NotificationType {
 
   """OT reparación temporal — recordatorio para firmar"""
   WORK_ORDER_TEMPORARY_REPAIR
+}
+
+type Overtime {
+  activity: String!
+  createdAt: DateTime!
+  endTime: String!
+  id: ID!
+  isActive: Boolean!
+  reasonForPayment: ReasonForPayment
+  startTime: String!
+  technician: Technician!
+  technicianId: ID!
+  updatedAt: DateTime!
+  workDate: DateTime!
+  workTime: String!
 }
 
 input PaginationInput {
@@ -1013,7 +1042,10 @@ type Query {
 
   """Obtiene las notificaciones del usuario autenticado con paginación"""
   myNotifications(filters: NotificationFiltersInput, pagination: NotificationPaginationInput): NotificationPaginatedResponse!
+  myOvertimeRecords: [Overtime!]!
   myRequestedWorkOrders: [WorkOrder!]!
+  overtimeRecord(id: ID!): Overtime
+  overtimeRecords(endDate: String, positionId: ID, reasonForPayment: ReasonForPayment, startDate: String): [Overtime!]!
   position(id: ID!): Position
   positions: [Position!]!
   positionsActive: [Position!]!
@@ -1082,6 +1114,18 @@ type Query {
   workOrders: [WorkOrder!]!
   workOrdersFiltered(filters: WorkOrderFiltersInput, pagination: PaginationInput, sort: WorkOrderSortInput): WorkOrderPaginatedResponse!
   workOrdersWithDeleted: [WorkOrder!]!
+}
+
+"""Razón de pago para horas extra"""
+enum ReasonForPayment {
+  """Día festivo"""
+  HOLIDAY
+
+  """Tiempo extra"""
+  OVERTIME
+
+  """Descanso laboral"""
+  WORK_BREAK
 }
 
 input RegisterDeviceTokenInput {
@@ -1399,6 +1443,15 @@ input UpdateNotificationPreferenceInput {
 
   """Inicio de horario silencioso (HH:mm)"""
   quietHoursStart: String
+}
+
+input UpdateOvertimeInput {
+  activity: String
+  endTime: String
+  id: ID!
+  reasonForPayment: ReasonForPayment
+  startTime: String
+  workDate: String
 }
 
 input UpdatePositionInput {

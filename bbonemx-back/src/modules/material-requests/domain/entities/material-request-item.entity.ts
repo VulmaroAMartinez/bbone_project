@@ -31,6 +31,9 @@ export class MaterialRequestItem extends BaseEntity {
     @Column({type:'varchar', nullable: true})
     description?: string;
 
+    @Column({name: 'custom_name', type:'varchar', nullable: true})
+    customName?: string;
+
     @Column({type:'varchar', nullable: true})
     sku?: string;
 

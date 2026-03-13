@@ -25,6 +25,7 @@ import {
   Clock,
   User,
   RefreshCw,
+  Timer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -77,6 +78,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
           children: [
             { href: '/tecnicos', label: 'Técnicos', icon: Users },
             { href: '/horarios', label: 'Horarios / Turnos', icon: Calendar },
+            { href: '/horas-extra', label: 'Horas Extra', icon: Timer },
           ]
         },
         {
@@ -99,6 +101,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         { href: '/tecnico/pendientes', label: 'Mis Pendientes', icon: ClipboardList },
         { href: '/horario', label: 'Mi Horario', icon: Calendar },
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
+        { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
       ];
       if (isBoss || isAdmin) {
         items.push(

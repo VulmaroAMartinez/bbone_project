@@ -24,6 +24,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import {
     ArrowLeft,
     Plus,
@@ -70,6 +71,7 @@ const SKU_CATEGORIES = new Set([
 const itemSchema = yup.object({
     catalogId: yup.string().default(''),
     isManual: yup.boolean().default(false),
+    customName: yup.string().trim().default(''),
     brand: yup.string().trim().default(''),
     model: yup.string().trim().default(''),
     partNumber: yup.string().trim().default(''),
@@ -108,6 +110,7 @@ type FormValues = yup.InferType<typeof schema>;
 const EMPTY_ITEM: FormValues['items'][0] = {
     catalogId: '',
     isManual: false,
+    customName: '',
     brand: '',
     model: '',
     partNumber: '',
@@ -271,6 +274,7 @@ export default function CreateMaterialRequestPage() {
                 ? req.items.map((item: any) => ({
                     catalogId: item.materialId || item.sparePartId || (item.brand || item.partNumber ? 'OTHER' : ''),
                     isManual: !item.materialId && !item.sparePartId,
+                    customName: item.customName ?? '',
                     brand: item.brand ?? '',
                     model: item.model ?? '',
                     partNumber: item.partNumber ?? '',
@@ -399,6 +403,7 @@ export default function CreateMaterialRequestPage() {
                             materialRequestId: newRequestId,
                             materialId: isFromMaterial ? item.catalogId : undefined,
                             sparePartId: isFromSparePart ? item.catalogId : undefined,
+                            customName: item.customName || undefined,
                             brand: item.brand || undefined,
                             model: item.model || undefined,
                             partNumber: item.partNumber || undefined,
@@ -433,7 +438,7 @@ export default function CreateMaterialRequestPage() {
 
 
     return (
-        <div className="space-y-6 pb-24">
+        <div className="space-y-4 pb-24">
             {/* Header */}
             <div className="space-y-3">
                 <Button
@@ -457,7 +462,7 @@ export default function CreateMaterialRequestPage() {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
                 {/* ── 1. Información de la solicitud ── */}
                 <Card>
@@ -473,19 +478,16 @@ export default function CreateMaterialRequestPage() {
                                 name="requesterId"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select value={field.value} onValueChange={field.onChange}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona el solicitante" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {technicians.map((t: any) => (
-                                                <SelectItem key={t.user.id} value={t.user.id}>
-                                                    {t.user.fullName}
-                                                    {t.position ? ` · ${t.position.name}` : ''}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Combobox
+                                        options={technicians.map((t: any) => ({
+                                            value: t.user.id,
+                                            label: `${t.user.fullName}${t.position ? ` · ${t.position.name}` : ''}`,
+                                        }))}
+                                        value={field.value}
+                                        onValueChange={field.onChange}
+                                        placeholder="Selecciona el solicitante"
+                                        searchPlaceholder="Buscar solicitante..."
+                                    />
                                 )}
                             />
                             {errors.requesterId && (
@@ -548,25 +550,17 @@ export default function CreateMaterialRequestPage() {
                                 name="boss"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select value={field.value} onValueChange={field.onChange}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona el jefe responsable" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {bosses.length === 0 ? (
-                                                <SelectItem value="_empty" disabled>
-                                                    Sin jefes disponibles
-                                                </SelectItem>
-                                            ) : (
-                                                bosses.map((b: any) => (
-                                                    <SelectItem key={b.id} value={b.fullName}>
-                                                        {b.fullName}
-                                                        {b.employeeNumber ? ` · ${b.employeeNumber}` : ''}
-                                                    </SelectItem>
-                                                ))
-                                            )}
-                                        </SelectContent>
-                                    </Select>
+                                    <Combobox
+                                        options={bosses.map((b: any) => ({
+                                            value: b.fullName,
+                                            label: `${b.fullName}${b.employeeNumber ? ` · ${b.employeeNumber}` : ''}`,
+                                        }))}
+                                        value={field.value}
+                                        onValueChange={field.onChange}
+                                        placeholder="Selecciona el jefe responsable"
+                                        searchPlaceholder="Buscar jefe..."
+                                        emptyText="Sin jefes disponibles"
+                                    />
                                 )}
                             />
                             {errors.boss && (
@@ -590,21 +584,16 @@ export default function CreateMaterialRequestPage() {
                                 name="machineId"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select
+                                    <Combobox
+                                        options={machines.map((m: any) => ({
+                                            value: m.id,
+                                            label: machineLabel(m),
+                                        }))}
                                         value={field.value}
                                         onValueChange={field.onChange}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona el equipo" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {machines.map((m: any) => (
-                                                <SelectItem key={m.id} value={m.id}>
-                                                    {machineLabel(m)}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                        placeholder="Selecciona el equipo"
+                                        searchPlaceholder="Buscar máquina..."
+                                    />
                                 )}
                             />
                             {errors.machineId && (
@@ -710,26 +699,33 @@ export default function CreateMaterialRequestPage() {
                                                     <Label className="text-xs">
                                                         {isMaterialCategory ? 'Material del catálogo' : 'Refacción del catálogo'}
                                                     </Label>
-                                                    <Select
+                                                    <Combobox
+                                                        options={[
+                                                            ...catalogItems.map((c: any) => ({
+                                                                value: c.id,
+                                                                label: c.label,
+                                                            })),
+                                                            { value: 'OTHER', label: 'Otro (ingreso manual)' },
+                                                        ]}
                                                         value={catalogId || ''}
                                                         onValueChange={(val) => handleCatalogSelect(index, val)}
-                                                    >
-                                                        <SelectTrigger className="h-8 text-xs">
-                                                            <SelectValue placeholder="Selecciona o elige Otro" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {catalogItems.map((c: any) => (
-                                                                <SelectItem key={c.id} value={c.id}>
-                                                                    {c.label}
-                                                                </SelectItem>
-                                                            ))}
-                                                            <SelectItem value="OTHER">
-                                                                Otro (ingreso manual)
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                        placeholder="Selecciona o elige Otro"
+                                                        searchPlaceholder="Buscar..."
+                                                        size="sm"
+                                                        triggerClassName="text-xs"
+                                                    />
                                                 </div>
                                             )}
+
+                                            {/* Nombre personalizado */}
+                                            <div className="space-y-1">
+                                                <Label className="text-xs">Nombre del artículo</Label>
+                                                <Input
+                                                    className="h-8 text-xs"
+                                                    placeholder="Nombre o descripción del artículo"
+                                                    {...register(`items.${index}.customName`)}
+                                                />
+                                            </div>
 
                                             {/* Campos de referencia */}
                                             <div className="grid grid-cols-2 gap-2">

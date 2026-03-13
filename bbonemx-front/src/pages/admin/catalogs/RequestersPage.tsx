@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, UserRound, Mail, Phone } from 'lucide-react';
 
@@ -232,12 +233,13 @@ export default function RequestersPage() {
                                     name="departmentId"
                                     control={control}
                                     render={({ field }) => (
-                                        <Select value={field.value} onValueChange={field.onChange}>
-                                            <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
+                                        <Combobox
+                                            options={departments.map((d: any) => ({ value: d.id, label: d.name }))}
+                                            value={field.value}
+                                            onValueChange={field.onChange}
+                                            placeholder="Seleccionar departamento..."
+                                            searchPlaceholder="Buscar..."
+                                        />
                                     )}
                                 />
                                 {errors.departmentId && <p className="text-xs text-destructive">{errors.departmentId.message}</p>}

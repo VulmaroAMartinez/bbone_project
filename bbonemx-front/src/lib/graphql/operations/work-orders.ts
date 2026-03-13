@@ -281,6 +281,7 @@ export const COMPLETE_WORK_ORDER_MUTATION = gql`
     completeWorkOrder(id: $id, input: $input) {
       id
       downtimeMinutes
+      breakdownDescription
       cause
       actionTaken
       toolsUsed

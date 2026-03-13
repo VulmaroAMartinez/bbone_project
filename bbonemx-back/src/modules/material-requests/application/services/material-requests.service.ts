@@ -119,10 +119,6 @@ export class MaterialRequestsService {
     // ─── Mutations ───────────────────────────────────────────────────────────────
 
     async create(input: CreateMaterialRequestInput): Promise<MaterialRequest> {
-        const isService = input.category === RequestCategory.SERVICE || input.category === RequestCategory.SERVICE_WITH_MATERIAL;
-        if (!isService && (!input.items || input.items.length === 0)) {
-            throw new BadRequestException('Se requiere al menos un artículo para esta categoría');
-        }
         for (const item of input.items ?? []) {
             await this.validateItem(item, input.category);
         }

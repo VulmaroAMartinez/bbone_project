@@ -107,6 +107,7 @@ export const GET_MATERIAL_REQUESTS_QUERY = gql`
         requestedQuantity
         unitOfMeasure
         description
+        customName
         brand
         partNumber
       }
@@ -169,6 +170,7 @@ export const GET_MATERIAL_REQUEST_QUERY = gql`
         requestedQuantity
         unitOfMeasure
         description
+        customName
         brand
         model
         partNumber
@@ -248,6 +250,7 @@ export const ADD_MATERIAL_TO_REQUEST_MUTATION = gql`
       requestedQuantity
       unitOfMeasure
       description
+      customName
       brand
       model
       partNumber

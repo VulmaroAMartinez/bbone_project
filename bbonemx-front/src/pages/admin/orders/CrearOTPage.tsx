@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { PlusCircle, ArrowLeft, Loader2, CheckCircle, MapPin, ImageIcon, Trash2, UserPlus2 } from 'lucide-react';
 import type { MaintenanceType, WorkOrderPriority, StopType } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
@@ -162,6 +163,20 @@ export default function AdminCrearOTPage() {
   const showSubAreas = !!areaId && subAreasLoaded && hasSubAreas;
   const showMachine = !!areaId && availableMachines.length > 0;
 
+  const techOptions = React.useMemo(
+    () => activeTechnicians.map((tech) => {
+      const user = unmaskFragment(UserBasicFragmentDoc, tech.user);
+      const position = unmaskFragment(PositionBasicFragmentDoc, tech.position);
+      return { value: user.id, label: `${user.fullName} - ${position.name}` };
+    }),
+    [activeTechnicians],
+  );
+
+  const machineOptions = React.useMemo(
+    () => availableMachines.map((m) => ({ value: m.id, label: `${m.name} [${m.code}]` })),
+    [availableMachines],
+  );
+
   const handleSelectChange = (field: keyof AdminCrearOTFormValues, value: string) => {
     setValue(field, value, { shouldValidate: true });
   };
@@ -170,6 +185,9 @@ export default function AdminCrearOTPage() {
     setValue('areaId', value, { shouldValidate: true });
     setValue('subAreaId', '');
     setValue('machineId', '');
+    if (stoppageType === 'BREAKDOWN') {
+      setValue('stoppageType', '', { shouldValidate: true });
+    }
     hookAreaChange(value);
   };
 
@@ -284,7 +302,7 @@ export default function AdminCrearOTPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12">
+    <div className="max-w-4xl mx-auto space-y-4 pb-12">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" aria-label="Volver" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
@@ -304,7 +322,7 @@ export default function AdminCrearOTPage() {
           <CardDescription>Los campos marcados con * son obligatorios</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {formError && (
               <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
                 {formError}
@@ -413,11 +431,18 @@ export default function AdminCrearOTPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="admin-stoppage">Tipo de parada *</Label>
-                <Select value={watch('stoppageType')} onValueChange={(v) => handleSelectChange('stoppageType', v)}>
+                <Select value={watch('stoppageType')} onValueChange={(v) => {
+                  handleSelectChange('stoppageType', v);
+                  if (v === 'BREAKDOWN' && !showMachine) {
+                    handleSelectChange('stoppageType', '');
+                  }
+                }}>
                   <SelectTrigger id="admin-stoppage"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                   <SelectContent>
                     {STOPPAGE_TYPES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      <SelectItem key={s.value} value={s.value} disabled={s.value === 'BREAKDOWN' && !showMachine}>
+                        {s.label}{s.value === 'BREAKDOWN' && !showMachine ? ' (sin máquinas en el área)' : ''}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -492,22 +517,14 @@ export default function AdminCrearOTPage() {
             <div className="space-y-4 rounded-lg bg-muted/30 p-4 border border-border">
               <div className="space-y-2">
                 <Label htmlFor="admin-lead-tech" className="text-primary font-semibold">Técnico Líder *</Label>
-                <Select value={watch('leadTechnicianId')} onValueChange={(v) => handleSelectChange('leadTechnicianId', v)}>
-                  <SelectTrigger id="admin-lead-tech">
-                    <SelectValue placeholder={techLoading ? 'Cargando técnicos...' : 'Seleccionar líder de la actividad'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeTechnicians.map((tech) => {
-                      const user = unmaskFragment(UserBasicFragmentDoc, tech.user);
-                      const position = unmaskFragment(PositionBasicFragmentDoc, tech.position);
-                      return (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.fullName} - <span className="text-muted-foreground">{position.name}</span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  options={techOptions}
+                  value={watch('leadTechnicianId')}
+                  onValueChange={(v) => handleSelectChange('leadTechnicianId', v)}
+                  placeholder={techLoading ? 'Cargando técnicos...' : 'Seleccionar líder de la actividad'}
+                  searchPlaceholder="Buscar técnico..."
+                  disabled={techLoading}
+                />
                 {errors.leadTechnicianId && (
                   <p className="text-xs text-destructive">{errors.leadTechnicianId.message}</p>
                 )}
@@ -519,27 +536,14 @@ export default function AdminCrearOTPage() {
 
                 {auxiliaryTechnicians.map((auxTechId, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <Select value={auxTechId} onValueChange={(v) => handleUpdateAuxiliaryTech(index, v)}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Seleccionar técnico de apoyo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeTechnicians
-                          .filter((t) => {
-                            const tUser = unmaskFragment(UserBasicFragmentDoc, t.user);
-                            return tUser.id !== watch('leadTechnicianId');
-                          })
-                          .map((tech) => {
-                            const user = unmaskFragment(UserBasicFragmentDoc, tech.user);
-                            const position = unmaskFragment(PositionBasicFragmentDoc, tech.position);
-                            return (
-                              <SelectItem key={user.id} value={user.id}>
-                                {user.fullName} - <span className="text-muted-foreground">{position.name}</span>
-                              </SelectItem>
-                            );
-                          })}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={techOptions.filter((o) => o.value !== watch('leadTechnicianId'))}
+                      value={auxTechId}
+                      onValueChange={(v) => handleUpdateAuxiliaryTech(index, v)}
+                      placeholder="Seleccionar técnico de apoyo"
+                      searchPlaceholder="Buscar técnico..."
+                      triggerClassName="flex-1"
+                    />
                     <Button type="button" variant="ghost" size="icon" aria-label="Eliminar técnico de apoyo" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleRemoveAuxiliaryTech(index)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -557,26 +561,14 @@ export default function AdminCrearOTPage() {
                 <Label>
                   Máquina {stoppageType === 'BREAKDOWN' ? '*' : '(Opcional)'}
                 </Label>
-                <Select
+                <Combobox
+                  options={machineOptions}
                   value={watch('machineId')}
                   onValueChange={(v) => handleSelectChange('machineId', v)}
+                  placeholder={isLoadingMachines ? 'Cargando máquinas...' : 'Seleccionar máquina'}
+                  searchPlaceholder="Buscar máquina..."
                   disabled={isLoadingMachines}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        isLoadingMachines ? 'Cargando máquinas...' : 'Seleccionar máquina'
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableMachines.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.name} [{m.code}]
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
             )}
 

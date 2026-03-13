@@ -27,6 +27,11 @@ export class CreateMaterialRequestItemInput {
     @IsString()
     description?: string;
 
+    @Field({ nullable: true })
+    @IsOptional()
+    @IsString()
+    customName?: string;
+
     /** Populated manually only when no catalog ID is provided. */
     @Field({ nullable: true })
     @IsOptional()

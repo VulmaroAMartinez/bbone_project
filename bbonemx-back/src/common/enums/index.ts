@@ -14,3 +14,4 @@ export * from './notification-type.enum';
 export * from './notification-channel.enum';
 export * from './area-type.enum';
 export * from './material-request.enum';
+export * from './reason-for-payment.enum';

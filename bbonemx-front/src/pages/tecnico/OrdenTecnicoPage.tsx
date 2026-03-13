@@ -54,6 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   ArrowLeft,
@@ -85,7 +86,11 @@ const closeSchema = yup.object({
     then: (s) => s.trim().required('La causa raíz es requerida para averías'),
     otherwise: (s) => s.default(''),
   }),
-  actionTaken: yup.string().trim().required('La acción realizada es requerida'),
+  actionTaken: yup.string().when('$isAveria', {
+    is: true,
+    then: (s) => s.trim().required('La acción realizada es requerida para averías'),
+    otherwise: (s) => s.default(''),
+  }),
   downtimeMinutes: yup.number().when('$isAveria', {
     is: true,
     then: (s) =>
@@ -95,7 +100,11 @@ const closeSchema = yup.object({
         .required('El tiempo muerto es requerido para averías'),
     otherwise: (s) => s.nullable().optional(),
   }),
-  observations: yup.string().default(''),
+  observations: yup.string().when('$isAveria', {
+    is: false,
+    then: (s) => s.trim().required('Las observaciones son requeridas'),
+    otherwise: (s) => s.default(''),
+  }),
   toolsUsed: yup.string().default(''),
   sparePartId: yup.string().nullable().optional(),
   customSparePart: yup.string().default(''),
@@ -161,7 +170,7 @@ export default function TecnicoOrdenPage() {
     reset,
     formState: { errors },
   } = useForm<CloseFormValues>({
-    resolver: yupResolver(closeSchema),
+    resolver: yupResolver<CloseFormValues, any, any>(closeSchema),
     context: { isAveria },
     defaultValues: {
       finalStatus: 'COMPLETED',
@@ -255,18 +264,23 @@ export default function TecnicoOrdenPage() {
           id: order.id,
           input: {
             finalStatus: values.finalStatus,
-            cause: values.cause || undefined,
-            actionTaken: values.actionTaken,
             toolsUsed: values.toolsUsed || undefined,
-            observations: values.observations || undefined,
-            downtimeMinutes: values.downtimeMinutes ?? undefined,
-            breakdownDescription: values.breakdownDescription || undefined,
             customSparePart: values.sparePartId === 'OTHER' && values.customSparePart?.trim()
               ? values.customSparePart.trim()
               : undefined,
             customMaterial: values.materialId === 'OTHER' && values.customMaterial?.trim()
               ? values.customMaterial.trim()
               : undefined,
+            ...(isAveria
+              ? {
+                  breakdownDescription: values.breakdownDescription || undefined,
+                  cause: values.cause || undefined,
+                  actionTaken: values.actionTaken,
+                  downtimeMinutes: values.downtimeMinutes ?? undefined,
+                }
+              : {
+                  observations: values.observations || undefined,
+                }),
           },
         },
       });
@@ -369,7 +383,7 @@ export default function TecnicoOrdenPage() {
     : null;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-12">
+    <div className="space-y-4 max-w-5xl mx-auto pb-12">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={handleBack}>
@@ -838,8 +852,8 @@ export default function TecnicoOrdenPage() {
 
                 <hr className="border-border/50" />
 
-                {/* 2. Reporte de avería (solo si es BREAKDOWN) */}
-                {isAveria && (
+                {/* 2. Campos según tipo de parada */}
+                {isAveria ? (
                   <div className="space-y-4">
                     <p className="text-sm font-semibold flex items-center gap-2 text-destructive">
                       <AlertTriangle className="h-4 w-4" /> Reporte de Avería
@@ -892,30 +906,33 @@ export default function TecnicoOrdenPage() {
 
                     <div className="space-y-2">
                       <Label>
-                        Observaciones adicionales
+                        Acción Realizada <span className="text-destructive">*</span>
                       </Label>
-                      <Input
-                        {...register('observations')}
-                        placeholder="Notas extra..."
+                      <Textarea
+                        {...register('actionTaken')}
+                        placeholder="Describe las acciones realizadas..."
+                        rows={3}
                       />
+                      {errors.actionTaken && (
+                        <p className="text-xs text-destructive">{errors.actionTaken.message}</p>
+                      )}
                     </div>
                   </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>
+                      Observaciones <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      {...register('observations')}
+                      placeholder="Describe las observaciones del trabajo realizado..."
+                      rows={3}
+                    />
+                    {errors.observations && (
+                      <p className="text-xs text-destructive">{errors.observations.message}</p>
+                    )}
+                  </div>
                 )}
-
-                {/* 3. Acción realizada (siempre visible) */}
-                <div className="space-y-2">
-                  <Label>
-                    Acción Realizada <span className="text-destructive">*</span>
-                  </Label>
-                  <Textarea
-                    {...register('actionTaken')}
-                    placeholder="Describe las acciones realizadas..."
-                    rows={3}
-                  />
-                  {errors.actionTaken && (
-                    <p className="text-xs text-destructive">{errors.actionTaken.message}</p>
-                  )}
-                </div>
 
                 <hr className="border-border/50" />
 
@@ -945,23 +962,20 @@ export default function TecnicoOrdenPage() {
                         name="sparePartId"
                         control={control}
                         render={({ field }) => (
-                          <Select
+                          <Combobox
+                            options={[
+                              { value: '', label: 'Sin refacción' },
+                              ...spareParts.map((sp: any) => ({
+                                value: sp.id,
+                                label: `${sp.brand} ${sp.model} — ${sp.partNumber}`,
+                              })),
+                              { value: 'OTHER', label: 'Otra (especificar)' },
+                            ]}
                             value={field.value ?? ''}
                             onValueChange={(v) => field.onChange(v || null)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona una refacción..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">Sin refacción</SelectItem>
-                              {spareParts.map((sp: any) => (
-                                <SelectItem key={sp.id} value={sp.id}>
-                                  {sp.brand} {sp.model} — {sp.partNumber}
-                                </SelectItem>
-                              ))}
-                              <SelectItem value="OTHER">Otra (especificar)</SelectItem>
-                            </SelectContent>
-                          </Select>
+                            placeholder="Selecciona una refacción..."
+                            searchPlaceholder="Buscar refacción..."
+                          />
                         )}
                       />
                     )}
@@ -990,25 +1004,20 @@ export default function TecnicoOrdenPage() {
                     name="materialId"
                     control={control}
                     render={({ field }) => (
-                      <Select
+                      <Combobox
+                        options={[
+                          { value: '', label: 'Sin material' },
+                          ...materials.map((m: any) => ({
+                            value: m.id,
+                            label: `${m.description}${m.brand ? ` — ${m.brand}` : ''}${m.partNumber ? ` (${m.partNumber})` : ''}`,
+                          })),
+                          { value: 'OTHER', label: 'Otro (especificar)' },
+                        ]}
                         value={field.value ?? ''}
                         onValueChange={(v) => field.onChange(v || null)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un material..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Sin material</SelectItem>
-                          {materials.map((m: any) => (
-                            <SelectItem key={m.id} value={m.id}>
-                              {m.description}
-                              {m.brand ? ` — ${m.brand}` : ''}
-                              {m.partNumber ? ` (${m.partNumber})` : ''}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="OTHER">Otro (especificar)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        placeholder="Selecciona un material..."
+                        searchPlaceholder="Buscar material..."
+                      />
                     )}
                   />
                   {watchedMaterialId === 'OTHER' && (

@@ -32,6 +32,8 @@ import { SchedulerModule } from './modules/scheduler';
 import { NotificationsModule } from './modules/notifications';
 import { MaterialRequestsModule } from './modules/material-requests';
 import { DashboardModule } from './modules/dashboard';
+import { UploadsModule } from './modules/uploads/uploads.module';
+import { OvertimeModule } from './modules/overtime';
 
 @Module({
   imports: [
@@ -62,6 +64,8 @@ import { DashboardModule } from './modules/dashboard';
     SchedulerModule,
     UsersModule,
     WorkOrdersModule,
+    UploadsModule,
+    OvertimeModule,
 
     // NotificationsModule,
   ],

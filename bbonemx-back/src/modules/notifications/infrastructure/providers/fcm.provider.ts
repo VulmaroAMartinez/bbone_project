@@ -38,7 +38,7 @@ export class FcmProvider implements OnModuleInit {
           'FCM no configurado. Opciones: ' +
           'FIREBASE_SERVICE_ACCOUNT_PATH (ruta al JSON), ' +
           'FIREBASE_SERVICE_ACCOUNT_JSON (JSON inline), o ' +
-          'FCM_PROJECT_ID + FCM_CLIENT_EMAIL + FCM_PRIVATE_KEY',
+          'FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY',
         );
         return;
       }
@@ -75,9 +75,9 @@ export class FcmProvider implements OnModuleInit {
     }
 
     // Opción 3: Variables individuales (fallback)
-    const projectId = this.configService.get<string>('FCM_PROJECT_ID');
-    const clientEmail = this.configService.get<string>('FCM_CLIENT_EMAIL');
-    const privateKey = this.configService.get<string>('FCM_PRIVATE_KEY');
+    const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
+    const clientEmail = this.configService.get<string>('FIREBASE_CLIENT_EMAIL');
+    const privateKey = this.configService.get<string>('FIREBASE_PRIVATE_KEY');
 
     if (projectId && clientEmail && privateKey) {
       this.logger.log('Firebase credential cargado desde variables individuales');
