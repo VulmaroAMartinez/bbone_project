@@ -43,3 +43,58 @@ export const MARK_ALL_NOTIFICATIONS_READ_MUTATION = gql`
     markAllNotificationsAsRead
   }
 `;
+
+// ============================
+// DEVICE TOKENS (FCM)
+// ============================
+
+export const REGISTER_DEVICE_TOKEN_MUTATION = gql`
+  mutation RegisterDeviceToken($input: RegisterDeviceTokenInput!) {
+    registerDeviceToken(input: $input) {
+      id
+      fcmToken
+      platform
+      deviceName
+    }
+  }
+`;
+
+export const UNREGISTER_DEVICE_TOKEN_MUTATION = gql`
+  mutation UnregisterDeviceToken($input: UnregisterDeviceTokenInput!) {
+    unregisterDeviceToken(input: $input)
+  }
+`;
+
+// ============================
+// NOTIFICATION PREFERENCES
+// ============================
+
+export const MY_NOTIFICATION_PREFERENCES_QUERY = gql`
+  query MyNotificationPreferences {
+    myNotificationPreferences {
+      id
+      userId
+      notificationType
+      pushEnabled
+      emailEnabled
+      inAppEnabled
+      quietHoursStart
+      quietHoursEnd
+    }
+  }
+`;
+
+export const UPDATE_NOTIFICATION_PREFERENCE_MUTATION = gql`
+  mutation UpdateNotificationPreference($input: UpdateNotificationPreferenceInput!) {
+    updateNotificationPreference(input: $input) {
+      id
+      userId
+      notificationType
+      pushEnabled
+      emailEnabled
+      inAppEnabled
+      quietHoursStart
+      quietHoursEnd
+    }
+  }
+`;

@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front && npm run codegen 2>&1)"
+      "Bash(cd C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front && npm run codegen 2>&1)",
+      "Bash(find c:/Users/vulma/Downloads/bbmaintenance -type f -name *material*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:3000/graphql -o /dev/null -w \"%{http_code}\")",
+      "Bash(npx tsc:*)",
+      "Bash(find c:UsersvulmaDownloadsbbmaintenancebbonemx-backsrc -type f \\\\\\(-name *upload* -o -name *multer* -o -name *file* \\\\\\))",
+      "Bash(xargs grep:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e \":*)",
+      "Bash(npm list:*)",
+      "Bash(npx --yes pwa-asset-generator --help)"
     ]
   }
 }

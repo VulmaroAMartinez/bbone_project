@@ -108,15 +108,20 @@ export class CompleteWorkOrderInput {
   @IsString()
   observations?: string;
 
+  @Field({ nullable: true, description: 'Descripción técnica de la falla (solo BREAKDOWN)' })
+  @IsOptional()
+  @IsString()
+  breakdownDescription?: string;
+
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
   cause?: string;
 
-  @Field()
-  @IsNotEmpty({ message: 'La acción realizada es requerida' })
+  @Field({ nullable: true })
+  @IsOptional()
   @IsString()
-  actionTaken: string;
+  actionTaken?: string;
 
   @Field({ nullable: true })
   @IsOptional()

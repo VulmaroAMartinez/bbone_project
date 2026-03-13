@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, Eye, Wrench, Mail, Phone } from 'lucide-react';
@@ -289,20 +290,26 @@ export default function TecnicosPage() {
                                 <div className="space-y-2">
                                     <Label>Departamento *</Label>
                                     <Controller name="departmentId" control={control} render={({ field }) => (
-                                        <Select value={field.value} onValueChange={field.onChange}>
-                                            <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                                            <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
-                                        </Select>
+                                        <Combobox
+                                            options={departments.map((d: any) => ({ value: d.id, label: d.name }))}
+                                            value={field.value}
+                                            onValueChange={field.onChange}
+                                            placeholder="Seleccionar departamento..."
+                                            searchPlaceholder="Buscar..."
+                                        />
                                     )} />
                                     <FieldError name="departmentId" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Cargo / Puesto *</Label>
                                     <Controller name="positionId" control={control} render={({ field }) => (
-                                        <Select value={field.value} onValueChange={field.onChange}>
-                                            <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                                            <SelectContent>{positions.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-                                        </Select>
+                                        <Combobox
+                                            options={positions.map((p: any) => ({ value: p.id, label: p.name }))}
+                                            value={field.value}
+                                            onValueChange={field.onChange}
+                                            placeholder="Seleccionar cargo..."
+                                            searchPlaceholder="Buscar..."
+                                        />
                                     )} />
                                     <FieldError name="positionId" />
                                 </div>

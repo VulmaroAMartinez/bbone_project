@@ -39,10 +39,14 @@ export class MaterialRequestsRepository {
     }
 
     async create(data: Partial<MaterialRequest>): Promise<MaterialRequest> {
-        const saved = await this.repository.save(this.repository.create(data));
-        saved.folio = FolioGenerator.generateMaterialRequestFolio(saved.sequence);
-        await this.repository.save(saved);
-        return this.findById(saved.id) as Promise<MaterialRequest>;
+        const result = await this.repository.query(
+            `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM findings`
+        );
+        const sequence = Number(result[0].next_seq);
+        const folio = FolioGenerator.generateMaterialRequestFolio(sequence, new Date());
+        const entity = this.repository.create({ ...data, sequence, folio });
+        const saved = await this.repository.save(entity);
+        return (await this.findById(saved.id))!;
     }
 
     async update(id: string, data: Partial<MaterialRequest>): Promise<MaterialRequest | null> {

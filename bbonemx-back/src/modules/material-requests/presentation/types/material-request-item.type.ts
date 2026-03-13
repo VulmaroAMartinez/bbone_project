@@ -10,6 +10,7 @@ export class MaterialRequestItemType {
     @Field(() => ID, { nullable: true }) sparePartId?: string;
     @Field(() => SparePartType, { nullable: true }) sparePart?: SparePartType;
     @Field({ nullable: true }) description?: string;
+    @Field({ nullable: true }) customName?: string;
     @Field({ nullable: true }) sku?: string;
     @Field({ nullable: true }) partNumber?: string;
     @Field({ nullable: true }) brand?: string;

@@ -9,8 +9,15 @@ import {
   type ReactNode,
 } from 'react';
 import { useMutation, useApolloClient } from '@apollo/client/react';
+import { gql } from '@apollo/client';
 import { LoginDocument, MeDocument, UserBasicFragmentDoc } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
+
+const UnregisterDeviceTokenDocument = gql`
+  mutation UnregisterDeviceTokenOnLogout($input: UnregisterDeviceTokenInput!) {
+    unregisterDeviceToken(input: $input)
+  }
+`;
 
 const ACTIVE_ROLE_KEY = 'auth_active_role';
 
@@ -143,12 +150,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [loginMutation]
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Unregister FCM token before clearing auth
+    const fcmToken = localStorage.getItem('fcm_device_token');
+    const authToken = localStorage.getItem('auth_token');
+    if (fcmToken && authToken) {
+      try {
+        await client.mutate({
+          mutation: UnregisterDeviceTokenDocument,
+          variables: { input: { fcmToken } },
+        });
+      } catch {
+        // Silently fail — token will expire server-side
+      }
+    }
+
     localStorage.removeItem('auth_token');
     localStorage.removeItem(ACTIVE_ROLE_KEY);
+    localStorage.removeItem('fcm_device_token');
     setUser(null);
     setActiveRoleState(null);
-  }, []);
+  }, [client]);
 
   const selectRole = useCallback((role: string) => {
     localStorage.setItem(ACTIVE_ROLE_KEY, role);

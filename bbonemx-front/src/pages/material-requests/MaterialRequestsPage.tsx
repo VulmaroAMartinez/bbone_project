@@ -226,51 +226,51 @@ export default function MaterialRequestsPage() {
                                 className={`cursor-pointer hover:shadow-md transition-shadow active:scale-[0.99] ${!req.isActive ? 'opacity-60' : ''}`}
                                 onClick={() => navigate(`/solicitud-material/${req.id}`)}
                             >
-                                <CardContent className="p-4 space-y-2.5">
+                                <CardContent className="py-4">
                                     {/* Folio + badges */}
-                                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                                        <span className="font-mono font-semibold text-sm text-primary tracking-wide">
-                                            {req.folio}
-                                        </span>
-                                        <div className="flex gap-1.5 flex-wrap justify-end">
-                                            <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${PRIORITY_COLORS[req.priority] ?? ''}`}>
-                                                {PRIORITY_LABELS[req.priority] ?? req.priority}
-                                            </span>
-                                            <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${IMPORTANCE_COLORS[req.importance] ?? ''}`}>
-                                                {IMPORTANCE_LABELS[req.importance] ?? req.importance}
-                                            </span>
+                                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                        <div className='flex-1 min-w-0'>
+                                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                <span className="font-mono font-semibold text-sm text-primary tracking-wide">
+                                                    {req.folio}
+                                                </span>
+                                                <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${PRIORITY_COLORS[req.priority] ?? ''}`}>
+                                                    {PRIORITY_LABELS[req.priority] ?? req.priority}
+                                                </span>
+                                                <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${IMPORTANCE_COLORS[req.importance] ?? ''}`}>
+                                                    {IMPORTANCE_LABELS[req.importance] ?? req.importance}
+                                                </span>
+                                                {/* Categoría */}
+                                                <Badge variant="outline" className="text-xs font-normal">
+                                                    {CATEGORY_LABELS[req.category] ?? req.category}
+                                                </Badge>
+                                            </div>
+                                            {/* Items count */}
+                                            {req.items.length > 0 && (
+                                                <p className="mt-2 text-base text-foreground line-clamp-2">
+                                                    {req.items.length} artículo{req.items.length !== 1 ? 's' : ''} solicitado{req.items.length !== 1 ? 's' : ''}
+                                                </p>
+                                            )}
+
+                                            {/* Metadata */}
+                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm mt-2 text-muted-foreground pt-1.5 border-t border-border/40">
+                                                <span className="flex items-center gap-1">
+                                                    <User className="h-3 w-3 shrink-0" />
+                                                    {req.requester.fullName}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Cog className="h-3 w-3 shrink-0" />
+                                                    {req.machine.name}
+                                                </span>
+                                                {areaName && (
+                                                    <span className="text-muted-foreground/80">{areaName}</span>
+                                                )}
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar className="h-3 w-3 shrink-0" />
+                                                    {formatDate(req.createdAt)}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    {/* Categoría */}
-                                    <Badge variant="outline" className="text-xs font-normal">
-                                        {CATEGORY_LABELS[req.category] ?? req.category}
-                                    </Badge>
-
-                                    {/* Items count */}
-                                    {req.items.length > 0 && (
-                                        <p className="text-xs text-muted-foreground">
-                                            {req.items.length} artículo{req.items.length !== 1 ? 's' : ''} solicitado{req.items.length !== 1 ? 's' : ''}
-                                        </p>
-                                    )}
-
-                                    {/* Metadata */}
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1.5 border-t border-border/40">
-                                        <span className="flex items-center gap-1">
-                                            <User className="h-3 w-3 shrink-0" />
-                                            {req.requester.fullName}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            <Cog className="h-3 w-3 shrink-0" />
-                                            {req.machine.name}
-                                        </span>
-                                        {areaName && (
-                                            <span className="text-muted-foreground/80">{areaName}</span>
-                                        )}
-                                        <span className="flex items-center gap-1">
-                                            <Calendar className="h-3 w-3 shrink-0" />
-                                            {formatDate(req.createdAt)}
-                                        </span>
                                     </div>
                                 </CardContent>
                             </Card>

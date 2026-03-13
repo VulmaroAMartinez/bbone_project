@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -146,6 +147,15 @@ function AdminOrdenDetallePage() {
   const shifts = shiftsData?.shiftsActive || [];
   const technicians = unmaskFragment(TechnicianBasicFragmentDoc, techData?.techniciansActive || []);
   const availableMachines = unmaskFragment(MachineBasicFragmentDoc, machinesData?.machines?.filter((m: any) => m.subAreaId === subArea?.id) || []);
+
+  const techOptions = technicians.map((tech) => {
+    const tUser = unmaskFragment(UserBasicFragmentDoc, tech.user);
+    return { value: tUser.id, label: tUser.fullName };
+  });
+
+  const machineOptions = availableMachines.map((m) => ({
+    value: m.id, label: `${m.name} [${m.code}]`,
+  }));
 
   const handleBack = () => navigate(-1);
 
@@ -777,7 +787,11 @@ function AdminOrdenDetallePage() {
                   <Select value={mgmt.stoppageType} onValueChange={(v) => setMgmt((p) => ({ ...p, stoppageType: v as StopType }))}>
                     <SelectTrigger id="mgmt-stoppage"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
-                      {STOPPAGE_TYPES.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+                      {STOPPAGE_TYPES.map((s) => (
+                        <SelectItem key={s.value} value={s.value} disabled={s.value === 'BREAKDOWN' && availableMachines.length === 0}>
+                          {s.label}{s.value === 'BREAKDOWN' && availableMachines.length === 0 ? ' (sin máquinas)' : ''}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -825,14 +839,14 @@ function AdminOrdenDetallePage() {
               {showMachineField && (
                 <div className="space-y-2 pt-2 border-t border-border/50">
                   <Label htmlFor="mgmt-machine" className="text-destructive font-semibold">Máquina Afectada (Requerido)*</Label>
-                  <Select value={mgmt.machineId} onValueChange={(v) => setMgmt((p) => ({ ...p, machineId: v }))}>
-                    <SelectTrigger id="mgmt-machine"><SelectValue placeholder="Seleccionar Máquina" /></SelectTrigger>
-                    <SelectContent>
-                      {availableMachines.length > 0 ? availableMachines.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.name} [{m.code}]</SelectItem>
-                      )) : <SelectItem value="none" disabled>No hay máquinas en esta subárea</SelectItem>}
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    options={machineOptions}
+                    value={mgmt.machineId}
+                    onValueChange={(v) => setMgmt((p) => ({ ...p, machineId: v }))}
+                    placeholder="Seleccionar Máquina"
+                    searchPlaceholder="Buscar máquina..."
+                    emptyText="No hay máquinas en esta subárea"
+                  />
                 </div>
               )}
             </div>
@@ -846,39 +860,31 @@ function AdminOrdenDetallePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="mgmt-lead-tech">Técnico Líder *</Label>
-                <Select value={mgmt.leadTechnicianId} onValueChange={(v) => setMgmt((p) => ({ ...p, leadTechnicianId: v }))}>
-                  <SelectTrigger id="mgmt-lead-tech" className="bg-background"><SelectValue placeholder="Seleccionar líder" /></SelectTrigger>
-                  <SelectContent>
-                    {technicians.map((tech) => {
-                      const tUser = unmaskFragment(UserBasicFragmentDoc, tech.user);
-                      return <SelectItem key={tUser.id} value={tUser.id}>{tUser.fullName}</SelectItem>;
-                    })}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  options={techOptions}
+                  value={mgmt.leadTechnicianId}
+                  onValueChange={(v) => setMgmt((p) => ({ ...p, leadTechnicianId: v }))}
+                  placeholder="Seleccionar líder"
+                  searchPlaceholder="Buscar técnico..."
+                />
               </div>
 
               <div className="space-y-3" role="group" aria-labelledby="mgmt-aux-tech-label">
                 <Label id="mgmt-aux-tech-label" className="text-sm">Técnicos de Apoyo (Opcional)</Label>
                 {auxiliaryTechnicians.map((auxTechId, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <Select
+                    <Combobox
+                      options={techOptions.filter((o) => o.value !== mgmt.leadTechnicianId)}
                       value={auxTechId}
                       onValueChange={(v) => {
                         const updated = [...auxiliaryTechnicians];
                         updated[index] = v;
                         setAuxiliaryTechnicians(updated);
                       }}
-                    >
-                      <SelectTrigger className="flex-1 bg-background"><SelectValue placeholder="Técnico de apoyo" /></SelectTrigger>
-                      <SelectContent>
-                        {technicians
-                          .filter(t => unmaskFragment(UserBasicFragmentDoc, t.user)?.id !== mgmt.leadTechnicianId)
-                          .map((tech) => {
-                            const tUser = unmaskFragment(UserBasicFragmentDoc, tech.user);
-                            return <SelectItem key={tUser.id} value={tUser.id}>{tUser.fullName}</SelectItem>;
-                          })}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Técnico de apoyo"
+                      searchPlaceholder="Buscar técnico..."
+                      triggerClassName="flex-1"
+                    />
                     <Button type="button" variant="ghost" size="icon" aria-label="Eliminar técnico de apoyo" className="text-destructive" onClick={() => {
                       const updated = auxiliaryTechnicians.filter((_, i) => i !== index);
                       setAuxiliaryTechnicians(updated);

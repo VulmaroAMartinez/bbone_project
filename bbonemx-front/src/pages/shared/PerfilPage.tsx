@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { gql } from '@apollo/client';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { useAuth } from '@/contexts/auth-context';
+import { useNotification } from '@/contexts/notification-context';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { User, Mail, Shield, Building, LogOut, Settings, Briefcase } from 'lucide-react';
+import { User, Mail, Shield, Building, LogOut, Settings, Briefcase, Bell, BellOff, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 /** Local query to fetch additional profile data (department) not included in UserBasicFragment. */
 const PROFILE_DETAIL_QUERY = gql`
@@ -48,6 +51,36 @@ const TECH_POSITION_QUERY = gql`
   }
 `;
 
+const MY_NOTIFICATION_PREFERENCES_QUERY = gql`
+  query MyNotificationPreferences {
+    myNotificationPreferences {
+      id
+      userId
+      notificationType
+      pushEnabled
+      emailEnabled
+      inAppEnabled
+      quietHoursStart
+      quietHoursEnd
+    }
+  }
+`;
+
+const UPDATE_NOTIFICATION_PREFERENCE_MUTATION = gql`
+  mutation UpdateNotificationPreference($input: UpdateNotificationPreferenceInput!) {
+    updateNotificationPreference(input: $input) {
+      id
+      userId
+      notificationType
+      pushEnabled
+      emailEnabled
+      inAppEnabled
+      quietHoursStart
+      quietHoursEnd
+    }
+  }
+`;
+
 interface ProfileDetailData {
   me: {
     id: string;
@@ -62,6 +95,29 @@ interface TechPositionData {
     position: { id: string; name: string };
   }>;
 }
+
+interface NotificationPreference {
+  id?: string;
+  userId: string;
+  notificationType: string;
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  inAppEnabled: boolean;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+}
+
+interface PreferencesData {
+  myNotificationPreferences: NotificationPreference[];
+}
+
+const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
+  WORK_ORDER_ASSIGNED: 'OT asignada',
+  WORK_ORDER_COMPLETED: 'OT completada',
+  WORK_ORDER_TEMPORARY_REPAIR: 'Reparación temporal',
+  PREVENTIVE_TASK_WO_GENERATED: 'OT preventiva generada',
+  WORK_ORDER_CREATED_BY_REQUESTER: 'OT creada por solicitante',
+};
 
 function getRoleLabel(role: string): string {
   switch (role) {
@@ -83,6 +139,13 @@ function getRoleColor(role: string): string {
 
 export default function PerfilPage() {
   const { user, logout, isTechnician, isRequester } = useAuth();
+  const {
+    pushSupported,
+    pushPermission,
+    isPushEnabled,
+    isRegisteringPush,
+    registerPush,
+  } = useNotification();
   const navigate = useNavigate();
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
@@ -91,6 +154,45 @@ export default function PerfilPage() {
   const { data: techData } = useQuery<TechPositionData>(TECH_POSITION_QUERY, {
     skip: !isTechnician,
   });
+
+  const { data: prefsData, refetch: refetchPrefs } = useQuery<PreferencesData>(
+    MY_NOTIFICATION_PREFERENCES_QUERY,
+  );
+
+  const [updatePreference] = useMutation(UPDATE_NOTIFICATION_PREFERENCE_MUTATION);
+
+  const handleTogglePush = async () => {
+    if (!isPushEnabled) {
+      const success = await registerPush();
+      if (success) {
+        toast.success('Notificaciones push activadas');
+      } else if (pushPermission === 'denied') {
+        toast.error('Permiso de notificaciones bloqueado. Habilítalo desde la configuración del navegador.');
+      } else {
+        toast.error('No se pudieron activar las notificaciones push');
+      }
+    }
+  };
+
+  const handleTogglePreference = async (
+    notificationType: string,
+    field: 'pushEnabled' | 'emailEnabled',
+    value: boolean,
+  ) => {
+    try {
+      await updatePreference({
+        variables: {
+          input: {
+            notificationType,
+            [field]: value,
+          },
+        },
+      });
+      refetchPrefs();
+    } catch {
+      toast.error('Error al actualizar preferencia');
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -109,6 +211,7 @@ export default function PerfilPage() {
   const departmentName = profileData?.me.department.name;
   const technicianRecord = techData?.techniciansActive.find((t) => t.user.id === user.id);
   const positionName = technicianRecord?.position.name;
+  const preferences = prefsData?.myNotificationPreferences || [];
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -222,6 +325,86 @@ export default function PerfilPage() {
                 <p className="text-muted-foreground">Puesto</p>
                 <p className="text-foreground font-medium">{positionName}</p>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Notification Preferences */}
+      <Card className="bg-card">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bell className="h-4 w-4 text-primary" />
+            Notificaciones
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Push toggle global */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isPushEnabled ? (
+                <Bell className="h-5 w-5 text-primary" />
+              ) : (
+                <BellOff className="h-5 w-5 text-muted-foreground" />
+              )}
+              <div>
+                <p className="text-sm font-medium text-foreground">Notificaciones push</p>
+                <p className="text-xs text-muted-foreground">
+                  {!pushSupported
+                    ? 'No soportado en este navegador'
+                    : pushPermission === 'denied'
+                    ? 'Bloqueado — habilita desde configuración del navegador'
+                    : isPushEnabled
+                    ? 'Recibirás notificaciones aunque la app esté cerrada'
+                    : 'Activa para recibir notificaciones en segundo plano'}
+                </p>
+              </div>
+            </div>
+            {pushSupported && pushPermission !== 'denied' && (
+              <Button
+                variant={isPushEnabled ? 'outline' : 'default'}
+                size="sm"
+                onClick={handleTogglePush}
+                disabled={isRegisteringPush || isPushEnabled}
+              >
+                {isRegisteringPush ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isPushEnabled ? (
+                  'Activado'
+                ) : (
+                  'Activar'
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Per-type preferences */}
+          {preferences.length > 0 && (
+            <div className="space-y-3 pt-2 border-t">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                Preferencias por tipo
+              </p>
+              {preferences.map((pref) => (
+                <div
+                  key={pref.notificationType}
+                  className="flex items-center justify-between py-1"
+                >
+                  <p className="text-sm text-foreground">
+                    {NOTIFICATION_TYPE_LABELS[pref.notificationType] || pref.notificationType}
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      Push
+                      <Switch
+                        checked={pref.pushEnabled}
+                        onCheckedChange={(checked) =>
+                          handleTogglePreference(pref.notificationType, 'pushEnabled', checked)
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

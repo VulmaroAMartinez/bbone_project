@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -7,7 +7,6 @@ import * as yup from 'yup';
 import { toast } from 'sonner';
 import {
     MachineBasicFragmentDoc,
-    GetMachinesByAreaDocument,
     GetMachinesPageDataDocument,
     CreateMachineDocument,
     UpdateMachineDocument,
@@ -31,6 +30,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import {
     Dialog,
     DialogContent,
@@ -79,6 +79,9 @@ import {
     MapPin,
     ArrowUpDown,
     X,
+    Upload,
+    ImageIcon,
+    Trash2,
 } from 'lucide-react';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 import { useAreaMachineSelector } from '@/hooks/useAreaMachineSelector';
@@ -95,7 +98,7 @@ const machineSchema = yup.object({
     model: yup.string().trim().default(''),
     serialNumber: yup.string().trim().default(''),
     installationDate: yup.string().default(''),
-    machinePhotoUrl: yup.string().trim().url('URL no válida').default(''),
+    machinePhotoUrl: yup.string().trim().default(''),
     operationalManualUrl: yup.string().trim().url('URL no válida').default(''),
 });
 
@@ -154,6 +157,9 @@ export default function MachinesPage() {
     const [viewingMachine, setViewingMachine] = useState<MachineBasicFragment | null>(null);
     const [deactivatingMachine, setDeactivatingMachine] = useState<MachineBasicFragment | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const {
         selectedAreaId,
         selectedSubAreaId: _hookSubAreaId, // no usamos este, react-hook-form lo maneja
@@ -173,6 +179,7 @@ export default function MachinesPage() {
         reset,
         control,
         setValue,
+        watch,
         formState: { errors },
     } = useForm<MachineFormValues>({
         resolver: yupResolver(machineSchema),
@@ -218,6 +225,7 @@ export default function MachinesPage() {
         initSelector('', '');
         setEditingMachine(null);
         reset(EMPTY_FORM);
+        setPhotoPreview(null);
         setIsFormOpen(true);
     };
 
@@ -245,12 +253,51 @@ export default function MachinesPage() {
             machinePhotoUrl: machine.machinePhotoUrl ?? '',
             operationalManualUrl: machine.operationalManualUrl ?? '',
         });
+        setPhotoPreview(machine.machinePhotoUrl || null);
         setIsFormOpen(true);
     };
 
     const openInfo = (machine: MachineBasicFragment) => {
         setViewingMachine(machine);
         setIsInfoOpen(true);
+    };
+
+    const API_BASE = import.meta.env.VITE_GRAPHQL_URL?.replace('/graphql', '') ?? 'http://localhost:3000';
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setIsUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const token = localStorage.getItem('auth_token');
+            const res = await fetch(`${API_BASE}/api/uploads`, {
+                method: 'POST',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                body: formData,
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.message || 'Error al subir la imagen');
+            }
+            const { url } = await res.json();
+            const fullUrl = `${API_BASE}${url}`;
+            setValue('machinePhotoUrl', fullUrl);
+            setPhotoPreview(fullUrl);
+            toast.success('Imagen subida correctamente');
+        } catch (err: any) {
+            toast.error(err.message || 'Error al subir la imagen');
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const removePhoto = () => {
+        setValue('machinePhotoUrl', '');
+        setPhotoPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     /** Al cambiar el área en el form, resetear sub-área */
@@ -518,20 +565,14 @@ export default function MachinesPage() {
                                     <Controller
                                         name="areaId"
                                         control={control}
-                                        render={({ field }) => (
-                                            <Select value={field.value} onValueChange={handleAreaChange}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Seleccionar área..." />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {areas
-                                                        .map((a) => (
-                                                            <SelectItem key={a.id} value={a.id}>
-                                                                {a.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                </SelectContent>
-                                            </Select>
+                                        render={() => (
+                                            <Combobox
+                                                options={areas.map((a: any) => ({ value: a.id, label: a.name }))}
+                                                value={watch('areaId')}
+                                                onValueChange={handleAreaChange}
+                                                placeholder="Seleccionar área..."
+                                                searchPlaceholder="Buscar área..."
+                                            />
                                         )}
                                     />
                                     <FieldError name="areaId" />
@@ -543,31 +584,17 @@ export default function MachinesPage() {
                                             name="subAreaId"
                                             control={control}
                                             render={({ field }) => (
-                                                <Select
+                                                <Combobox
+                                                    options={subAreas.map((sa: any) => ({ value: sa.id, label: sa.name }))}
                                                     value={field.value}
                                                     onValueChange={(val) => {
                                                         field.onChange(val);
                                                         hookSubAreaChange(val);
                                                     }}
+                                                    placeholder={subAreasLoading ? 'Cargando...' : 'Seleccionar sub-área (opcional)...'}
+                                                    searchPlaceholder="Buscar sub-área..."
                                                     disabled={subAreasLoading}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue
-                                                            placeholder={
-                                                                subAreasLoading
-                                                                    ? 'Cargando...'
-                                                                    : 'Seleccionar sub-área (opcional)...'
-                                                            }
-                                                        />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {subAreas.map((sa: any) => (
-                                                            <SelectItem key={sa.id} value={sa.id}>
-                                                                {sa.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                />
                                             )}
                                         />
                                     </div>
@@ -601,20 +628,72 @@ export default function MachinesPage() {
                             </div>
                         </div>
 
-                        {/* URLs opcionales */}
+                        {/* Foto + Documentación */}
                         <div className="space-y-4 p-4 rounded-lg border border-border">
                             <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">
-                                Documentación
+                                Foto y Documentación
                             </h4>
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
-                                    <Label>URL Foto de máquina</Label>
-                                    <Input
-                                        {...register('machinePhotoUrl')}
-                                        placeholder="https://..."
-                                        type="url"
+                                    <Label>Foto de máquina</Label>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/jpg,image/webp"
+                                        onChange={handleFileUpload}
+                                        className="hidden"
                                     />
-                                    <FieldError name="machinePhotoUrl" />
+                                    {photoPreview ? (
+                                        <div className="relative rounded-lg border border-border overflow-hidden">
+                                            <img
+                                                src={photoPreview}
+                                                alt="Foto de máquina"
+                                                className="w-full h-40 object-cover"
+                                            />
+                                            <div className="absolute top-2 right-2 flex gap-1">
+                                                <Button
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="icon-sm"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    disabled={isUploading}
+                                                    title="Cambiar imagen"
+                                                >
+                                                    <Upload className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="icon-sm"
+                                                    onClick={removePhoto}
+                                                    title="Eliminar imagen"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="w-full h-24 flex flex-col gap-1.5 text-muted-foreground"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={isUploading}
+                                        >
+                                            {isUploading ? (
+                                                <>
+                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                    <span className="text-xs">Subiendo...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ImageIcon className="h-5 w-5" />
+                                                    <span className="text-xs">Haz clic para subir una imagen</span>
+                                                    <span className="text-[10px]">JPG, PNG o WebP (máx. 5MB)</span>
+                                                </>
+                                            )}
+                                        </Button>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label>URL Manual operativo</Label>
@@ -849,32 +928,32 @@ function MachineInfoModal({ machine, open, onOpenChange }: MachineInfoModalProps
                         </div>
                     ))}
 
-                    {/* Links a documentación */}
-                    {(machine.machinePhotoUrl || machine.operationalManualUrl) && (
+                    {/* Foto + documentación */}
+                    {machine.machinePhotoUrl && (
+                        <div className="pt-3 border-t border-border space-y-2">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Foto
+                            </p>
+                            <img
+                                src={machine.machinePhotoUrl}
+                                alt={`Foto de ${machine.name}`}
+                                className="w-full h-48 object-cover rounded-lg border border-border"
+                            />
+                        </div>
+                    )}
+                    {machine.operationalManualUrl && (
                         <div className="pt-3 border-t border-border space-y-2">
                             <p className="text-xs font-semibold text-muted-foreground uppercase">
                                 Documentación
                             </p>
-                            {machine.machinePhotoUrl && (
-                                <a
-                                    href={machine.machinePhotoUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-sm text-primary underline underline-offset-2 block truncate"
-                                >
-                                    Ver foto de la máquina
-                                </a>
-                            )}
-                            {machine.operationalManualUrl && (
-                                <a
-                                    href={machine.operationalManualUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-sm text-primary underline underline-offset-2 block truncate"
-                                >
-                                    Ver manual operativo
-                                </a>
-                            )}
+                            <a
+                                href={machine.operationalManualUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-sm text-primary underline underline-offset-2 block truncate"
+                            >
+                                Ver manual operativo
+                            </a>
                         </div>
                     )}
                 </div>

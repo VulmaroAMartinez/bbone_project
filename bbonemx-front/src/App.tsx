@@ -57,6 +57,7 @@ import MaterialRequestsPage from './pages/material-requests/MaterialRequestsPage
 import MaterialRequestDetailPage from './pages/material-requests/MaterialRequestDetailPage';
 import CreateMaterialRequestPage from './pages/material-requests/CreateMaterialRequests';
 import RoleSelectorPage from './pages/RoleSelectorPage';
+import OvertimePage from './pages/overtime/OvertimePage';
 
 const ShellLayout = ({ title }: { title: string }) => (
   <AppShell title={title}>
@@ -102,6 +103,7 @@ function App() {
               <Route path="/areas/:id/hallazgos" element={<AreaFindingsPage />} />
               <Route path="/solicitud-material" element={<MaterialRequestsPage />} />
               <Route path="/solicitud-material/:id" element={<MaterialRequestDetailPage />} />
+              <Route path="/horas-extra" element={<OvertimePage />} />
             </Route>
           </Route>
 
@@ -111,6 +113,7 @@ function App() {
               <Route path="/horario" element={<TechSchedulePage />} />
               <Route path="/tecnico/asignaciones" element={<TecnicoAsignacionesPage />} />
               <Route path="/tecnico/orden/:id" element={<TecnicoOrdenPage />} />
+              <Route path="/tecnico/horas-extra" element={<OvertimePage />} />
             </Route>
           </Route>
 

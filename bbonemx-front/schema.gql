@@ -221,6 +221,7 @@ input CreateMaterialRequestInput {
 
 input CreateMaterialRequestItemInput {
   brand: String
+  customName: String
   description: String
   materialId: ID
   materialRequestId: ID
@@ -641,6 +642,7 @@ type MaterialRequest {
 type MaterialRequestItem {
   brand: String
   createdAt: DateTime!
+  customName: String
   description: String
   id: ID!
   material: Material

@@ -23,6 +23,7 @@ import {
   Bolt,
   Clock,
   RefreshCw,
+  Timer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -76,6 +77,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
           children: [
             { href: '/tecnicos', label: 'Técnicos', icon: Users },
             { href: '/horarios', label: 'Horarios / Turnos', icon: Calendar },
+            { href: '/horas-extra', label: 'Horas Extra', icon: Timer },
           ]
         },
         {
@@ -98,6 +100,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
         { href: '/tecnico/pendientes', label: 'Mis Pendientes', icon: ClipboardList },
         { href: '/horario', label: 'Mi Horario', icon: Calendar },
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
+        { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
       ];
       if (isBoss || isAdmin) {
         items.push(

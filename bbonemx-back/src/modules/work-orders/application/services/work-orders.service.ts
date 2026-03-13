@@ -245,6 +245,7 @@ export class WorkOrdersService {
             lastResumedAt: null,
             functionalTimeMinutes: functionalTImeMinutes,
             observations: input.observations,
+            breakdownDescription: input.breakdownDescription,
             cause: input.cause,
             actionTaken: input.actionTaken,
             toolsUsed: input.toolsUsed,
