@@ -6,6 +6,20 @@ import { WorkOrderFiltersInput, PaginationInput, WorkOrderSortInput } from "../.
 import { WorkOrderStats } from "../../presentation/types/work-order.type";
 import { FolioGenerator } from "src/common/utils/folio-generator.util";
 
+const SORT_FIELD_MAP: Record<string, string> = {
+    createdAt: 'wo.created_at',
+    updatedAt: 'wo.updated_at',
+    scheduledDate: 'wo.scheduled_date',
+    priority: 'wo.priority',
+    status: 'wo.status',
+    folio: 'wo.folio',
+};
+
+const SORT_ORDER_MAP: Record<string, 'ASC' | 'DESC'> = {
+    ASC: 'ASC',
+    DESC: 'DESC',
+};
+
 @Injectable()
 export class WorkOrdersRepository {
     constructor(@InjectRepository(WorkOrder) private readonly repository: Repository<WorkOrder>) {}
@@ -174,9 +188,9 @@ export class WorkOrdersRepository {
 
               const total = await qb.getCount();
 
-              const sortField = sort?.field || 'createdAt';
-              const sortOrder = sort?.order || 'DESC';
-              qb.orderBy(`wo.${sortField}`, sortOrder);
+              const sortField = SORT_FIELD_MAP[sort?.field || 'createdAt'] ?? SORT_FIELD_MAP.createdAt;
+              const sortOrder = SORT_ORDER_MAP[sort?.order || 'DESC'] ?? 'DESC';
+              qb.orderBy(sortField, sortOrder);
 
               const page = pagination?.page || 1;
               const limit = pagination?.limit || 20;

@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args, ID, Int, ResolveField, Parent } from "@nestjs/graphql";
-import { UseGuards } from "@nestjs/common";
+import { ForbiddenException, UseGuards } from "@nestjs/common";
 import {
     WorkOrdersService,
     WorkOrderPhotosService,
@@ -84,12 +84,25 @@ export class WorkOrdersResolver {
     }
 
     @Query(() => WorkOrderPaginatedResponse, { name: "workOrdersFiltered" })
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN, Role.BOSS, Role.TECHNICIAN, Role.REQUESTER)
     async findFiltered(
         @Args('filters', { nullable: true }) filters?: WorkOrderFiltersInput,
         @Args('pagination', { nullable: true }) pagination?: PaginationInput,
         @Args('sort', { nullable: true }) sort?: WorkOrderSortInput,
+        @CurrentUser() user?: User,
     ): Promise<WorkOrderPaginatedResponse > {
-        const { data, total } = await this.workOrdersService.findWithFilters(filters || {}, pagination || { page: 1, limit: 20 }, sort || { field: 'createdAt', order: 'DESC' });
+        const scopedFilters: WorkOrderFiltersInput = { ...(filters || {}) };
+
+        if (user?.hasRole(Role.REQUESTER) && !user?.hasRole(Role.ADMIN) && !user?.hasRole(Role.BOSS)) {
+            scopedFilters.requesterId = user.id;
+        }
+
+        if (user?.hasRole(Role.TECHNICIAN) && !user?.hasRole(Role.ADMIN) && !user?.hasRole(Role.BOSS)) {
+            scopedFilters.technicianId = user.id;
+        }
+
+        const { data, total } = await this.workOrdersService.findWithFilters(scopedFilters, pagination || { page: 1, limit: 20 }, sort || { field: 'createdAt', order: 'DESC' });
         const page = pagination?.page || 1;
         const limit = pagination?.limit || 20;
         return {
@@ -102,13 +115,29 @@ export class WorkOrdersResolver {
     }
 
     @Query(() => WorkOrderType, { name: "workOrder", nullable: true })
-    findById(@Args('id', { type: () => ID }) id: string) {
-        return this.workOrdersService.findById(id);
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN, Role.BOSS, Role.TECHNICIAN, Role.REQUESTER)
+    async findById(
+        @Args('id', { type: () => ID }) id: string,
+        @CurrentUser() user: User,
+    ) {
+        const workOrder = await this.workOrdersService.findById(id);
+        if (!workOrder) return null;
+        await this.assertCanAccessWorkOrder(user, workOrder);
+        return workOrder;
     }
 
     @Query(() => WorkOrderType, { name: "workOrderByFolio", nullable: true })
-    findByFolio(@Args('folio', { type: () => String }) folio: string) {
-        return this.workOrdersService.findByFolio(folio);
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN, Role.BOSS, Role.TECHNICIAN, Role.REQUESTER)
+    async findByFolio(
+        @Args('folio', { type: () => String }) folio: string,
+        @CurrentUser() user: User,
+    ) {
+        const workOrder = await this.workOrdersService.findByFolio(folio);
+        if (!workOrder) return null;
+        await this.assertCanAccessWorkOrder(user, workOrder);
+        return workOrder;
     }
 
     @Query(() => [WorkOrderType], { name: "myAssignedWorkOrders" })
@@ -132,6 +161,8 @@ export class WorkOrdersResolver {
     // =============================== MUTATIONS ===============================
 
     @Mutation(() => WorkOrderType)
+    @UseGuards(RolesGuard)
+    @Roles(Role.ADMIN, Role.BOSS, Role.REQUESTER)
     async createWorkOrder(
         @Args('input') input: CreateWorkOrderInput,
         @CurrentUser() user: User,
@@ -213,9 +244,9 @@ export class WorkOrdersResolver {
     }
 
 
-    @Mutation(() => WorkOrderType)
+    @Mutation(() => Boolean)
     @UseGuards(RolesGuard) @Roles(Role.ADMIN)
-    deleteWorkOrder(@Args('id', { type: () => ID }) id: string) {
+    deleteWorkOrder(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
         return this.workOrdersService.deactivate(id);
     }
 
@@ -311,7 +342,7 @@ export class WorkOrdersResolver {
 
     // =============================== RESOLVE FIELDS ===============================
 
-    @ResolveField(() => [WorkOrderPhotoType, {name: 'photos'}])
+    @ResolveField(() => [WorkOrderPhotoType], {name: 'photos'})
     async photos(@Parent() workOrder: WorkOrder) {
         return this.workOrderPhotosService.findByWorkOrderId(workOrder.id);
     }
@@ -359,6 +390,25 @@ export class WorkOrdersResolver {
     @ResolveField(() => UserType, { name: 'technician' })
     async technician(@Parent() wot: WorkOrderTechnician) {
         return this.usersService.findById(wot.technicianId);
+    }
+
+    private async assertCanAccessWorkOrder(user: User, workOrder: WorkOrder): Promise<void> {
+        if (user.hasRole(Role.ADMIN) || user.hasRole(Role.BOSS)) {
+            return;
+        }
+
+        if (user.hasRole(Role.REQUESTER) && workOrder.requesterId === user.id) {
+            return;
+        }
+
+        if (user.hasRole(Role.TECHNICIAN)) {
+            const isAssigned = await this.workOrderTechniciansService.isTechnicianAssigned(workOrder.id, user.id);
+            if (isAssigned) {
+                return;
+            }
+        }
+
+        throw new ForbiddenException('No tienes permisos para acceder a esta orden de trabajo');
     }
 
 }

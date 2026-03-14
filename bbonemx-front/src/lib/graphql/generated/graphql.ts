@@ -723,7 +723,7 @@ export type Mutation = {
   deleteOvertime: Scalars['Boolean']['output'];
   /** Elimina (soft-delete) una asignación de horario */
   deleteTechnicianSchedule: Scalars['Boolean']['output'];
-  deleteWorkOrder: WorkOrder;
+  deleteWorkOrder: Scalars['Boolean']['output'];
   deleteWorkOrderPhoto: WorkOrderPhoto;
   generateWorkOrdersForPreventiveTask: GenerateWorkOrdersResult;
   /** Inicia sesión con número de empleado y contraseña */
