@@ -39,6 +39,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * Necesario porque GraphQL no usa el request HTTP directamente.
    */
   getRequest(context: ExecutionContext) {
+    if (context.getType<string>() === 'http') {
+      return context.switchToHttp().getRequest();
+    }
+
     const ctx = GqlExecutionContext.create(context);
     return ctx.getContext().req;
   }

@@ -5,6 +5,7 @@ import { LoginInput, LoginResponse } from "../../application/dto";
 import { UseGuards } from "@nestjs/common";
 import { UserType } from "src/modules/users/presentation/types";
 import { User } from "src/modules/users/domain/entities";
+import { Context } from '@nestjs/graphql';
 
 @Resolver()
 export class AuthResolver {
@@ -15,9 +16,10 @@ export class AuthResolver {
         description: 'Inicia sesión con número de empleado y contraseña',
     })
     async login(
-        @Args('input') input: LoginInput
+        @Args('input') input: LoginInput,
+        @Context() context: { req?: { ip?: string } },
     ): Promise<LoginResponse> {
-        return this.authService.authenticate(input.employeeNumber, input.password);
+        return this.authService.authenticate(input.employeeNumber, input.password, context.req?.ip);
     }
 
     @UseGuards(JwtAuthGuard)

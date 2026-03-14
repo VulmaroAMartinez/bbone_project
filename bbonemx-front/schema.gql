@@ -739,7 +739,7 @@ type Mutation {
 
   """Elimina (soft-delete) una asignación de horario"""
   deleteTechnicianSchedule(id: ID!): Boolean!
-  deleteWorkOrder(id: ID!): WorkOrder!
+  deleteWorkOrder(id: ID!): Boolean!
   deleteWorkOrderPhoto(id: ID!): WorkOrderPhoto!
   generateWorkOrdersForPreventiveTask: GenerateWorkOrdersResult!
 
