@@ -115,7 +115,10 @@ input ClosePreventiveTaskInput {
 }
 
 input CompleteWorkOrderInput {
-  actionTaken: String!
+  actionTaken: String
+
+  """Descripción técnica de la falla (solo BREAKDOWN)"""
+  breakdownDescription: String
   cause: String
 
   """Material no listado en catálogo"""

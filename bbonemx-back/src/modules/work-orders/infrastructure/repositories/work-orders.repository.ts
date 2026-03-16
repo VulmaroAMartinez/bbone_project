@@ -6,10 +6,12 @@ import { WorkOrderFiltersInput, PaginationInput, WorkOrderSortInput } from "../.
 import { WorkOrderStats } from "../../presentation/types/work-order.type";
 import { FolioGenerator } from "src/common/utils/folio-generator.util";
 
+// Usar nombres de propiedad de la entidad (no columnas DB) para evitar error de TypeORM
+// "Cannot read properties of undefined (reading 'databaseName')" con getCount + orderBy + skip/take
 const SORT_FIELD_MAP: Record<string, string> = {
-    createdAt: 'wo.created_at',
-    updatedAt: 'wo.updated_at',
-    scheduledDate: 'wo.scheduled_date',
+    createdAt: 'wo.createdAt',
+    updatedAt: 'wo.updatedAt',
+    scheduledDate: 'wo.scheduledDate',
     priority: 'wo.priority',
     status: 'wo.status',
     folio: 'wo.folio',

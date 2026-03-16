@@ -13,7 +13,7 @@ import {
   ValidationRule,
 } from 'graphql';
 
-const MAX_QUERY_DEPTH = 8;
+const MAX_QUERY_DEPTH = 12;
 const MAX_QUERY_FIELDS = 200;
 
 function calculateDepth(
