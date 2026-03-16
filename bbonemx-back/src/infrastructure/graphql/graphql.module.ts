@@ -4,6 +4,120 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import { IGqlContext } from '../../common/types';
+import {
+  FieldNode,
+  FragmentDefinitionNode,
+  GraphQLError,
+  OperationDefinitionNode,
+  SelectionNode,
+  ValidationRule,
+} from 'graphql';
+
+const MAX_QUERY_DEPTH = 12;
+const MAX_QUERY_FIELDS = 200;
+
+function calculateDepth(
+  selectionSet: readonly SelectionNode[],
+  fragments: Record<string, FragmentDefinitionNode>,
+  currentDepth = 1,
+): number {
+  let maxDepth = currentDepth;
+
+  for (const selection of selectionSet) {
+    if (selection.kind === 'Field') {
+      const field = selection as FieldNode;
+      if (!field.selectionSet) continue;
+      maxDepth = Math.max(
+        maxDepth,
+        calculateDepth(field.selectionSet.selections, fragments, currentDepth + 1),
+      );
+      continue;
+    }
+
+    if (selection.kind === 'FragmentSpread') {
+      const fragment = fragments[selection.name.value];
+      if (!fragment) continue;
+      maxDepth = Math.max(
+        maxDepth,
+        calculateDepth(fragment.selectionSet.selections, fragments, currentDepth + 1),
+      );
+      continue;
+    }
+
+    if (selection.kind === 'InlineFragment') {
+      maxDepth = Math.max(
+        maxDepth,
+        calculateDepth(selection.selectionSet.selections, fragments, currentDepth + 1),
+      );
+    }
+  }
+
+  return maxDepth;
+}
+
+function countFields(
+  selectionSet: readonly SelectionNode[],
+  fragments: Record<string, FragmentDefinitionNode>,
+): number {
+  let count = 0;
+
+  for (const selection of selectionSet) {
+    if (selection.kind === 'Field') {
+      count += 1;
+      if (selection.selectionSet) {
+        count += countFields(selection.selectionSet.selections, fragments);
+      }
+      continue;
+    }
+
+    if (selection.kind === 'FragmentSpread') {
+      const fragment = fragments[selection.name.value];
+      if (fragment) {
+        count += countFields(fragment.selectionSet.selections, fragments);
+      }
+      continue;
+    }
+
+    if (selection.kind === 'InlineFragment') {
+      count += countFields(selection.selectionSet.selections, fragments);
+    }
+  }
+
+  return count;
+}
+
+const queryLimitsRule: ValidationRule = (context) => {
+  const fragments = context.getDocument().definitions
+    .filter((definition): definition is FragmentDefinitionNode => definition.kind === 'FragmentDefinition')
+    .reduce<Record<string, FragmentDefinitionNode>>((acc, fragment) => {
+      acc[fragment.name.value] = fragment;
+      return acc;
+    }, {});
+
+  return {
+    OperationDefinition(node: OperationDefinitionNode) {
+      const depth = calculateDepth(node.selectionSet.selections, fragments);
+      if (depth > MAX_QUERY_DEPTH) {
+        context.reportError(
+          new GraphQLError(
+            `La profundidad máxima permitida es ${MAX_QUERY_DEPTH}. Profundidad recibida: ${depth}.`,
+            [node],
+          ),
+        );
+      }
+
+      const fieldCount = countFields(node.selectionSet.selections, fragments);
+      if (fieldCount > MAX_QUERY_FIELDS) {
+        context.reportError(
+          new GraphQLError(
+            `La complejidad máxima permitida es ${MAX_QUERY_FIELDS} campos. Solicitud recibida: ${fieldCount}.`,
+            [node],
+          ),
+        );
+      }
+    },
+  };
+};
 
 /**
  * Módulo de GraphQL.
@@ -70,8 +184,7 @@ import { IGqlContext } from '../../common/types';
         
         // Límites de seguridad
         validationRules: [
-          // Se pueden agregar reglas de validación personalizadas
-          // como limitación de profundidad de queries
+          queryLimitsRule,
         ],
       }),
     }),

@@ -10,6 +10,8 @@ import {
   type MaintenanceType,
   type WorkOrderPriority,
   type StopType,
+  type WorkOrderSignature,
+  type WorkOrderPhoto,
   WorkOrderItemFragmentDoc,
   AreaBasicFragmentDoc,
   SubAreaBasicFragmentDoc,
@@ -146,7 +148,10 @@ function AdminOrdenDetallePage() {
 
   const shifts = shiftsData?.shiftsActive || [];
   const technicians = unmaskFragment(TechnicianBasicFragmentDoc, techData?.techniciansActive || []);
-  const availableMachines = unmaskFragment(MachineBasicFragmentDoc, machinesData?.machines?.filter((m: any) => m.subAreaId === subArea?.id) || []);
+  const machinesRaw = machinesData?.machinesWithDeleted ?? [];
+  const availableMachines = machinesRaw
+    .map((ref) => unmaskFragment(MachineBasicFragmentDoc, ref))
+    .filter((m) => m.subAreaId === subArea?.id);
 
   const techOptions = technicians.map((tech) => {
     const tUser = unmaskFragment(UserBasicFragmentDoc, tech.user);
@@ -265,7 +270,7 @@ function AdminOrdenDetallePage() {
     }
   }
 
-  const handleSaveSignature = async (dataURL: string) => {
+  const handleSaveSignature = async (_dataURL: string) => {
     try {
       const mockPath = `signatures/${order?.id}/${user?.id}_sig.png`;
 
@@ -310,13 +315,13 @@ function AdminOrdenDetallePage() {
   const showScheduledDate = mgmt.maintenanceType === 'CORRECTIVE_SCHEDULED';
 
   // Firmas
-  const signatures = workOrderRaw.signatures || [];
-  const adminSignature = signatures.find((s) => s.signer.role?.name === 'ADMIN');
+  const signatures: WorkOrderSignature[] = workOrderRaw.signatures || [];
+  const adminSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN');
   const needsMySignature = (isCompleted || isTemporaryRepair) && !adminSignature;
 
   // Fotos
-  const photoBefore = workOrderRaw.photos?.find(p => p.photoType === 'BEFORE');
-  const photoAfter = workOrderRaw.photos?.find(p => p.photoType === 'AFTER');
+  const photoBefore = workOrderRaw.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
+  const photoAfter = workOrderRaw.photos?.find((p: WorkOrderPhoto) => p.photoType === 'AFTER');
   const isProcessing = updating || assigning;
 
   return (
@@ -475,34 +480,39 @@ function AdminOrdenDetallePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              {order.stopType === 'BREAKDOWN' || order.stopType === 'OTHER' && (
-                <div className="grid md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-lg border border-border/50">
-                  {workOrderRaw.cause && (
-                    <div>
-                      <p className="text-muted-foreground font-medium mb-1">
-                        Causa Raíz
-                      </p>
-                      <p>{workOrderRaw.cause}</p>
-                    </div>
-                  )}
-                  {workOrderRaw.actionTaken && (
-                    <div>
-                      <p className="text-muted-foreground font-medium mb-1">
-                        Acción Realizada
-                      </p>
-                      <p>{workOrderRaw.actionTaken}</p>
-                    </div>
-                  )}
-                  {workOrderRaw.toolsUsed && (
-                    <div className="md:col-span-2">
-                      <p className="text-muted-foreground font-medium mb-1">
-                        Herramientas / Materiales
-                      </p>
-                      <p>{workOrderRaw.toolsUsed}</p>
-                    </div>
-                  )}
-                </div>
-              )}
+              {(order.stopType === 'BREAKDOWN' || order.stopType === 'OTHER') && (() => {
+                const hasBreakdownContent = workOrderRaw.cause || workOrderRaw.actionTaken || workOrderRaw.toolsUsed;
+                const showBox = order.stopType === 'BREAKDOWN' || (order.stopType === 'OTHER' && hasBreakdownContent);
+                if (!showBox) return null;
+                return (
+                  <div className="grid md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-lg border border-border/50">
+                    {workOrderRaw.cause && (
+                      <div>
+                        <p className="text-muted-foreground font-medium mb-1">
+                          Causa Raíz
+                        </p>
+                        <p>{workOrderRaw.cause}</p>
+                      </div>
+                    )}
+                    {workOrderRaw.actionTaken && (
+                      <div>
+                        <p className="text-muted-foreground font-medium mb-1">
+                          Acción Realizada
+                        </p>
+                        <p>{workOrderRaw.actionTaken}</p>
+                      </div>
+                    )}
+                    {workOrderRaw.toolsUsed && (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground font-medium mb-1">
+                          Herramientas / Materiales
+                        </p>
+                        <p>{workOrderRaw.toolsUsed}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {workOrderRaw.observations && (
                 <div>
                   <p className="text-muted-foreground font-medium mb-1">
@@ -693,10 +703,10 @@ function AdminOrdenDetallePage() {
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     Solicitante
                   </p>
-                  {signatures.find((s) => s.signer.role?.name === 'REQUESTER') ? (
+                  {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER') ? (
                     <img
                       src={
-                        signatures.find((s) => s.signer.role?.name === 'REQUESTER')
+                        signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER')
                           ?.signatureImagePath
                       }
                       alt="Firma"
@@ -714,10 +724,10 @@ function AdminOrdenDetallePage() {
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     Técnico
                   </p>
-                  {signatures.find((s) => s.signer.role?.name === 'TECHNICIAN') ? (
+                  {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN') ? (
                     <img
                       src={
-                        signatures.find((s) => s.signer.role?.name === 'TECHNICIAN')
+                        signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN')
                           ?.signatureImagePath
                       }
                       alt="Firma"
@@ -787,7 +797,7 @@ function AdminOrdenDetallePage() {
                   <Select value={mgmt.stoppageType} onValueChange={(v) => setMgmt((p) => ({ ...p, stoppageType: v as StopType }))}>
                     <SelectTrigger id="mgmt-stoppage"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
-                      {STOPPAGE_TYPES.map((s) => (
+                      {STOPPAGE_TYPES.map((s: { value: StopType; label: string }) => (
                         <SelectItem key={s.value} value={s.value} disabled={s.value === 'BREAKDOWN' && availableMachines.length === 0}>
                           {s.label}{s.value === 'BREAKDOWN' && availableMachines.length === 0 ? ' (sin máquinas)' : ''}
                         </SelectItem>

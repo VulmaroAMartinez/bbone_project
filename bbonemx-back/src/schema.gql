@@ -115,7 +115,10 @@ input ClosePreventiveTaskInput {
 }
 
 input CompleteWorkOrderInput {
-  actionTaken: String!
+  actionTaken: String
+
+  """Descripción técnica de la falla (solo BREAKDOWN)"""
+  breakdownDescription: String
   cause: String
 
   """Material no listado en catálogo"""
@@ -750,7 +753,7 @@ type Mutation {
 
   """Elimina (soft-delete) una asignación de horario"""
   deleteTechnicianSchedule(id: ID!): Boolean!
-  deleteWorkOrder(id: ID!): WorkOrder!
+  deleteWorkOrder(id: ID!): Boolean!
   deleteWorkOrderPhoto(id: ID!): WorkOrderPhoto!
   generateWorkOrdersForPreventiveTask: GenerateWorkOrdersResult!
 
