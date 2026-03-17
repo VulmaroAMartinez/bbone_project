@@ -11,7 +11,7 @@ import { Field, ObjectType, ID } from '@nestjs/graphql';
 /**
  * Entidad base abstracta que incluye campos de auditoría estándar.
  * Todas las entidades de dominio deben extender esta clase.
- * 
+ *
  * Campos incluidos:
  * - id: UUID generado automáticamente
  * - createdAt: Fecha de creación
@@ -29,21 +29,21 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   id: string;
 
   @Field()
-  @CreateDateColumn({ 
+  @CreateDateColumn({
     name: 'created_at',
     type: 'timestamp with time zone',
   })
   createdAt: Date;
 
   @Field()
-  @UpdateDateColumn({ 
+  @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamp with time zone',
   })
   updatedAt: Date;
 
   @Field(() => Date, { nullable: true })
-  @DeleteDateColumn({ 
+  @DeleteDateColumn({
     name: 'deleted_at',
     type: 'timestamp with time zone',
     nullable: true,
@@ -51,7 +51,7 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   deletedAt?: Date | null;
 
   @Field({ nullable: true })
-  @Column({ 
+  @Column({
     name: 'created_by',
     type: 'uuid',
     nullable: true,
@@ -59,7 +59,7 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   createdBy?: string;
 
   @Field({ nullable: true })
-  @Column({ 
+  @Column({
     name: 'updated_by',
     type: 'uuid',
     nullable: true,
@@ -67,7 +67,7 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   updatedBy?: string;
 
   @Field({ nullable: true })
-  @Column({ 
+  @Column({
     name: 'deleted_by',
     type: 'uuid',
     nullable: true,
@@ -75,7 +75,7 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   deletedBy?: string;
 
   @Field()
-  @Column({ 
+  @Column({
     name: 'is_active',
     type: 'boolean',
     default: true,

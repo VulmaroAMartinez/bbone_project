@@ -10,7 +10,7 @@ import { UserContext } from '../../../common/context/user.context';
 /**
  * Subscriber que automáticamente asigna createdBy y updatedBy
  * en las entidades que heredan de BaseEntity.
- * 
+ *
  * Utiliza AsyncLocalStorage para obtener el userId del contexto
  * actual sin necesidad de pasarlo como parámetro.
  */

@@ -1,5 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -17,13 +17,12 @@ export interface FcmSendResult {
   error?: string;
 }
 
-
 @Injectable()
 export class FcmProvider implements OnModuleInit {
   private readonly logger = new Logger(FcmProvider.name);
   private initialized = false;
 
-  constructor(private readonly configService: ConfigService) { }
+  constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
     if (admin.apps.length) {
@@ -36,9 +35,9 @@ export class FcmProvider implements OnModuleInit {
       if (!credential) {
         this.logger.warn(
           'FCM no configurado. Opciones: ' +
-          'FIREBASE_SERVICE_ACCOUNT_PATH (ruta al JSON), ' +
-          'FIREBASE_SERVICE_ACCOUNT_JSON (JSON inline), o ' +
-          'FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY',
+            'FIREBASE_SERVICE_ACCOUNT_PATH (ruta al JSON), ' +
+            'FIREBASE_SERVICE_ACCOUNT_JSON (JSON inline), o ' +
+            'FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY',
         );
         return;
       }
@@ -46,7 +45,6 @@ export class FcmProvider implements OnModuleInit {
       admin.initializeApp({ credential });
       this.initialized = true;
       this.logger.log('FCM inicializado correctamente');
-
     } catch (error) {
       this.logger.error('Error al inicializar FCM', error);
       throw error;
@@ -55,19 +53,27 @@ export class FcmProvider implements OnModuleInit {
 
   private resolveCredential(): admin.credential.Credential | null {
     // Opción 1: Ruta al archivo JSON (recomendado por Firebase)
-    const serviceAccountPath = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_PATH');
+    const serviceAccountPath = this.configService.get<string>(
+      'FIREBASE_SERVICE_ACCOUNT_PATH',
+    );
     if (serviceAccountPath) {
       const resolvedPath = path.resolve(serviceAccountPath);
       if (fs.existsSync(resolvedPath)) {
-        const serviceAccount = JSON.parse(fs.readFileSync(resolvedPath, 'utf-8'));
-        this.logger.log(`Firebase credential cargado desde archivo: ${resolvedPath}`);
+        const serviceAccount = JSON.parse(
+          fs.readFileSync(resolvedPath, 'utf-8'),
+        );
+        this.logger.log(
+          `Firebase credential cargado desde archivo: ${resolvedPath}`,
+        );
         return admin.credential.cert(serviceAccount);
       }
       this.logger.warn(`Archivo serviceAccount no encontrado: ${resolvedPath}`);
     }
 
     // Opción 2: JSON inline (útil para Docker, CI/CD, Heroku)
-    const serviceAccountJson = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_JSON');
+    const serviceAccountJson = this.configService.get<string>(
+      'FIREBASE_SERVICE_ACCOUNT_JSON',
+    );
     if (serviceAccountJson) {
       const serviceAccount = JSON.parse(serviceAccountJson);
       this.logger.log('Firebase credential cargado desde variable JSON inline');
@@ -80,7 +86,9 @@ export class FcmProvider implements OnModuleInit {
     const privateKey = this.configService.get<string>('FIREBASE_PRIVATE_KEY');
 
     if (projectId && clientEmail && privateKey) {
-      this.logger.log('Firebase credential cargado desde variables individuales');
+      this.logger.log(
+        'Firebase credential cargado desde variables individuales',
+      );
       return admin.credential.cert({
         projectId,
         clientEmail,
@@ -91,7 +99,10 @@ export class FcmProvider implements OnModuleInit {
     return null;
   }
 
-  async sendToToken(token: string, message: FcmMessage): Promise<FcmSendResult> {
+  async sendToToken(
+    token: string,
+    message: FcmMessage,
+  ): Promise<FcmSendResult> {
     if (!this.initialized) {
       this.logger.warn('FCM no inicializado, push omitido');
       return { token, success: false, error: 'FCM_NOT_INITIALIZED' };
@@ -121,7 +132,7 @@ export class FcmProvider implements OnModuleInit {
               alert: { title: message.title, body: message.body },
               sound: 'default',
               badge: 1,
-              'content-available': 1, 
+              'content-available': 1,
             },
           },
         },
@@ -142,15 +153,25 @@ export class FcmProvider implements OnModuleInit {
       return { token, success: true };
     } catch (error: any) {
       const errorCode = error?.code || error?.message || 'UNKNOWN';
-      this.logger.error(`Error enviando push a token ${token.substring(0, 20)}...`, errorCode);
+      this.logger.error(
+        `Error enviando push a token ${token.substring(0, 20)}...`,
+        errorCode,
+      );
 
       return { token, success: false, error: errorCode };
     }
   }
 
-  async sendToTokens(tokens: string[], message: FcmMessage): Promise<FcmSendResult[]> {
+  async sendToTokens(
+    tokens: string[],
+    message: FcmMessage,
+  ): Promise<FcmSendResult[]> {
     if (!this.initialized || tokens.length === 0) {
-      return tokens.map(t => ({ token: t, success: false, error: 'FCM_NOT_INITIALIZED' }));
+      return tokens.map((t) => ({
+        token: t,
+        success: false,
+        error: 'FCM_NOT_INITIALIZED',
+      }));
     }
 
     const results: FcmSendResult[] = [];
@@ -159,19 +180,20 @@ export class FcmProvider implements OnModuleInit {
     for (let i = 0; i < tokens.length; i += batchSize) {
       const batch = tokens.slice(i, i + batchSize);
       const batchResults = await Promise.all(
-        batch.map(token => this.sendToToken(token, message)),
+        batch.map((token) => this.sendToToken(token, message)),
       );
       results.push(...batchResults);
     }
 
-    const successful = results.filter(r => r.success).length;
-    const failed = results.filter(r => !r.success).length;
-    this.logger.log(`Push enviado: ${successful} exitosos, ${failed} fallidos de ${tokens.length} total`);
+    const successful = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+    this.logger.log(
+      `Push enviado: ${successful} exitosos, ${failed} fallidos de ${tokens.length} total`,
+    );
 
     return results;
   }
 
- 
   isTokenInvalid(errorCode: string): boolean {
     const invalidCodes = [
       'messaging/registration-token-not-registered',

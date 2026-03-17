@@ -15,7 +15,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, UserRound, Mail, Phone } from 'lucide-react';
@@ -30,7 +29,10 @@ const createSchema = (isEditing: boolean) =>
         phone: yup.string().trim().default(''),
         password: isEditing
             ? yup.string().default('')
-            : yup.string().required('La contraseña inicial es obligatoria').min(6, 'Mínimo 6 caracteres'),
+            : yup
+                  .string()
+                  .required('La contraseña inicial es obligatoria')
+                  .min(8, 'Mínimo 8 caracteres'),
     });
 
 type FormValues = yup.InferType<ReturnType<typeof createSchema>>;

@@ -15,8 +15,11 @@ import { DatabaseModule } from './infrastructure/database/database.module';
 import { CustomGraphqlModule } from './infrastructure/graphql/graphql.module';
 
 import { GraphqlExceptionFilter } from './common/filters';
-import { JwtAuthGuard } from './common/guards';
-import { LoggingInterceptor, UserContextInterceptor } from './common/interceptors';
+import { CsrfGuard, JwtAuthGuard } from './common/guards';
+import {
+  LoggingInterceptor,
+  UserContextInterceptor,
+} from './common/interceptors';
 import { PasswordModule, EmailModule } from './common/modules';
 
 // Módulos de dominio
@@ -40,7 +43,14 @@ import { OvertimeModule } from './modules/overtime';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
-      load: [appConfig, databaseConfig, graphqlConfig, jwtConfig, schedulerConfig, emailConfig],
+      load: [
+        appConfig,
+        databaseConfig,
+        graphqlConfig,
+        jwtConfig,
+        schedulerConfig,
+        emailConfig,
+      ],
       cache: true,
     }),
 
@@ -84,6 +94,10 @@ import { OvertimeModule } from './modules/overtime';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard,
+    },
 
     // Interceptor de logging global (opcional)
     // {
@@ -92,4 +106,4 @@ import { OvertimeModule } from './modules/overtime';
     // },
   ],
 })
-export class AppModule { }
+export class AppModule {}

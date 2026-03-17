@@ -1,1 +1,1 @@
-export * from './roles.repository'
+export * from './roles.repository';

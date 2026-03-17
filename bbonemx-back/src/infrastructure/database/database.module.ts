@@ -19,20 +19,20 @@ import { BaseEntitySubscriber } from './subscribers/base-entity.subscriber';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        
+
         // Carga automática de entidades (no recomendado para producción)
         autoLoadEntities: true,
-        
+
         // Sincronización automática (SOLO para desarrollo)
         synchronize: configService.get<boolean>('database.synchronize'),
-        
+
         // Logging de queries
         logging: configService.get<boolean>('database.logging'),
-        
+
         // Configuración de migraciones
         migrations: ['dist/infrastructure/database/migrations/*.js'],
         migrationsTableName: 'migrations',
-        
+
         // Configuración adicional de PostgreSQL
         extra: {
           // Pool de conexiones

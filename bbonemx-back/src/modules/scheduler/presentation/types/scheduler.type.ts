@@ -1,31 +1,30 @@
-import { ObjectType, Field, Int } from "@nestjs/graphql";
+import { ObjectType, Field, Int } from '@nestjs/graphql';
 
 @ObjectType()
 export class CronJobStatus {
-    @Field()
-    name: string;
+  @Field()
+  name: string;
 
-    @Field()
-    enabled: boolean;
+  @Field()
+  enabled: boolean;
 
-    @Field()
-    cronExpression: string;
+  @Field()
+  cronExpression: string;
 
-    @Field({nullable: true})
-    nextRunAt?: Date;
+  @Field({ nullable: true })
+  nextRunAt?: Date;
 
-    @Field(() => Int, {nullable: true})
-    retentionDays?: number;
+  @Field(() => Int, { nullable: true })
+  retentionDays?: number;
 }
 
 @ObjectType()
 export class SchedulerStatus {
+  @Field()
+  globalEnabled: boolean;
 
-    @Field()
-    globalEnabled: boolean;
-
-    @Field(() => [CronJobStatus])
-    jobs: CronJobStatus[];
+  @Field(() => [CronJobStatus])
+  jobs: CronJobStatus[];
 }
 
 @ObjectType()

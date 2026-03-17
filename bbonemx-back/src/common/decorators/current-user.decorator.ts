@@ -3,14 +3,14 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 
 /**
  * Decorador que extrae el usuario autenticado del contexto GraphQL.
- * 
+ *
  * @example
  * // Obtener usuario completo
  * @Query()
  * me(@CurrentUser() user: User) {
  *   return user;
  * }
- * 
+ *
  * @example
  * // Obtener solo una propiedad del usuario
  * @Mutation()

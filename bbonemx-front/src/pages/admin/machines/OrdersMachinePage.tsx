@@ -5,7 +5,6 @@ import type { WorkOrderStatus, WorkOrderPriority, MaintenanceType } from '@/lib/
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Empty,
@@ -31,8 +30,8 @@ export default function OrdersMachinePage() {
         fetchPolicy: 'cache-and-network',
     });
 
-    const machine = data?.machine;
-    const workOrders = machine?.workOrders ?? [];
+    // Query actual no devuelve machine; solo usamos workOrdersFiltered.
+    const workOrders = (data as any)?.workOrdersFiltered?.data ?? [];
 
     const formatDate = (dateStr?: string | null) => {
         if (!dateStr) return '—';
@@ -58,16 +57,9 @@ export default function OrdersMachinePage() {
 
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">Órdenes de Trabajo</h1>
-                    {machine && (
-                        <p className="text-sm text-muted-foreground">
-                            <Badge variant="outline" className="font-mono text-xs mr-1.5">
-                                {machine.code}
-                            </Badge>
-                            {machine.name}
-                            <span className="mx-1.5">·</span>
-                            {workOrders.length} orden{workOrders.length !== 1 ? 'es' : ''}
-                        </p>
-                    )}
+                    <p className="text-sm text-muted-foreground">
+                        {workOrders.length} orden{workOrders.length !== 1 ? 'es' : ''}
+                    </p>
                 </div>
             </div>
 
@@ -101,7 +93,7 @@ export default function OrdersMachinePage() {
                 </Empty>
             ) : (
                 <div className="space-y-3">
-                    {workOrders.map((wo) => (
+                    {workOrders.map((wo: any) => (
                         <Card key={wo.id} className="bg-card hover:shadow-md transition-shadow">
                             <CardContent className="p-4 space-y-3">
                                 {/* Fila: Folio + Status */}

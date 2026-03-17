@@ -9,7 +9,7 @@ const HOME_BY_ROLE: Record<string, string> = {
 };
 
 export default function HomePage() {
-  const { user, isAuthenticated, isLoading, activeRole, canSwitchRoles } = useAuth();
+  const { user, isAuthenticated, isLoading, activeRole, canSwitchRoles, isBoss } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -33,6 +33,9 @@ export default function HomePage() {
     return <Navigate to="/login" replace />;
   }
 
-  const redirectTo = HOME_BY_ROLE[activeRole] ?? '/login';
+  const redirectTo =
+    activeRole === 'TECHNICIAN' && isBoss
+      ? '/tecnico/mis-ordenes'
+      : HOME_BY_ROLE[activeRole] ?? '/login';
   return <Navigate to={redirectTo} replace />;
 }

@@ -51,7 +51,7 @@ export default function OrdenDetallePage() {
 
   const handleBack = () => navigate(-1);
 
-  const handleSaveSignature = async (dataURL: string) => {
+  const handleSaveSignature = async (_dataURL: string) => {
     try {
       const mockPath = `signatures/${order?.id}/${user?.id}_sig.png`;
 

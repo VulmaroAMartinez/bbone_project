@@ -21,11 +21,11 @@ export class LoggingInterceptor implements NestInterceptor {
     const gqlContext = GqlExecutionContext.create(context);
     const info = gqlContext.getInfo();
     const ctx = gqlContext.getContext();
-    
+
     const operationType = info.parentType.name; // Query, Mutation, Subscription
     const fieldName = info.fieldName;
     const userId = ctx.req?.user?.id || 'anonymous';
-    
+
     const startTime = Date.now();
 
     return next.handle().pipe(

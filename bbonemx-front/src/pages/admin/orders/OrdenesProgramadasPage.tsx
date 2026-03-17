@@ -31,7 +31,9 @@ function OrdenesProgramadasPage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  const orders = unmaskFragment(WorkOrderItemFragmentDoc, ((data as any)?.workOrdersFiltered?.data || []) as any);
+  const orders = (((data as any)?.workOrdersFiltered?.data || []) as any[]).map((ref) =>
+    unmaskFragment(WorkOrderItemFragmentDoc, ref),
+  );
 
   const sortedOrders = useMemo(
     () => [...orders].sort((a, b) => new Date(a.scheduledDate || a.createdAt).getTime() - new Date(b.scheduledDate || b.createdAt).getTime()),
@@ -76,7 +78,7 @@ function OrdenesProgramadasPage() {
               <SelectTrigger id="scheduled-shift"><SelectValue placeholder="Todos los turnos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los turnos</SelectItem>
-                {(shiftsData?.shiftsActive || []).map((s) => (
+                {(shiftsData?.shiftsActive || []).map((s: any) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
               </SelectContent>

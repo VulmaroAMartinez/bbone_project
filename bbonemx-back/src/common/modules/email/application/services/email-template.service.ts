@@ -1,15 +1,15 @@
-import { Injectable } from "@nestjs/common";
-import { BaseEmailTemplateData } from "../../presentation/types";
+import { Injectable } from '@nestjs/common';
+import { BaseEmailTemplateData } from '../../presentation/types';
 
 @Injectable()
 export class EmailTemplateService {
-    renderBaseTemplate(data: BaseEmailTemplateData): string {
-        const appName = data.appName ?? 'Bumble Bee Maintenance';
-        const footerText =
-            data.footerText ??
-                `Este correo fue enviado automáticamente por ${appName}.`;
+  renderBaseTemplate(data: BaseEmailTemplateData): string {
+    const appName = data.appName ?? 'Bumble Bee Maintenance';
+    const footerText =
+      data.footerText ??
+      `Este correo fue enviado automáticamente por ${appName}.`;
 
-        return `
+    return `
             <div style="background-color:#f8fafc;padding:24px;font-family:Arial,sans-serif;color:#0f172a;>
                 <table role="presentation" style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;
                     <tr>
@@ -25,15 +25,15 @@ export class EmailTemplateService {
                 </table>
             </div>
         `;
-    }
+  }
 
-    private renderActionButton(actionText?: string, actionUrl?: string): string {
-        if (!actionText || !actionUrl) return '';
+  private renderActionButton(actionText?: string, actionUrl?: string): string {
+    if (!actionText || !actionUrl) return '';
 
-        return `
+    return `
             <a href="${actionUrl}" style="display:inline-block;background:#2565eb;color:#ffffff;text-decoration:none;padding:12px 16px;border-radius:8px;font-weight:600;">
                 ${actionText}
             </a>
         `;
-    }
+  }
 }

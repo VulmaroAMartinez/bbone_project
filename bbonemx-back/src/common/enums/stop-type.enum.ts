@@ -9,7 +9,9 @@ registerEnumType(StopType, {
   name: 'StopType',
   description: 'Tipo de parada de la orden de trabajo',
   valuesMap: {
-    BREAKDOWN: { description: 'Avería - Requiere campos adicionales de diagnóstico' },
+    BREAKDOWN: {
+      description: 'Avería - Requiere campos adicionales de diagnóstico',
+    },
     OTHER: { description: 'Otro tipo de actividad' },
   },
 });

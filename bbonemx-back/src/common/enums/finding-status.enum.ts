@@ -10,6 +10,8 @@ registerEnumType(FindingStatus, {
   description: 'Estados posibles de un hallazgo',
   valuesMap: {
     OPEN: { description: 'Abierto - Hallazgo registrado pendiente de acción' },
-    CONVERTED_TO_WO: { description: 'Convertido a OT - Se generó una orden de trabajo' },
+    CONVERTED_TO_WO: {
+      description: 'Convertido a OT - Se generó una orden de trabajo',
+    },
   },
 });

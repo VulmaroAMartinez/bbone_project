@@ -1,27 +1,32 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { PassportStrategy } from "@nestjs/passport";
-import { ExtractJwt, Strategy } from "passport-jwt";
-import { AuthService, JwtPayload } from "../../application/services";
-import { User } from "src/modules/users/domain/entities";
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { AuthService, JwtPayload } from '../../application/services';
+import { User } from 'src/modules/users/domain/entities';
+import { ACCESS_TOKEN_COOKIE } from '../../application/utils/auth-cookies.util';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(
-        private readonly configService: ConfigService,
-        private readonly authService: AuthService,
-    ) {
-        super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            secretOrKey: configService.getOrThrow<string>('jwt.secret'),
-        });
-    }
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly authService: AuthService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (request: { cookies?: Record<string, string> }) =>
+          request?.cookies?.[ACCESS_TOKEN_COOKIE] ?? null,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
+      ignoreExpiration: false,
+      secretOrKey: configService.getOrThrow<string>('jwt.secret'),
+    });
+  }
 
-    async validate(payload: JwtPayload): Promise<User> {
-        const user = await this.authService.getUserById(payload.sub);
-        if(!user) throw new UnauthorizedException('Usuario no encontrado');
-        if(!user.isActive) throw new UnauthorizedException('Usuario inactivo');
-        return user;
-    }
+  async validate(payload: JwtPayload): Promise<User> {
+    const user = await this.authService.getUserById(payload.sub);
+    if (!user) throw new UnauthorizedException('Usuario no encontrado');
+    if (!user.isActive) throw new UnauthorizedException('Usuario inactivo');
+    return user;
+  }
 }

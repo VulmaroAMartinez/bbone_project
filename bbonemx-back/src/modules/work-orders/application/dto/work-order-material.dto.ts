@@ -1,5 +1,12 @@
 import { InputType, Field, ID, Int } from '@nestjs/graphql';
-import { IsNotEmpty, IsUUID, IsOptional, IsString, IsInt, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsUUID,
+  IsOptional,
+  IsString,
+  IsInt,
+  Min,
+} from 'class-validator';
 
 @InputType()
 export class AddWorkOrderMaterialInput {

@@ -7,10 +7,7 @@ import { OvertimeResolver } from './presentation/resolvers';
 import { TechniciansModule } from 'src/modules/catalogs/technicians/technicians.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Overtime]),
-    TechniciansModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Overtime]), TechniciansModule],
   providers: [OvertimeRepository, OvertimeService, OvertimeResolver],
   exports: [OvertimeService, TypeOrmModule],
 })

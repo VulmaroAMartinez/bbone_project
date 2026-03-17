@@ -2,7 +2,8 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
     overwrite: true,
-    schema: "http://localhost:3000/graphql",
+    // Usar schema local para evitar límites de profundidad/complejidad del endpoint
+    schema: "../bbonemx-back/src/schema.gql",
     documents: [
         "src/lib/graphql/operations/**/*.ts",
         //"src/**/*.{ts,tsx}"
@@ -20,6 +21,7 @@ const config: CodegenConfig = {
                     DateTime: "string"
                 },
                 enumsAsTypes: true,
+                useTypeImports: true,
             }
         }
     },

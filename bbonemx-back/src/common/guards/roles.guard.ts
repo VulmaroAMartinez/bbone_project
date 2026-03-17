@@ -7,7 +7,7 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
 /**
  * Guard que verifica si el usuario tiene los roles requeridos.
  * Se usa en conjunto con el decorador @Roles().
- * 
+ *
  * @example
  * // En el resolver
  * @Roles(Role.ADMIN)
@@ -21,10 +21,10 @@ export class RolesGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     // Obtener roles requeridos del decorador
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     // Si no hay roles requeridos, permitir acceso
     if (!requiredRoles || requiredRoles.length === 0) {
@@ -40,7 +40,8 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    const userRoleNames = user.roles?.map((role: { name: string }) => role.name) ?? [];
+    const userRoleNames =
+      user.roles?.map((role: { name: string }) => role.name) ?? [];
 
     return requiredRoles.some((role) => userRoleNames.includes(role));
   }

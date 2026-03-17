@@ -13,7 +13,7 @@ export class GraphqlExceptionFilter implements GqlExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const gqlHost = GqlArgumentsHost.create(host);
     const context = gqlHost.getContext();
-    
+
     // Log del error para debugging
     this.logger.error(
       `GraphQL Error: ${exception instanceof Error ? exception.message : 'Unknown error'}`,
@@ -28,7 +28,7 @@ export class GraphqlExceptionFilter implements GqlExceptionFilter {
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const response = exception.getResponse();
-      
+
       if (typeof response === 'string') {
         message = response;
       } else if (typeof response === 'object' && response !== null) {
@@ -39,8 +39,8 @@ export class GraphqlExceptionFilter implements GqlExceptionFilter {
       message = exception.message;
       code = (exception.extensions?.code as string) || 'GRAPHQL_ERROR';
     } else if (exception instanceof Error) {
-      message = this.isProduction() 
-        ? 'Internal server error' 
+      message = this.isProduction()
+        ? 'Internal server error'
         : exception.message;
     }
 
@@ -50,9 +50,12 @@ export class GraphqlExceptionFilter implements GqlExceptionFilter {
         code,
         statusCode,
         timestamp: new Date().toISOString(),
-        ...(this.isProduction() ? {} : { 
-          originalError: exception instanceof Error ? exception.message : undefined 
-        }),
+        ...(this.isProduction()
+          ? {}
+          : {
+              originalError:
+                exception instanceof Error ? exception.message : undefined,
+            }),
       },
     });
   }

@@ -25,12 +25,12 @@ export default function SparePartsMachinePage() {
         fetchPolicy: 'cache-and-network',
     });
 
-    const machine = data?.machine;
-    const spareParts = machine?.spareParts ?? [];
+    const machine: any = null;
+    const spareParts = (data as any)?.sparePartsByMachine ?? [];
 
     // Separar activas / inactivas
-    const activeParts = spareParts.filter((sp) => sp.isActive);
-    const inactiveParts = spareParts.filter((sp) => !sp.isActive);
+    const activeParts = spareParts.filter((sp: any) => sp.isActive);
+    const inactiveParts = spareParts.filter((sp: any) => !sp.isActive);
 
     const formatDate = (dateStr?: string | null) => {
         if (!dateStr) return '—';
@@ -108,7 +108,7 @@ export default function SparePartsMachinePage() {
                     {activeParts.length > 0 && (
                         <div className="space-y-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {activeParts.map((sp) => (
+                {activeParts.map((sp: any) => (
                                     <SparePartCard key={sp.id} sparePart={sp} formatDate={formatDate} />
                                 ))}
                             </div>
@@ -122,7 +122,7 @@ export default function SparePartsMachinePage() {
                                 Inactivas ({inactiveParts.length})
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {inactiveParts.map((sp) => (
+                {inactiveParts.map((sp: any) => (
                                     <SparePartCard
                                         key={sp.id}
                                         sparePart={sp}

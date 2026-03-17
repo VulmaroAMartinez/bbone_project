@@ -1,7 +1,36 @@
-import { InputType, Field, ID, Int } from '@nestjs/graphql';
-import { IsOptional, IsUUID, IsEnum, IsDateString, IsInt, Min, Max } from 'class-validator';
-import { WorkOrderStatus, WorkOrderPriority, MaintenanceType, WorkType } from '../../../../common/enums';
+import { InputType, Field, ID, Int, registerEnumType } from '@nestjs/graphql';
+import {
+  IsOptional,
+  IsUUID,
+  IsEnum,
+  IsDateString,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
+import {
+  WorkOrderStatus,
+  WorkOrderPriority,
+  MaintenanceType,
+  WorkType,
+} from '../../../../common/enums';
 
+export enum WorkOrderSortField {
+  CREATED_AT = 'CREATED_AT',
+  UPDATED_AT = 'UPDATED_AT',
+  SCHEDULED_DATE = 'SCHEDULED_DATE',
+  PRIORITY = 'PRIORITY',
+  STATUS = 'STATUS',
+  FOLIO = 'FOLIO',
+}
+
+export enum SortOrder {
+  ASC = 'ASC',
+  DESC = 'DESC',
+}
+
+registerEnumType(WorkOrderSortField, { name: 'WorkOrderSortField' });
+registerEnumType(SortOrder, { name: 'SortOrder' });
 
 @InputType()
 export class WorkOrderFiltersInput {
@@ -45,7 +74,6 @@ export class WorkOrderFiltersInput {
   @IsUUID()
   assignedShiftId?: string;
 
-
   @Field(() => WorkType, { nullable: true })
   @IsOptional()
   @IsEnum(WorkType)
@@ -76,7 +104,6 @@ export class WorkOrderFiltersInput {
   search?: string;
 }
 
-
 @InputType()
 export class PaginationInput {
   @Field(() => Int, { defaultValue: 1 })
@@ -93,14 +120,15 @@ export class PaginationInput {
   limit?: number;
 }
 
-
 @InputType()
 export class WorkOrderSortInput {
-  @Field({ defaultValue: 'createdAt' })
+  @Field(() => WorkOrderSortField, { defaultValue: WorkOrderSortField.CREATED_AT })
   @IsOptional()
-  field?: string;
+  @IsEnum(WorkOrderSortField)
+  field?: WorkOrderSortField;
 
-  @Field({ defaultValue: 'DESC' })
+  @Field(() => SortOrder, { defaultValue: SortOrder.DESC })
   @IsOptional()
-  order?: 'ASC' | 'DESC';
+  @IsEnum(SortOrder)
+  order?: SortOrder;
 }

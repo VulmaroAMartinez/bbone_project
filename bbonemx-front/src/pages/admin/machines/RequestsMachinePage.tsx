@@ -219,7 +219,7 @@ export default function RequestsMachinePage() {
                                                     <Box className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-xs text-foreground leading-tight truncate">
-                                                            {item.description || item.material.description}
+                                                            {item.description || item.material?.description}
                                                         </p>
                                                         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
                                                             <span className="text-[11px] text-muted-foreground">
@@ -227,12 +227,12 @@ export default function RequestsMachinePage() {
                                                                 <strong>{item.requestedQuantity}</strong>{' '}
                                                                 {item.unitOfMeasure}
                                                             </span>
-                                                            {item.material.partNumber && (
+                                                            {item.material?.partNumber && (
                                                                 <span className="text-[11px] text-muted-foreground font-mono">
                                                                     {item.material.partNumber}
                                                                 </span>
                                                             )}
-                                                            {item.material.brand && (
+                                                            {item.material?.brand && (
                                                                 <span className="text-[11px] text-muted-foreground">
                                                                     {item.material.brand}
                                                                 </span>

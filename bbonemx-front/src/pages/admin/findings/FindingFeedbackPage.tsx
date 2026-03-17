@@ -12,7 +12,7 @@ import {
     AreaBasicFragmentDoc,
     MachineBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
-import { useFragment } from '@/lib/graphql/generated';
+import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,10 +51,12 @@ export default function FindingFeedbackPage() {
     const [updateFinding, { loading: updating }] = useMutation(UpdateFindingDocument);
 
     const areas = useFragment(AreaBasicFragmentDoc, areasData?.areas ?? []);
-    const machines = useFragment(MachineBasicFragmentDoc, machinesData?.machines ?? []);
+    const machines = (machinesData?.machinesWithDeleted ?? []).map((ref) =>
+        useFragment(MachineBasicFragmentDoc, ref),
+    );
     const shifts = shiftsData?.shiftsActive || [];
 
-    const finding = findingData?.finding;
+    const finding = findingData?.finding as any;
 
     const [form, setForm] = useState({
         areaId: '',

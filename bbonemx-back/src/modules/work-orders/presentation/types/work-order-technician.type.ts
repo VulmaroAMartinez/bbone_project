@@ -3,33 +3,33 @@ import { UserType } from '../../../users/presentation/types';
 
 @ObjectType('WorkOrderTechnician')
 export class WorkOrderTechnicianType {
-  @Field(() => ID) 
+  @Field(() => ID)
   id: string;
 
-  @Field(() => ID) 
+  @Field(() => ID)
   workOrderId: string;
 
-  @Field(() => ID) 
+  @Field(() => ID)
   technicianId: string;
 
-  @Field(() => UserType) 
+  @Field(() => UserType)
   technician: UserType;
 
-  @Field() 
+  @Field()
   assignedAt: Date;
 
-  @Field(() => ID) 
+  @Field(() => ID)
   assignedBy: string;
 
-  @Field(() => UserType) 
+  @Field(() => UserType)
   assigner: UserType;
 
-  @Field() 
+  @Field()
   isLead: boolean;
 
-  @Field() 
+  @Field()
   isActive: boolean;
 
-  @Field() 
+  @Field()
   createdAt: Date;
 }

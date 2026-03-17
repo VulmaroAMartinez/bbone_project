@@ -26,6 +26,7 @@ import FindingFeedbackPage from './pages/admin/findings/FindingFeedbackPage';
 import TecnicoAsignacionesPage from '@/pages/tecnico/AsignacionesPage';
 import TecnicoPendientesPage from '@/pages/tecnico/PendientesPage';
 import TecnicoOrdenPage from '@/pages/tecnico/OrdenTecnicoPage';
+import MisOrdenesJefePage from '@/pages/tecnico/MisOrdenesJefePage';
 
 // Solicitante
 import SolicitanteCrearOTPage from '@/pages/solicitante/CrearOTPage';
@@ -110,6 +111,8 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN]} />}>
             <Route element={<ShellLayout title="Portal Técnico" />}>
               <Route path="/tecnico/pendientes" element={<TecnicoPendientesPage />} />
+              <Route path="/tecnico/mis-ordenes" element={<MisOrdenesJefePage />} />
+              <Route path="/tecnico/crear-ot" element={<SolicitanteCrearOTPage />} />
               <Route path="/horario" element={<TechSchedulePage />} />
               <Route path="/tecnico/asignaciones" element={<TecnicoAsignacionesPage />} />
               <Route path="/tecnico/orden/:id" element={<TecnicoOrdenPage />} />
@@ -117,8 +120,8 @@ function App() {
             </Route>
           </Route>
 
-          {/* SOLICITANTE - accesible también para BOSS */}
-          <Route element={<ProtectedRoute allowedRoles={[UserRole.REQUESTER, UserRole.BOSS]} />}>
+          {/* SOLICITANTE */}
+          <Route element={<ProtectedRoute allowedRoles={[UserRole.REQUESTER]} />}>
             <Route element={<ShellLayout title="Portal Solicitante" />}>
               <Route path="/solicitante/mis-ordenes" element={<SolicitanteMisOrdenesPage />} />
               <Route path="/solicitante/crear-ot" element={<SolicitanteCrearOTPage />} />

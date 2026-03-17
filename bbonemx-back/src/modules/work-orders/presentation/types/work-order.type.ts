@@ -4,7 +4,7 @@ import {
   WorkOrderPriority,
   MaintenanceType,
   StopType,
-  WorkType
+  WorkType,
 } from '../../../../common/enums';
 import { UserType } from '../../../users/presentation/types';
 import { AreaType } from '../../../catalogs/areas/presentation/types';
@@ -14,13 +14,13 @@ import { MachineType } from '../../../catalogs/machines/presentation/types';
 
 @ObjectType('WorkOrder')
 export class WorkOrderType {
-  @Field(() => ID) 
+  @Field(() => ID)
   id: string;
 
   @Field(() => Int)
   sequence: number;
 
-  @Field() 
+  @Field()
   folio: string;
 
   // Relaciones
@@ -38,14 +38,14 @@ export class WorkOrderType {
 
   @Field(() => ID)
   requesterId: string;
-  
-  @Field(() => UserType) 
+
+  @Field(() => UserType)
   requester: UserType;
 
-  @Field(() => ID, { nullable: true }) 
+  @Field(() => ID, { nullable: true })
   assignedShiftId?: string;
-  
-  @Field(() => ShiftType, { nullable: true }) 
+
+  @Field(() => ShiftType, { nullable: true })
   assignedShift?: ShiftType;
 
   @Field(() => ID, { nullable: true })
@@ -54,21 +54,20 @@ export class WorkOrderType {
   @Field(() => MachineType, { nullable: true })
   machine?: MachineType;
 
-
   // Campos principales
-  @Field() 
+  @Field()
   description: string;
 
-  @Field(() => WorkOrderStatus) 
+  @Field(() => WorkOrderStatus)
   status: WorkOrderStatus;
 
-  @Field(() => WorkOrderPriority, { nullable: true }) 
+  @Field(() => WorkOrderPriority, { nullable: true })
   priority?: WorkOrderPriority;
 
-  @Field(() => MaintenanceType, { nullable: true }) 
+  @Field(() => MaintenanceType, { nullable: true })
   maintenanceType?: MaintenanceType;
 
-  @Field(() => StopType, { nullable: true }) 
+  @Field(() => StopType, { nullable: true })
   stopType?: StopType;
 
   @Field({ nullable: true })
@@ -80,19 +79,19 @@ export class WorkOrderType {
   @Field({ nullable: true })
   startDate?: Date;
 
-  @Field({ nullable: true }) 
+  @Field({ nullable: true })
   endDate?: Date;
 
-  @Field({ nullable: true }) 
+  @Field({ nullable: true })
   observations?: string;
 
-  @Field({ nullable: true }) 
+  @Field({ nullable: true })
   breakdownDescription?: string;
 
-  @Field({ nullable: true }) 
+  @Field({ nullable: true })
   cause?: string;
 
-  @Field({ nullable: true }) 
+  @Field({ nullable: true })
   actionTaken?: string;
 
   @Field({ nullable: true })
@@ -104,10 +103,10 @@ export class WorkOrderType {
   @Field({ nullable: true })
   customMaterial?: string;
 
-  @Field(() => Int, { nullable: true }) 
+  @Field(() => Int, { nullable: true })
   downtimeMinutes?: number;
 
-  @Field({ nullable: true }) 
+  @Field({ nullable: true })
   pauseReason?: string;
 
   @Field(() => Int)
@@ -119,16 +118,16 @@ export class WorkOrderType {
   @Field(() => ID, { nullable: true })
   findingId?: string;
 
-  @Field(() => ID, { nullable: true }) 
+  @Field(() => ID, { nullable: true })
   preventiveTaskId?: string;
 
-  @Field() 
+  @Field()
   isActive: boolean;
 
-  @Field() 
+  @Field()
   createdAt: Date;
 
-  @Field() 
+  @Field()
   updatedAt: Date;
 }
 
@@ -149,7 +148,6 @@ export class WorkOrderPaginatedResponse {
   @Field(() => Int)
   totalPages: number;
 }
-
 
 @ObjectType()
 export class WorkOrderStats {

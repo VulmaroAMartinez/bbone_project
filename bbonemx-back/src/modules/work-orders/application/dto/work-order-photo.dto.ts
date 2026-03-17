@@ -1,5 +1,11 @@
 import { InputType, Field, ID } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, IsUUID, IsEnum, MaxLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  IsEnum,
+  MaxLength,
+} from 'class-validator';
 import { PhotoType } from '../../../../common/enums';
 
 @InputType()

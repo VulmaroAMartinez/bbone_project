@@ -1,1 +1,1 @@
-export * from './shifts.resolver';	
+export * from './shifts.resolver';

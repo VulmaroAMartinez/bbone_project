@@ -58,6 +58,28 @@ const TYPE_COLORS: Record<string, string> = {
   UNSPECIFIED: '#888888'
 };
 
+const FINDINGS_AREA_COLORS = [
+  '#f59e0b', // amber
+  '#22c55e', // green
+  '#06b6d4', // cyan
+  '#3b82f6', // blue
+  '#a855f7', // purple
+  '#ef4444', // red
+  '#14b8a6', // teal
+  '#eab308', // yellow
+] as const;
+
+const WORK_ORDERS_AREA_COLORS = [
+  '#3b82f6', // blue
+  '#10b981', // emerald
+  '#f97316', // orange
+  '#8b5cf6', // violet
+  '#06b6d4', // cyan
+  '#ef4444', // red
+  '#84cc16', // lime
+  '#e11d48', // rose
+] as const;
+
 const WO_STATUS_OPTIONS: { value: WorkOrderStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Todos los estados' },
   { value: 'PENDING' as WorkOrderStatus, label: 'Pendientes' },
@@ -110,12 +132,14 @@ export default function DashboardPage() {
     'this_year': 'Este año',
   };
 
+  const dashboardData = data?.dashboardData;
+
   // Agrupación para PieChart del Maintenance Mix (el backend lo da por periodo, nosotros lo sumamos total para el pastel)
   const maintenanceMixPieData = useMemo(() => {
-    if (!data?.dashboardData.charts.maintenanceMixByPeriod) return [];
+    const byPeriod = dashboardData?.charts?.maintenanceMixByPeriod ?? [];
     const totals: Record<string, number> = {};
 
-    data.dashboardData.charts.maintenanceMixByPeriod.forEach(item => {
+    byPeriod.forEach((item) => {
       const type = item.type;
       totals[type] = (totals[type] || 0) + item.count;
     });
@@ -123,9 +147,30 @@ export default function DashboardPage() {
     return Object.entries(totals).map(([key, value]) => ({
       name: TYPE_LABELS[key] || key,
       value,
-      color: TYPE_COLORS[key] || '#888'
+      color: TYPE_COLORS[key] || '#888',
     }));
-  }, [data]);
+  }, [dashboardData?.charts?.maintenanceMixByPeriod]);
+
+  const topMachinesByDowntime = useMemo(() => {
+    const list = dashboardData?.rankings?.topMachinesByDowntime ?? [];
+    return list.filter((m) => (m?.value ?? 0) > 0);
+  }, [dashboardData?.rankings?.topMachinesByDowntime]);
+
+  const findingsByAreaColored = useMemo(() => {
+    const list = dashboardData?.charts?.findingsByArea ?? [];
+    return list.map((item, index) => ({
+      ...item,
+      __color: FINDINGS_AREA_COLORS[index % FINDINGS_AREA_COLORS.length],
+    }));
+  }, [dashboardData?.charts?.findingsByArea]);
+
+  const workOrdersByAreaColored = useMemo(() => {
+    const list = dashboardData?.charts?.workOrdersByArea ?? [];
+    return list.map((item, index) => ({
+      ...item,
+      __color: WORK_ORDERS_AREA_COLORS[index % WORK_ORDERS_AREA_COLORS.length],
+    }));
+  }, [dashboardData?.charts?.workOrdersByArea]);
 
   if (loading && !data) return <DashboardSkeleton />;
 
@@ -289,7 +334,12 @@ export default function DashboardPage() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={tooltipStyle} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    labelStyle={{ color: tooltipStyle.color }}
+                    itemStyle={{ color: tooltipStyle.color }}
+                    wrapperStyle={{ outline: 'none' }}
+                  />
                 </PieChart>
             </ResponsiveContainer>
             </div>
@@ -331,7 +381,7 @@ export default function DashboardPage() {
           <CardContent>
             <div role="img" aria-label="Gráfica de barras con las máquinas con mayor tiempo muerto">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
-                <BarChart data={rankings.topMachinesByDowntime} layout="vertical">
+                <BarChart data={topMachinesByDowntime} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" horizontal={false} />
                   <XAxis type="number" stroke="oklch(0.65 0 0)" />
                   <YAxis dataKey="machineName" type="category" stroke="oklch(0.65 0 0)" tick={{ fontSize: 12 }} width={110} />
@@ -355,12 +405,16 @@ export default function DashboardPage() {
           <CardContent>
             <div role="img" aria-label="Gráfica de barras con número de hallazgos por área">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
-              <BarChart data={charts.findingsByArea}>
+              <BarChart data={findingsByAreaColored}>
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
                 <XAxis dataKey="areaName" stroke="oklch(0.65 0 0)" tick={{ fontSize: 11 }} />
                 <YAxis stroke="oklch(0.65 0 0)" allowDecimals={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="value" name="Hallazgos" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" name="Hallazgos" radius={[4, 4, 0, 0]}>
+                  {findingsByAreaColored.map((entry, index) => (
+                    <Cell key={`finding-area-cell-${index}`} fill={(entry as any).__color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
             </div>
@@ -376,12 +430,16 @@ export default function DashboardPage() {
           <CardContent>
             <div role="img" aria-label="Gráfica de barras con número de órdenes de trabajo por área">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
-              <BarChart data={charts.workOrdersByArea}>
+              <BarChart data={workOrdersByAreaColored}>
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
                 <XAxis dataKey="areaName" stroke="oklch(0.65 0 0)" tick={{ fontSize: 11 }} />
                 <YAxis stroke="oklch(0.65 0 0)" allowDecimals={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="value" name="OTs" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" name="OTs" radius={[4, 4, 0, 0]}>
+                  {workOrdersByAreaColored.map((entry, index) => (
+                    <Cell key={`wo-area-cell-${index}`} fill={(entry as any).__color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
             </div>
@@ -400,13 +458,13 @@ export default function DashboardPage() {
               <PlusCircle className="h-5 w-5" />
               <span className="text-xs">Crear OT</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-transparent" onClick={() => navigate('/admin/asignar')}>
-              <Users className="h-5 w-5" />
-              <span className="text-xs">Asignaciones</span>
+            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-transparent" onClick={() => navigate('/hallazgos/nuevo')}>
+              <AlertTriangle className="h-5 w-5" />
+              <span className="text-xs">Crear Hallazgo</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-transparent" onClick={() => navigate('/admin/horarios')}>
-              <Clock className="h-5 w-5" />
-              <span className="text-xs">Horarios</span>
+            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-transparent" onClick={() => navigate('/tecnicos')}>
+              <Users className="h-5 w-5" />
+              <span className="text-xs">Técnicos</span>
             </Button>
             <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-transparent" onClick={() => navigate('/admin/ordenes')}>
               <ArrowRight className="h-5 w-5" />

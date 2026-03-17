@@ -6,15 +6,8 @@ import { PreventiveTasksCronService } from './services';
 import { SchedulerResolver } from './presentation/resolvers';
 
 @Module({
-  imports: [
-    ScheduleModule.forRoot(),
-    ConfigModule,
-    PreventiveTasksModule,
-  ],
-  providers: [
-    PreventiveTasksCronService,
-    SchedulerResolver,
-  ],
+  imports: [ScheduleModule.forRoot(), ConfigModule, PreventiveTasksModule],
+  providers: [PreventiveTasksCronService, SchedulerResolver],
   exports: [PreventiveTasksCronService],
 })
 export class SchedulerModule {}

@@ -99,13 +99,14 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
     if (isTechnician) {
       const items: NavItem[] = [
         { href: '/tecnico/pendientes', label: 'Mis Pendientes', icon: ClipboardList },
+        ...(isBoss ? [{ href: '/tecnico/mis-ordenes', label: 'Mis Órdenes', icon: ClipboardList } as NavItem] : []),
         { href: '/horario', label: 'Mi Horario', icon: Calendar },
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
         { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
       ];
       if (isBoss || isAdmin) {
         items.push(
-          { href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle },
+          ...(isBoss ? [] : [{ href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle } as NavItem]),
           { href: '/solicitud-material/nueva', label: 'Solicitud de Material', icon: FileCog2 },
         );
       }

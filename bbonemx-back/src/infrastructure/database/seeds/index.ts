@@ -5,7 +5,6 @@ import { seedAdmin } from './admin.seed';
 import { seedAreas } from './area.seed';
 import { seedSubAreas } from './area.seed';
 
-
 async function runSeeds(): Promise<void> {
   try {
     await seedDataSource.initialize();

@@ -12,10 +12,10 @@ import { IUserContext, userContextStorage } from '../context/user.context';
  * Interceptor que captura la información del usuario y la request,
  * estableciendo el contexto en AsyncLocalStorage para que esté
  * disponible en toda la cadena de ejecución.
- * 
+ *
  * Este interceptor debe registrarse globalmente para que todas
  * las requests tengan acceso al contexto del usuario.
- * 
+ *
  * Información capturada:
  * - userId: Del token JWT (si está autenticado)
  * - ipAddress: IP del cliente

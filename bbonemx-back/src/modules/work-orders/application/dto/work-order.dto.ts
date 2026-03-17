@@ -1,9 +1,22 @@
 import { InputType, Field, ID, PartialType, Int } from '@nestjs/graphql';
 import {
-  IsNotEmpty, IsString, IsUUID, IsOptional, IsEnum, IsInt, Min, ValidateIf, IsDateString, IsObject
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  Min,
+  ValidateIf,
+  IsDateString,
+  IsObject,
 } from 'class-validator';
-import { 
-  WorkOrderStatus, WorkOrderPriority, MaintenanceType, StopType, WorkType 
+import {
+  WorkOrderStatus,
+  WorkOrderPriority,
+  MaintenanceType,
+  StopType,
+  WorkType,
 } from '../../../../common/enums';
 
 @InputType()
@@ -51,16 +64,31 @@ export class AssignWorkOrderInput {
   @IsUUID()
   assignedShiftId?: string;
 
-  @Field(() => ID, { nullable: true, description: 'Máquina asociada (requerida si stopType = BREAKDOWN)' })
+  @Field(() => ID, {
+    nullable: true,
+    description: 'Máquina asociada (requerida si stopType = BREAKDOWN)',
+  })
   @IsOptional()
   @IsUUID()
   machineId?: string;
 
-
-  @Field({ nullable: true, description: 'Fecha programada (requerida cuando maintenanceType = CORRECTIVE_SCHEDULED)' })
-  @ValidateIf((o: AssignWorkOrderInput) => o.maintenanceType === MaintenanceType.CORRECTIVE_SCHEDULED)
-  @IsNotEmpty({ message: 'La fecha programada es requerida para mantenimiento correctivo programado' })
-  @IsDateString({}, { message: 'La fecha programada debe tener un formato de fecha válido' })
+  @Field({
+    nullable: true,
+    description:
+      'Fecha programada (requerida cuando maintenanceType = CORRECTIVE_SCHEDULED)',
+  })
+  @ValidateIf(
+    (o: AssignWorkOrderInput) =>
+      o.maintenanceType === MaintenanceType.CORRECTIVE_SCHEDULED,
+  )
+  @IsNotEmpty({
+    message:
+      'La fecha programada es requerida para mantenimiento correctivo programado',
+  })
+  @IsDateString(
+    {},
+    { message: 'La fecha programada debe tener un formato de fecha válido' },
+  )
   scheduledDate?: string;
 
   @Field(() => WorkType)
@@ -86,7 +114,10 @@ export class StartWorkOrderInput {
   @IsString()
   breakdownDescription?: string;
 
-  @Field({ nullable: true, description: 'Descripción de la avería al iniciar (si aplica)' })
+  @Field({
+    nullable: true,
+    description: 'Descripción de la avería al iniciar (si aplica)',
+  })
   @IsOptional()
   @IsString()
   observations?: string;
@@ -100,7 +131,6 @@ export class PauseWorkOrderInput {
   pauseReason: string;
 }
 
-
 @InputType()
 export class CompleteWorkOrderInput {
   @Field({ nullable: true })
@@ -108,7 +138,10 @@ export class CompleteWorkOrderInput {
   @IsString()
   observations?: string;
 
-  @Field({ nullable: true, description: 'Descripción técnica de la falla (solo BREAKDOWN)' })
+  @Field({
+    nullable: true,
+    description: 'Descripción técnica de la falla (solo BREAKDOWN)',
+  })
   @IsOptional()
   @IsString()
   breakdownDescription?: string;
@@ -150,9 +183,7 @@ export class CompleteWorkOrderInput {
   })
   @IsEnum(WorkOrderStatus)
   finalStatus: WorkOrderStatus;
-
 }
-
 
 @InputType()
 export class UpdateWorkOrderInput {
@@ -181,15 +212,21 @@ export class UpdateWorkOrderInput {
   @IsUUID()
   assignedShiftId?: string;
 
-  @Field(() => ID, { nullable: true, description: 'Máquina asociada (requerida si stopType = BREAKDOWN o la OT tiene sub-área)' })
+  @Field(() => ID, {
+    nullable: true,
+    description:
+      'Máquina asociada (requerida si stopType = BREAKDOWN o la OT tiene sub-área)',
+  })
   @IsOptional()
   @IsUUID()
   machineId?: string;
 
-
   @Field({ nullable: true })
   @IsOptional()
-  @IsDateString({}, { message: 'La fecha programada debe tener un formato de fecha válido' })
+  @IsDateString(
+    {},
+    { message: 'La fecha programada debe tener un formato de fecha válido' },
+  )
   scheduledDate?: string;
 
   @Field(() => WorkType, { nullable: true })

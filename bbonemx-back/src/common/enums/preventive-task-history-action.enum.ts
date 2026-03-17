@@ -14,7 +14,8 @@ export enum PreventiveTaskHistoryAction {
 
 registerEnumType(PreventiveTaskHistoryAction, {
   name: 'PreventiveTaskHistoryAction',
-  description: 'Tipo de acción registrada en el historial de tareas preventivas',
+  description:
+    'Tipo de acción registrada en el historial de tareas preventivas',
   valuesMap: {
     CREATED: { description: 'Tarea creada' },
     UPDATED: { description: 'Tarea actualizada' },

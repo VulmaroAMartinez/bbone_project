@@ -1,48 +1,48 @@
-import { Field, Float, Int, ObjectType } from "@nestjs/graphql";
+import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class TimeCount {
-    @Field()
-    period: string;
+  @Field()
+  period: string;
 
-    @Field(() => Int)
-    count: number;
+  @Field(() => Int)
+  count: number;
 }
 
 @ObjectType()
 export class MixPoint {
-    @Field()
-    period: string;
-    
-    @Field()
-    type: string;
+  @Field()
+  period: string;
 
-    @Field(() => Int)
-    count: number;
+  @Field()
+  type: string;
+
+  @Field(() => Int)
+  count: number;
 }
 
 @ObjectType()
 export class AreaMetric {
-    @Field()
-    areaId: string;
+  @Field()
+  areaId: string;
 
-    @Field()
-    areaName: string;
+  @Field()
+  areaName: string;
 
-    @Field(() => Int)
-    value: number;
+  @Field(() => Int)
+  value: number;
 }
 
 @ObjectType()
 export class MachineMetric {
-    @Field({nullable: true})
-    machineId?: string;
+  @Field({ nullable: true })
+  machineId?: string;
 
-    @Field()
-    machineName: string;
+  @Field()
+  machineName: string;
 
-    @Field(() => Int)
-    value: number;
+  @Field(() => Int)
+  value: number;
 }
 
 @ObjectType()

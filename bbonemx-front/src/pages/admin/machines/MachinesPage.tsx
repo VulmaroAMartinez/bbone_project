@@ -271,10 +271,9 @@ export default function MachinesPage() {
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const token = localStorage.getItem('auth_token');
             const res = await fetch(`${API_BASE}/api/uploads`, {
                 method: 'POST',
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                credentials: 'include',
                 body: formData,
             });
             if (!res.ok) {

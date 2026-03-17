@@ -9,7 +9,11 @@ export default registerAs('jwt', () => ({
         })()
       : 'dev-only-secret'),
   expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  
+  accessTokenTtl: process.env.ACCESS_TOKEN_TTL || '15m',
+  refreshTokenTtl: process.env.REFRESH_TOKEN_TTL || '7d',
+  cookieSecure: process.env.COOKIE_SECURE,
+  cookieDomain: process.env.COOKIE_DOMAIN,
+
   // Opciones adicionales para passport-jwt
   signOptions: {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',

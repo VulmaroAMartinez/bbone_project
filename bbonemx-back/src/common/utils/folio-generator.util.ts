@@ -2,7 +2,7 @@ import { FOLIO_PREFIX } from '../constants';
 
 /**
  * Generador de folios para órdenes de trabajo y hallazgos.
- * 
+ *
  * Formato: {PREFIX}-{YYMMDD}-{INDEX}
  * Ejemplo: OT-2501208-001, H-2501208-001
  */
@@ -13,7 +13,10 @@ export class FolioGenerator {
    * @param date - Fecha para el folio (default: ahora)
    * @returns Folio en formato OT-YYMMDD-NNN
    */
-  static generateWorkOrderFolio(index: number, date: Date = new Date()): string {
+  static generateWorkOrderFolio(
+    index: number,
+    date: Date = new Date(),
+  ): string {
     return this.generate(FOLIO_PREFIX.WORK_ORDER, index, date);
   }
 
@@ -27,7 +30,10 @@ export class FolioGenerator {
     return this.generate(FOLIO_PREFIX.FINDING, index, date);
   }
 
-  static generateMaterialRequestFolio(index: number, date: Date = new Date()): string {
+  static generateMaterialRequestFolio(
+    index: number,
+    date: Date = new Date(),
+  ): string {
     return this.generate(FOLIO_PREFIX.MATERIAL_REQUEST, index, date);
   }
 
@@ -66,10 +72,12 @@ export class FolioGenerator {
    * @param folio - Folio a parsear
    * @returns Objeto con prefix, date y index
    */
-  static parseFolio(folio: string): { prefix: string; date: string; index: number } | null {
+  static parseFolio(
+    folio: string,
+  ): { prefix: string; date: string; index: number } | null {
     const regex = /^([A-Z]+)-(\d{6})-(\d{3})$/;
     const match = folio.match(regex);
-    
+
     if (!match) {
       return null;
     }

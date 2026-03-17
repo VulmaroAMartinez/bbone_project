@@ -1,7 +1,14 @@
 import { InputType, Field, ID, Int } from '@nestjs/graphql';
-import { IsOptional, IsUUID, IsEnum, IsDateString, IsInt, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsUUID,
+  IsEnum,
+  IsDateString,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 import { FrequencyType, PreventiveTaskStatus } from 'src/common';
-
 
 @InputType()
 export class PreventiveTaskFiltersInput {

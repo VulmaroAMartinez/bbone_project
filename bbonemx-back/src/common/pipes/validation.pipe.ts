@@ -10,7 +10,7 @@ import { plainToInstance } from 'class-transformer';
 /**
  * Pipe de validación personalizado que usa class-validator.
  * Proporciona mensajes de error más detallados que el ValidationPipe default.
- * 
+ *
  * Nota: Para uso global, se recomienda usar el ValidationPipe de NestJS
  * configurado en main.ts. Este pipe es para casos especiales.
  */

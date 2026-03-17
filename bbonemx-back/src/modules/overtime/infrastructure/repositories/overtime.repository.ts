@@ -29,7 +29,10 @@ export class OvertimeRepository {
       where.reasonForPayment = filters.reasonForPayment;
     }
     if (filters?.startDate && filters?.endDate) {
-      where.workDate = Between(new Date(filters.startDate), new Date(filters.endDate));
+      where.workDate = Between(
+        new Date(filters.startDate),
+        new Date(filters.endDate),
+      );
     }
 
     const results = await this.repository.find({

@@ -34,11 +34,17 @@ export class OvertimeService {
 
   async findById(id: string): Promise<Overtime> {
     const record = await this.overtimeRepository.findById(id);
-    if (!record) throw new NotFoundException(`Registro de horas extra con ID ${id} no encontrado`);
+    if (!record)
+      throw new NotFoundException(
+        `Registro de horas extra con ID ${id} no encontrado`,
+      );
     return record;
   }
 
-  private async resolveTechnicianId(user: User, inputTechnicianId?: string): Promise<string> {
+  private async resolveTechnicianId(
+    user: User,
+    inputTechnicianId?: string,
+  ): Promise<string> {
     // Si viene technicianId en el input → flujo admin (crear para otro técnico)
     if (inputTechnicianId) {
       return inputTechnicianId;
@@ -50,7 +56,10 @@ export class OvertimeService {
 
   async create(input: CreateOvertimeInput, user: User): Promise<Overtime> {
     const isAdmin = user.isAdmin();
-    const technicianId = await this.resolveTechnicianId(user, input.technicianId);
+    const technicianId = await this.resolveTechnicianId(
+      user,
+      input.technicianId,
+    );
 
     const data: Partial<Overtime> = {
       workDate: new Date(input.workDate),
@@ -74,10 +83,14 @@ export class OvertimeService {
     if (!isAdmin) {
       const technician = await this.techniciansService.findByIdOrFail(user.id);
       if (record.technicianId !== technician.id) {
-        throw new ForbiddenException('No tienes permiso para editar este registro');
+        throw new ForbiddenException(
+          'No tienes permiso para editar este registro',
+        );
       }
       if (record.reasonForPayment != null) {
-        throw new ForbiddenException('No puedes editar un registro que ya tiene razón de pago asignada');
+        throw new ForbiddenException(
+          'No puedes editar un registro que ya tiene razón de pago asignada',
+        );
       }
     }
 
@@ -91,7 +104,8 @@ export class OvertimeService {
     }
 
     const updated = await this.overtimeRepository.update(input.id, data);
-    if (!updated) throw new NotFoundException(`Registro con ID ${input.id} no encontrado`);
+    if (!updated)
+      throw new NotFoundException(`Registro con ID ${input.id} no encontrado`);
     return updated;
   }
 
@@ -102,10 +116,14 @@ export class OvertimeService {
     if (!isAdmin) {
       const technician = await this.techniciansService.findByIdOrFail(user.id);
       if (record.technicianId !== technician.id) {
-        throw new ForbiddenException('No tienes permiso para eliminar este registro');
+        throw new ForbiddenException(
+          'No tienes permiso para eliminar este registro',
+        );
       }
       if (record.reasonForPayment != null) {
-        throw new ForbiddenException('No puedes eliminar un registro que ya tiene razón de pago asignada');
+        throw new ForbiddenException(
+          'No puedes eliminar un registro que ya tiene razón de pago asignada',
+        );
       }
     }
 

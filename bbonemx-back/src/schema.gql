@@ -760,6 +760,9 @@ type Mutation {
   """Inicia sesión con número de empleado y contraseña"""
   login(input: LoginInput!): LoginResponse!
 
+  """Cierra sesión y limpia cookies de autenticación"""
+  logout: Boolean!
+
   """
   Marca todas las notificaciones como leídas. Retorna cantidad actualizada.
   """
@@ -769,6 +772,9 @@ type Mutation {
   markNotificationAsRead(id: ID!): Notification!
   pausePreventiveTasksCron: Boolean!
   pauseWorkOrder(id: ID!, input: PauseWorkOrderInput!): WorkOrder!
+
+  """Renueva sesión con refresh token rotativo en cookie HttpOnly"""
+  refreshAuth: Boolean!
 
   """Registra un token FCM para recibir notificaciones push"""
   registerDeviceToken(input: RegisterDeviceTokenInput!): UserDeviceToken!
@@ -1249,6 +1255,11 @@ type Shift {
   name: String!
   startTime: String!
   updatedAt: DateTime!
+}
+
+enum SortOrder {
+  ASC
+  DESC
 }
 
 type SparePart {
@@ -1737,9 +1748,18 @@ type WorkOrderSignature {
   workOrderId: ID!
 }
 
+enum WorkOrderSortField {
+  CREATED_AT
+  FOLIO
+  PRIORITY
+  SCHEDULED_DATE
+  STATUS
+  UPDATED_AT
+}
+
 input WorkOrderSortInput {
-  field: String! = "createdAt"
-  order: String! = "DESC"
+  field: WorkOrderSortField! = CREATED_AT
+  order: SortOrder! = DESC
 }
 
 type WorkOrderSparePart {

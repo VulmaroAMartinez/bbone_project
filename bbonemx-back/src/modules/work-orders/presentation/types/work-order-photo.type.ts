@@ -4,36 +4,36 @@ import { UserType } from '../../../users/presentation/types';
 
 @ObjectType('WorkOrderPhoto')
 export class WorkOrderPhotoType {
-  @Field(() => ID) 
+  @Field(() => ID)
   id: string;
 
-  @Field(() => ID) 
+  @Field(() => ID)
   workOrderId: string;
 
-  @Field(() => PhotoType) 
+  @Field(() => PhotoType)
   photoType: PhotoType;
 
-  @Field() 
+  @Field()
   filePath: string;
 
-  @Field() 
+  @Field()
   fileName: string;
 
-  @Field() 
+  @Field()
   mimeType: string;
 
-  @Field() 
+  @Field()
   uploadedAt: Date;
 
-  @Field(() => ID) 
+  @Field(() => ID)
   uploadedBy: string;
 
-  @Field(() => UserType) 
+  @Field(() => UserType)
   uploader: UserType;
 
-  @Field() 
+  @Field()
   isActive: boolean;
 
-  @Field() 
+  @Field()
   createdAt: Date;
 }

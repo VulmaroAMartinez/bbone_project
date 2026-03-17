@@ -1,2 +1,2 @@
 export * from './password.module';
-export * from './email'
+export * from './email';

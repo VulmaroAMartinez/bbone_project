@@ -12,7 +12,9 @@ registerEnumType(MaintenanceType, {
   description: 'Tipos de mantenimiento',
   valuesMap: {
     PREVENTIVE: { description: 'Mantenimiento preventivo programado' },
-    CORRECTIVE_EMERGENT: { description: 'Correctivo emergente - falla inesperada' },
+    CORRECTIVE_EMERGENT: {
+      description: 'Correctivo emergente - falla inesperada',
+    },
     CORRECTIVE_SCHEDULED: { description: 'Correctivo programado' },
     FINDING: { description: 'Mantenimiento derivado de hallazgo' },
   },

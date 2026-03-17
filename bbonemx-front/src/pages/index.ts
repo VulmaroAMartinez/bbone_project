@@ -13,14 +13,11 @@ export { default as AdminOrdenesPage } from './admin/orders/OrdenesPage';
 export { default as AdminOrdenDetallePage } from './admin/orders/AdminOrdenDetallePage';
 export { default as AdminCrearOTPage } from './admin/orders/CrearOTPage';
 export { default as AdminOrdenesProgramadasPage } from './admin/orders/OrdenesProgramadasPage';
-export { default as AdminAsignarPage } from './admin/AsignarPage';
-export { default as AdminHorariosPage } from './admin/HorariosPage';
-export { default as AdminTecnicosPage } from './admin/TecnicosPage';
+// Removed stale exports: these files do not exist
 
 // Tecnico
 export { default as TecnicoAsignacionesPage } from './tecnico/AsignacionesPage';
 export { default as TecnicoPendientesPage } from './tecnico/PendientesPage';
-export { default as TecnicoHorarioPage } from './tecnico/HorarioPage';
 export { default as TecnicoOrdenPage } from './tecnico/OrdenTecnicoPage';
 
 // Solicitante

@@ -5,7 +5,10 @@ import { CurrentUser, Roles } from 'src/common/decorators';
 import { Role } from 'src/common/enums';
 import { ReasonForPayment } from 'src/common/enums/reason-for-payment.enum';
 import { OvertimeService } from '../../application/services';
-import { CreateOvertimeInput, UpdateOvertimeInput } from '../../application/dto';
+import {
+  CreateOvertimeInput,
+  UpdateOvertimeInput,
+} from '../../application/dto';
 import { OvertimeType } from '../types';
 import { User } from 'src/modules/users/domain/entities';
 
@@ -20,9 +23,15 @@ export class OvertimeResolver {
     @Args('startDate', { nullable: true }) startDate?: string,
     @Args('endDate', { nullable: true }) endDate?: string,
     @Args('positionId', { type: () => ID, nullable: true }) positionId?: string,
-    @Args('reasonForPayment', { type: () => ReasonForPayment, nullable: true }) reasonForPayment?: ReasonForPayment,
+    @Args('reasonForPayment', { type: () => ReasonForPayment, nullable: true })
+    reasonForPayment?: ReasonForPayment,
   ) {
-    return this.overtimeService.findAll({ startDate, endDate, positionId, reasonForPayment });
+    return this.overtimeService.findAll({
+      startDate,
+      endDate,
+      positionId,
+      reasonForPayment,
+    });
   }
 
   @Query(() => [OvertimeType], { name: 'myOvertimeRecords' })

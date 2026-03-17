@@ -1,1 +1,1 @@
-export * from './roles.resolver'
+export * from './roles.resolver';
