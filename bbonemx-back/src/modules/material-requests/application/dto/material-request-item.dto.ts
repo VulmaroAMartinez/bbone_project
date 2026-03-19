@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsInt,
   IsPositive,
+  IsBoolean,
   Min,
 } from 'class-validator';
 
@@ -93,6 +94,11 @@ export class CreateMaterialRequestItemInput {
   @IsInt()
   @Min(0)
   proposedMinStock?: number;
+
+  @Field({ nullable: true, defaultValue: false })
+  @IsOptional()
+  @IsBoolean()
+  isGenericAllowed?: boolean;
 }
 
 @InputType()

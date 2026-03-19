@@ -79,7 +79,6 @@ export const GET_MACHINE_MATERIAL_REQUESTS = gql`
         priority
         importance
         boss
-        isGenericAllowed
         suggestedSupplier
         comments
         justification

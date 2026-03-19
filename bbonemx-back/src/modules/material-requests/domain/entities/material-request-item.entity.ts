@@ -4,7 +4,7 @@ import { MaterialRequest } from './material-request.entity';
 import { Material } from 'src/modules/catalogs/materials/domain/entities';
 import { SparePart } from 'src/modules/catalogs/spare-parts/domain/entities';
 
-@Entity({ name: 'material_request_materials' })
+@Entity({ name: 'material_request_items' })
 @Unique(['materialRequestId', 'materialId'])
 export class MaterialRequestItem extends BaseEntity {
   @Column({ name: 'material_request_id', type: 'uuid' })
@@ -57,4 +57,7 @@ export class MaterialRequestItem extends BaseEntity {
 
   @Column({ name: 'proposed_min_stock', type: 'int', nullable: true })
   proposedMinStock?: number;
+
+  @Column({ name: 'is_generic_allowed', type: 'boolean', default: false })
+  isGenericAllowed: boolean;
 }

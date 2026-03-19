@@ -192,11 +192,6 @@ export default function RequestsMachinePage() {
 
                                 {/* Indicadores */}
                                 <div className="flex flex-wrap gap-1.5">
-                                    {req.isGenericAllowed && (
-                                        <span className="text-[10px] bg-chart-5/10 text-chart-5 border border-chart-5/20 px-1.5 py-0.5 rounded-full font-medium">
-                                            Acepta genérico/alternativo
-                                        </span>
-                                    )}
                                     {req.suggestedSupplier && (
                                         <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
                                             Proveedor: {req.suggestedSupplier}

@@ -4,18 +4,18 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
-  BeforeInsert,
   OneToMany,
 } from 'typeorm';
 import { BaseEntity } from 'src/infrastructure/database/base.entity';
 import { User } from 'src/modules/users/domain/entities';
-import { Machine } from 'src/modules/catalogs/machines/domain/entities';
 import {
   RequestPriority,
   RequestImportance,
   RequestCategory,
 } from 'src/common';
 import { MaterialRequestItem } from './material-request-item.entity';
+import { MaterialRequestMachine } from './material-request-machine.entity';
+import { MaterialRequestHistory } from './material-request-history.entity';
 
 @Entity({ name: 'material_requests' })
 export class MaterialRequest extends BaseEntity {
@@ -60,14 +60,14 @@ export class MaterialRequest extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   justification?: string;
 
-  @Column({ name: 'is_generic_allowed', type: 'boolean', default: false })
-  isGenericAllowed: boolean;
-
   @Column({ name: 'suggested_supplier', type: 'varchar', nullable: true })
   suggestedSupplier?: string;
 
   @Column({ type: 'text', nullable: true })
   comments?: string;
+
+  @Column({ name: 'email_sent_at', type: 'timestamp with time zone', nullable: true })
+  emailSentAt?: Date | null;
 
   @Column({ name: 'requester_id', type: 'uuid' })
   requesterId: string;
@@ -76,15 +76,18 @@ export class MaterialRequest extends BaseEntity {
   @JoinColumn({ name: 'requester_id' })
   requester: User;
 
-  @Column({ name: 'machine_id', type: 'uuid', nullable: true })
-  machineId?: string;
-
-  @ManyToOne(() => Machine, { nullable: true })
-  @JoinColumn({ name: 'machine_id' })
-  machine?: Machine;
+  @OneToMany(() => MaterialRequestMachine, (mrm) => mrm.materialRequest, {
+    cascade: true,
+  })
+  machines: MaterialRequestMachine[];
 
   @OneToMany(() => MaterialRequestItem, (item) => item.materialRequest, {
     cascade: true,
   })
   items: MaterialRequestItem[];
+
+  @OneToMany(() => MaterialRequestHistory, (histories) => histories.materialRequest, {
+    cascade: true,
+  })
+  histories: MaterialRequestHistory[];
 }

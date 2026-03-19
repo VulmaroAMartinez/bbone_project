@@ -1,9 +1,3 @@
-/**
- * BB Maintenance - App Router Principal
- * Configuracion de rutas con React Router para toda la aplicacion CMMS.
- * Cada ruta esta protegida por rol usando ProtectedRoute.
- */
-
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Providers } from '@/components/providers';
 import { ProtectedRoute } from './components/protected-route';
@@ -59,6 +53,7 @@ import MaterialRequestDetailPage from './pages/material-requests/MaterialRequest
 import CreateMaterialRequestPage from './pages/material-requests/CreateMaterialRequests';
 import RoleSelectorPage from './pages/RoleSelectorPage';
 import OvertimePage from './pages/overtime/OvertimePage';
+import MaterialRequestHistoryPage from './pages/admin/material-requests/MaterialRequestHistoryPage';
 
 const ShellLayout = ({ title }: { title: string }) => (
   <AppShell title={title}>
@@ -103,6 +98,7 @@ function App() {
               <Route path="/areas/:id/maquinas" element={<AreaMachinesPage />} />
               <Route path="/areas/:id/hallazgos" element={<AreaFindingsPage />} />
               <Route path="/solicitud-material" element={<MaterialRequestsPage />} />
+              <Route path="/seguimiento-solicitudes" element={<MaterialRequestHistoryPage />} />
               <Route path="/solicitud-material/:id" element={<MaterialRequestDetailPage />} />
               <Route path="/horas-extra" element={<OvertimePage />} />
             </Route>
@@ -133,6 +129,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.BOSS]} />}>
             <Route element={<ShellLayout title="Solicitud de Material" />}>
               <Route path="/solicitud-material/nueva" element={<CreateMaterialRequestPage />} />
+              <Route path="/solicitud-material/:id/editar" element={<CreateMaterialRequestPage />} />
             </Route>
           </Route>
 

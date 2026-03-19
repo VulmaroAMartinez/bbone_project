@@ -15,3 +15,4 @@ export * from './notification-channel.enum';
 export * from './area-type.enum';
 export * from './material-request.enum';
 export * from './reason-for-payment.enum';
+export * from './status-history-mr.enum';

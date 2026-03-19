@@ -19,6 +19,7 @@ export class MaterialRequestItemType {
   @Field(() => Int, { nullable: true }) requestedQuantity?: number;
   @Field(() => Int, { nullable: true }) proposedMaxStock?: number;
   @Field(() => Int, { nullable: true }) proposedMinStock?: number;
+  @Field() isGenericAllowed: boolean;
   @Field() createdAt: Date;
   @Field() updatedAt: Date;
 }

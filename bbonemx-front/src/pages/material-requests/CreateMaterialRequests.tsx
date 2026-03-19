@@ -8,6 +8,7 @@ import * as yup from 'yup';
 import {
     GET_MATERIAL_REQUEST_FORM_DATA_QUERY,
     CREATE_MATERIAL_REQUEST_MUTATION,
+    UPDATE_MATERIAL_REQUEST_MUTATION,
     ADD_MATERIAL_TO_REQUEST_MUTATION,
     GET_MATERIAL_REQUEST_QUERY,
 } from '@/lib/graphql/operations/material-requests';
@@ -84,6 +85,7 @@ const itemSchema = yup.object({
         .required('Requerido'),
     proposedMaxStock: yup.number().nullable().transform((v, o) => (o === '' || o === null ? null : v)).default(null),
     proposedMinStock: yup.number().nullable().transform((v, o) => (o === '' || o === null ? null : v)).default(null),
+    isGenericAllowed: yup.boolean().default(false),
 });
 
 const schema = yup.object({
@@ -91,13 +93,12 @@ const schema = yup.object({
     category: yup.string().required('Selecciona la categoría'),
     priority: yup.string().required('Selecciona la prioridad'),
     boss: yup.string().trim().required('Selecciona el jefe a cargo'),
-    machineId: yup.string().required('Selecciona una máquina o equipo'),
+    machineIds: yup.array(yup.string().required()).min(1, 'Selecciona al menos una máquina').required(),
     // Campos editables del equipo (se guardan en material_requests)
     customMachineBrand: yup.string().trim().default(''),
     customMachineModel: yup.string().trim().default(''),
     customMachineManufacturer: yup.string().trim().default(''),
     importance: yup.string().required('Selecciona la importancia'),
-    isGenericAllowed: yup.boolean().required(),
     description: yup.string().trim().default(''),
     justification: yup.string().trim().default(''),
     comments: yup.string().trim().default(''),
@@ -119,6 +120,7 @@ const EMPTY_ITEM: FormValues['items'][0] = {
     requestedQuantity: 1,
     proposedMaxStock: null,
     proposedMinStock: null,
+    isGenericAllowed: false,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -152,6 +154,8 @@ export default function CreateMaterialRequestPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [createRequest] = useMutation<any>(CREATE_MATERIAL_REQUEST_MUTATION);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [updateRequest] = useMutation<any>(UPDATE_MATERIAL_REQUEST_MUTATION);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [addItemToRequest] = useMutation<any>(ADD_MATERIAL_TO_REQUEST_MUTATION);
 
     // ── Form ──────────────────────────────────────────────────────────────────
@@ -170,12 +174,11 @@ export default function CreateMaterialRequestPage() {
             category: '',
             priority: '',
             boss: '',
-            machineId: '',
+            machineIds: [],
             customMachineBrand: '',
             customMachineModel: '',
             customMachineManufacturer: '',
             importance: '',
-            isGenericAllowed: false,
             description: '',
             justification: '',
             comments: '',
@@ -201,7 +204,7 @@ export default function CreateMaterialRequestPage() {
         [allUsers],
     );
 
-    const watchedMachineId = watch('machineId');
+    const watchedMachineIds = watch('machineIds');
     const watchedCategory = watch('category');
 
     const isService = SERVICE_CATEGORIES.has(watchedCategory);
@@ -210,19 +213,24 @@ export default function CreateMaterialRequestPage() {
     const isSKUCategory = SKU_CATEGORIES.has(watchedCategory);
     const showItems = !isService && !!watchedCategory;
 
-    // Máquina seleccionada
-    const selectedMachine = useMemo(
-        () => machines.find((m: any) => m.id === watchedMachineId) ?? null,
-        [machines, watchedMachineId],
+    // Máquinas seleccionadas
+    const selectedMachines = useMemo(
+        () => (watchedMachineIds ?? []).map((id: string) => machines.find((m: any) => m.id === id)).filter(Boolean),
+        [machines, watchedMachineIds],
     );
 
-    // Nombre del área derivada de la máquina
+    // Para compatibilidad: la primera máquina seleccionada (usada en customMachine auto-fill)
+    const selectedMachine = selectedMachines[0] ?? null;
+
+    // Nombre del área derivada de las máquinas
     const derivedAreaName = useMemo(() => {
-        if (!selectedMachine) return '';
-        if (selectedMachine.area) return selectedMachine.area.name;
-        if (selectedMachine.subArea?.area) return selectedMachine.subArea.area.name;
+        const areas = new Set(
+            selectedMachines.map((m: any) => m.area?.name ?? m.subArea?.area?.name).filter(Boolean),
+        );
+        if (areas.size === 1) return [...areas][0];
+        if (areas.size > 1) return 'Diversas áreas';
         return '';
-    }, [selectedMachine]);
+    }, [selectedMachines]);
 
     // Etiqueta de la máquina en el select
     const machineLabel = useCallback((m: typeof machines[0]) => {
@@ -231,24 +239,26 @@ export default function CreateMaterialRequestPage() {
         return `${m.name} - ${areaName}${subAreaName}`;
     }, []);
 
-    // ── Auto-rellenar campos al cambiar máquina ───────────────────────────────
+    // ── Auto-rellenar campos al cambiar máquina (solo si hay 1) ─────────────
     useEffect(() => {
-        if (!selectedMachine) return;
-        setValue('customMachineBrand', selectedMachine.brand ?? 'N/A');
-        setValue('customMachineModel', selectedMachine.model ?? 'N/A');
-        setValue('customMachineManufacturer', selectedMachine.manufacturer ?? 'N/A');
-    }, [selectedMachine, setValue]);
+        if (selectedMachines.length === 1 && selectedMachine) {
+            setValue('customMachineBrand', selectedMachine.brand ?? 'N/A');
+            setValue('customMachineModel', selectedMachine.model ?? 'N/A');
+            setValue('customMachineManufacturer', selectedMachine.manufacturer ?? 'N/A');
+        } else if (selectedMachines.length > 1) {
+            setValue('customMachineBrand', '');
+            setValue('customMachineModel', '');
+            setValue('customMachineManufacturer', '');
+        }
+    }, [selectedMachines, selectedMachine, setValue]);
 
-    // ── Al cambiar categoría, resetear items según si se muestran o no ────────
     useEffect(() => {
         if (!watchedCategory) return;
         if (isService) {
-            // SERVICE no necesita items
             remove();
         } else if (fields.length === 0) {
             append({ ...EMPTY_ITEM });
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [watchedCategory]);
 
     // ── Pre-rellenar formulario al editar ─────────────────────────────────────
@@ -260,12 +270,11 @@ export default function CreateMaterialRequestPage() {
             category: req.category,
             priority: req.priority,
             boss: req.boss,
-            machineId: req.machine.id,
+            machineIds: (req.machines ?? []).map((mrm: any) => mrm.machine.id),
             customMachineBrand: req.customMachineBrand ?? req.machine.brand ?? 'N/A',
             customMachineModel: req.customMachineModel ?? req.machine.model ?? 'N/A',
             customMachineManufacturer: req.customMachineManufacturer ?? req.machine.manufacturer ?? 'N/A',
             importance: req.importance,
-            isGenericAllowed: req.isGenericAllowed,
             description: req.description ?? '',
             justification: req.justification ?? '',
             comments: req.comments ?? '',
@@ -283,12 +292,12 @@ export default function CreateMaterialRequestPage() {
                     requestedQuantity: item.requestedQuantity ?? 1,
                     proposedMaxStock: item.proposedMaxStock ?? null,
                     proposedMinStock: item.proposedMinStock ?? null,
+                    isGenericAllowed: item.isGenericAllowed ?? false,
                 }))
                 : [],
         });
     }, [isEdit, editData, reset]);
 
-    // ── Items de catálogo disponibles según categoría ────────────────────────
     const catalogItems = useMemo(() => {
         if (isMaterialCategory) {
             return materials.map((m: any) => ({
@@ -315,7 +324,6 @@ export default function CreateMaterialRequestPage() {
         return [];
     }, [isMaterialCategory, isSparePartCategory, materials, spareParts]);
 
-    // ── Auto-rellenar al seleccionar catálogo ─────────────────────────────────
     const handleCatalogSelect = useCallback(
         (index: number, catalogId: string) => {
             if (catalogId === 'OTHER') {
@@ -366,58 +374,70 @@ export default function CreateMaterialRequestPage() {
                 }
             }
 
-            const { data: createdData } = await createRequest({
-                variables: {
-                    input: {
-                        requesterId: values.requesterId,
-                        category: values.category,
-                        priority: values.priority,
-                        importance: values.importance,
-                        boss: values.boss,
-                        machineId: values.machineId,
-                        customMachineBrand: values.customMachineBrand || 'N/A',
-                        customMachineModel: values.customMachineModel || 'N/A',
-                        customMachineManufacturer: values.customMachineManufacturer || 'N/A',
-                        customMachineName: selectedMachine?.name ?? '',
-                        isGenericAllowed: values.isGenericAllowed,
-                        description: values.description || undefined,
-                        justification: values.justification || undefined,
-                        comments: values.comments || undefined,
-                        suggestedSupplier: values.suggestedSupplier || undefined,
-                        items: [],
-                    },
-                },
-            });
+            const requestPayload = {
+                requesterId: values.requesterId,
+                category: values.category,
+                priority: values.priority,
+                importance: values.importance,
+                boss: values.boss,
+                machineIds: values.machineIds,
+                customMachineBrand: values.customMachineBrand || 'N/A',
+                customMachineModel: values.customMachineModel || 'N/A',
+                customMachineManufacturer: values.customMachineManufacturer || 'N/A',
+                customMachineName: selectedMachine?.name ?? '',
+                description: values.description || undefined,
+                justification: values.justification || undefined,
+                comments: values.comments || undefined,
+                suggestedSupplier: values.suggestedSupplier || undefined,
+            };
 
-            const newRequestId = createdData?.createMaterialRequest?.id;
-            if (!newRequestId) throw new Error('No se pudo obtener el ID de la solicitud creada.');
+            let targetId: string;
 
-            for (const item of values.items) {
-                const isFromMaterial = isMaterialCategory && item.catalogId && item.catalogId !== 'OTHER';
-                const isFromSparePart = isSparePartCategory && item.catalogId && item.catalogId !== 'OTHER';
-
-                await addItemToRequest({
+            if (isEdit) {
+                await updateRequest({
                     variables: {
-                        materialRequestId: newRequestId,
-                        input: {
-                            materialRequestId: newRequestId,
-                            materialId: isFromMaterial ? item.catalogId : undefined,
-                            sparePartId: isFromSparePart ? item.catalogId : undefined,
-                            customName: item.customName || undefined,
-                            brand: item.brand || undefined,
-                            model: item.model || undefined,
-                            partNumber: item.partNumber || undefined,
-                            sku: item.sku || undefined,
-                            unitOfMeasure: item.unitOfMeasure,
-                            requestedQuantity: item.requestedQuantity,
-                            proposedMaxStock: item.proposedMaxStock ?? undefined,
-                            proposedMinStock: item.proposedMinStock ?? undefined,
-                        },
+                        id: editId,
+                        input: { id: editId, ...requestPayload },
                     },
                 });
+                targetId = editId!;
+            } else {
+                const { data: createdData } = await createRequest({
+                    variables: {
+                        input: { ...requestPayload, items: [] },
+                    },
+                });
+                targetId = createdData?.createMaterialRequest?.id;
+                if (!targetId) throw new Error('No se pudo obtener el ID de la solicitud creada.');
+
+                for (const item of values.items) {
+                    const isFromMaterial = isMaterialCategory && item.catalogId && item.catalogId !== 'OTHER';
+                    const isFromSparePart = isSparePartCategory && item.catalogId && item.catalogId !== 'OTHER';
+
+                    await addItemToRequest({
+                        variables: {
+                            materialRequestId: targetId,
+                            input: {
+                                materialRequestId: targetId,
+                                materialId: isFromMaterial ? item.catalogId : undefined,
+                                sparePartId: isFromSparePart ? item.catalogId : undefined,
+                                customName: item.customName || undefined,
+                                brand: item.brand || undefined,
+                                model: item.model || undefined,
+                                partNumber: item.partNumber || undefined,
+                                sku: item.sku || undefined,
+                                unitOfMeasure: item.unitOfMeasure,
+                                requestedQuantity: item.requestedQuantity,
+                                proposedMaxStock: item.proposedMaxStock ?? undefined,
+                                proposedMinStock: item.proposedMinStock ?? undefined,
+                                isGenericAllowed: item.isGenericAllowed ?? false,
+                            },
+                        },
+                    });
+                }
             }
 
-            navigate(`/solicitud-material/${newRequestId}`);
+            navigate(`/solicitud-material/${targetId}`);
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : 'Error al guardar la solicitud.';
             setGlobalError(msg);
@@ -577,32 +597,61 @@ export default function CreateMaterialRequestPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
 
-                        {/* Máquina: selección primaria */}
+                        {/* Máquinas seleccionadas */}
                         <div className="space-y-1.5">
-                            <Label>Máquina / Equipo <span className="text-destructive">*</span></Label>
-                            <Controller
-                                name="machineId"
-                                control={control}
-                                render={({ field }) => (
-                                    <Combobox
-                                        options={machines.map((m: any) => ({
-                                            value: m.id,
-                                            label: machineLabel(m),
-                                        }))}
-                                        value={field.value}
-                                        onValueChange={field.onChange}
-                                        placeholder="Selecciona el equipo"
-                                        searchPlaceholder="Buscar máquina..."
-                                    />
-                                )}
+                            <Label>Máquina(s) / Equipo(s) <span className="text-destructive">*</span></Label>
+
+                            {/* Lista de máquinas ya seleccionadas */}
+                            {selectedMachines.length > 0 && (
+                                <div className="space-y-1.5 mb-2">
+                                    {selectedMachines.map((m: any) => (
+                                        <div
+                                            key={m.id}
+                                            className="flex items-center justify-between bg-muted/40 rounded-md px-3 py-1.5 text-sm border border-border/50"
+                                        >
+                                            <span>{machineLabel(m)}</span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                                onClick={() => {
+                                                    const current = watchedMachineIds ?? [];
+                                                    setValue('machineIds', current.filter((id: string) => id !== m.id), { shouldValidate: true });
+                                                }}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Combobox para agregar */}
+                            <Combobox
+                                options={machines
+                                    .filter((m: any) => !(watchedMachineIds ?? []).includes(m.id))
+                                    .map((m: any) => ({
+                                        value: m.id,
+                                        label: machineLabel(m),
+                                    }))}
+                                value=""
+                                onValueChange={(val: string) => {
+                                    if (val) {
+                                        const current = watchedMachineIds ?? [];
+                                        setValue('machineIds', [...current, val], { shouldValidate: true });
+                                    }
+                                }}
+                                placeholder="Agregar máquina..."
+                                searchPlaceholder="Buscar máquina..."
                             />
-                            {errors.machineId && (
-                                <p className="text-xs text-destructive">{errors.machineId.message}</p>
+                            {errors.machineIds && (
+                                <p className="text-xs text-destructive">{(errors.machineIds as any).message ?? 'Selecciona al menos una máquina'}</p>
                             )}
                         </div>
 
-                        {/* Área — derivada automáticamente de la máquina */}
-                        {selectedMachine && (
+                        {/* Área — derivada automáticamente de las máquinas */}
+                        {selectedMachines.length > 0 && (
                             <div className="space-y-1.5">
                                 <Label className="text-muted-foreground text-xs">Área (derivada del equipo)</Label>
                                 <Input
@@ -613,8 +662,8 @@ export default function CreateMaterialRequestPage() {
                             </div>
                         )}
 
-                        {/* Datos editables del equipo */}
-                        {selectedMachine && (
+                        {/* Datos editables del equipo (solo si hay exactamente 1 máquina) */}
+                        {selectedMachines.length === 1 && (
                             <div className="space-y-3 pt-1">
                                 <p className="text-xs text-muted-foreground">
                                     Datos del equipo (editables — no afectan el catálogo original)
@@ -838,6 +887,30 @@ export default function CreateMaterialRequestPage() {
                                                     </div>
                                                 </div>
                                             )}
+
+                                            {/* ¿Acepta genérico? */}
+                                            <div className="space-y-1 pt-1">
+                                                <Label className="text-xs">¿Puede ser genérico?</Label>
+                                                <Controller
+                                                    name={`items.${index}.isGenericAllowed`}
+                                                    control={control}
+                                                    render={({ field }) => (
+                                                        <div className="flex gap-4">
+                                                            {([true, false] as const).map((val) => (
+                                                                <label key={String(val)} className="flex items-center gap-1.5 cursor-pointer">
+                                                                    <input
+                                                                        type="radio"
+                                                                        checked={field.value === val}
+                                                                        onChange={() => field.onChange(val)}
+                                                                        className="accent-primary h-3.5 w-3.5"
+                                                                    />
+                                                                    <span className="text-xs">{val ? 'Sí' : 'No'}</span>
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                />
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -905,31 +978,6 @@ export default function CreateMaterialRequestPage() {
                             )}
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>¿Puede ser genérico o de modelo diferente?</Label>
-                            <Controller
-                                name="isGenericAllowed"
-                                control={control}
-                                render={({ field }) => (
-                                    <div className="flex gap-6">
-                                        {([true, false] as const).map((val) => (
-                                            <label
-                                                key={String(val)}
-                                                className="flex items-center gap-2 cursor-pointer select-none"
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    checked={field.value === val}
-                                                    onChange={() => field.onChange(val)}
-                                                    className="accent-primary h-4 w-4"
-                                                />
-                                                <span className="text-sm">{val ? 'Sí' : 'No'}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            />
-                        </div>
                     </CardContent>
                 </Card>
 

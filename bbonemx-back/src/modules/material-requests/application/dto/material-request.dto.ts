@@ -6,7 +6,8 @@ import {
   IsOptional,
   ValidateNested,
   IsEnum,
-  IsBoolean,
+  IsArray,
+  ArrayMinSize,
 } from 'class-validator';
 import { CreateMaterialRequestItemInput } from './material-request-item.dto';
 import { Type } from 'class-transformer';
@@ -23,10 +24,11 @@ export class CreateMaterialRequestInput {
   @IsUUID()
   requesterId: string;
 
-  @Field(() => ID)
-  @IsNotEmpty({ message: 'La máquina es requerida' })
-  @IsUUID()
-  machineId: string;
+  @Field(() => [ID])
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Debe seleccionar al menos una máquina' })
+  @IsUUID('4', { each: true })
+  machineIds: string[];
 
   @Field(() => [CreateMaterialRequestItemInput], { nullable: true })
   @IsOptional()
@@ -83,11 +85,6 @@ export class CreateMaterialRequestInput {
   @IsOptional()
   @IsString()
   justification?: string;
-
-  @Field()
-  @IsNotEmpty({ message: 'La autorización de material genérico es requerida' })
-  @IsBoolean()
-  isGenericAllowed: boolean;
 
   @Field({ nullable: true })
   @IsOptional()

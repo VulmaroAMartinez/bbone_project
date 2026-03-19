@@ -7,6 +7,8 @@ import {
   CreateMaterialRequestInput,
   UpdateMaterialRequestInput,
   CreateMaterialRequestItemInput,
+  SendMaterialRequestEmailInput,
+  UpdateMaterialRequestHistoryInput,
 } from '../../application/dto';
 
 @Resolver(() => MaterialRequestType)
@@ -81,5 +83,20 @@ export class MaterialRequestsResolver {
     @Args('id', { type: () => ID }) id: string,
   ): Promise<boolean> {
     return this.materialRequestsService.deactivate(id);
+  }
+
+  @Mutation(() => Boolean, { name: 'sendMaterialRequestEmail' })
+  async sendMaterialRequestEmail(
+    @Args('input') input: SendMaterialRequestEmailInput,
+  ): Promise<boolean> {
+    return this.materialRequestsService.sendEmail(input);
+  }
+
+  @Mutation(() => MaterialRequestType)
+  @Roles(Role.ADMIN)
+  async updateMaterialRequestHistory(
+    @Args('input') input: UpdateMaterialRequestHistoryInput,
+  ) {
+    return this.materialRequestsService.updateHistory(input);
   }
 }

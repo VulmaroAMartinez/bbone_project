@@ -78,28 +78,38 @@ export const GET_MATERIAL_REQUESTS_QUERY = gql`
       priority
       importance
       boss
-      isGenericAllowed
       suggestedSupplier
       isActive
+      emailSentAt
       createdAt
       requester {
         id
         fullName
         employeeNumber
       }
-      machine {
+      machines {
         id
-        name
-        code
-        areaId
-        area {
+        machineId
+        machine {
           id
           name
-        }
-        subAreaId
-        subArea {
-          id
-          name
+          brand
+          model
+          manufacturer
+          areaId
+          area {
+            id
+            name
+          }
+          subAreaId
+          subArea {
+            id
+            name
+            area {
+              id
+              name
+            }
+          }
         }
       }
       items {
@@ -110,6 +120,7 @@ export const GET_MATERIAL_REQUESTS_QUERY = gql`
         customName
         brand
         partNumber
+        isGenericAllowed
       }
     }
   }
@@ -130,11 +141,11 @@ export const GET_MATERIAL_REQUEST_QUERY = gql`
       customMachineBrand
       customMachineModel
       customMachineManufacturer
-      isGenericAllowed
       suggestedSupplier
       justification
       comments
       isActive
+      emailSentAt
       createdAt
       updatedAt
       requester {
@@ -142,26 +153,28 @@ export const GET_MATERIAL_REQUEST_QUERY = gql`
         fullName
         employeeNumber
       }
-      machine {
+      machines {
         id
-        name
-        code
-        brand
-        model
-        manufacturer
-        areaId
-        area {
+        machineId
+        machine {
           id
           name
-          type
-        }
-        subAreaId
-        subArea {
-          id
-          name
+          brand
+          model
+          manufacturer
+          areaId
           area {
             id
             name
+          }
+          subAreaId
+          subArea {
+            id
+            name
+            area {
+              id
+              name
+            }
           }
         }
       }
@@ -178,6 +191,7 @@ export const GET_MATERIAL_REQUEST_QUERY = gql`
         proposedMaxStock
         proposedMinStock
         materialId
+        isGenericAllowed
         sparePartId
         material {
           id
@@ -216,16 +230,18 @@ export const CREATE_MATERIAL_REQUEST_MUTATION = gql`
       priority
       importance
       boss
-      isGenericAllowed
       createdAt
       requester {
         id
         fullName
       }
-      machine {
+      machines {
         id
-        name
-        code
+        machineId
+        machine {
+          id
+          name
+        }
       }
       items {
         id
@@ -263,8 +279,105 @@ export const ADD_MATERIAL_TO_REQUEST_MUTATION = gql`
   }
 `;
 
+export const UPDATE_MATERIAL_REQUEST_MUTATION = gql`
+  mutation UpdateMaterialRequest($id: ID!, $input: UpdateMaterialRequestInput!) {
+    updateMaterialRequest(id: $id, input: $input) {
+      id
+      folio
+    }
+  }
+`;
+
 export const DEACTIVATE_MATERIAL_REQUEST_MUTATION = gql`
   mutation DeactivateMaterialRequest($id: ID!) {
     deactivateMaterialRequest(id: $id)
+  }
+`;
+
+export const SEND_MATERIAL_REQUEST_EMAIL_MUTATION = gql`
+  mutation SendMaterialRequestEmail($input: SendMaterialRequestEmailInput!) {
+    sendMaterialRequestEmail(input: $input)
+  }
+`;
+
+// ─── MRH (Seguimiento) ──────────────────────────────────────────────────────
+
+export const GET_MATERIAL_REQUEST_HISTORIES_QUERY = gql`
+  query GetMaterialRequestHistories {
+    materialRequestsWithDeleted {
+      id
+      folio
+      category
+      priority
+      importance
+      justification
+      description
+      emailSentAt
+      isActive
+      createdAt
+      requester {
+        id
+        fullName
+      }
+      machines {
+        id
+        machineId
+        machine {
+          id
+          name
+          areaId
+          area {
+            id
+            name
+          }
+          subAreaId
+          subArea {
+            id
+            name
+            area {
+              id
+              name
+            }
+          }
+        }
+      }
+      items {
+        id
+        sku
+        description
+        customName
+        requestedQuantity
+        unitOfMeasure
+        isGenericAllowed
+      }
+      histories {
+        id
+        status
+        purchaseRequest
+        purchaseOrder
+        deliveryMerchandise
+        deliveryDate
+        progressPercentage
+        supplier
+      }
+    }
+  }
+`;
+
+export const UPDATE_MATERIAL_REQUEST_HISTORY_MUTATION = gql`
+  mutation UpdateMaterialRequestHistory($input: UpdateMaterialRequestHistoryInput!) {
+    updateMaterialRequestHistory(input: $input) {
+      id
+      histories {
+        id
+        status
+        purchaseRequest
+        purchaseOrder
+        deliveryMerchandise
+        deliveryDate
+        progressPercentage
+        supplier
+      }
+    }
   }
 `;
