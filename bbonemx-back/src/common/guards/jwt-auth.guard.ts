@@ -7,7 +7,7 @@ import { METADATA_KEYS } from '../constants';
 /**
  * Guard que verifica la autenticación JWT en requests GraphQL.
  * Respeta el decorador @Public() para endpoints que no requieren auth.
- * 
+ *
  * Se aplica globalmente en AppModule.
  */
 @Injectable()

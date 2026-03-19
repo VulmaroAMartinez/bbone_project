@@ -1,7 +1,5 @@
 'use client';
 
-import React from "react"
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from "react-hook-form";
@@ -25,7 +23,7 @@ const loginSchema = yup.object({
   password: yup
     .string()
     .required('La contraseña es obligatoria.')
-    .min(6, 'La contraseña debe tener al menos 6 caracteres.'),
+    .min(8, 'La contraseña debe tener al menos 8 caracteres.'),
 });
 
 type LoginFormValues = yup.InferType<typeof loginSchema>;

@@ -1,56 +1,68 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Material } from "../../domain/entities";
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Material } from '../../domain/entities';
 
 @Injectable()
 export class MaterialsRepository {
-    constructor(@InjectRepository(Material) private readonly repository: Repository<Material>) {}
+  constructor(
+    @InjectRepository(Material)
+    private readonly repository: Repository<Material>,
+  ) {}
 
-    async findAll(): Promise<Material[]> {
-        return this.repository.find();
-    }
+  async findAll(): Promise<Material[]> {
+    return this.repository.find();
+  }
 
-    async findAllWithDeleted(): Promise<Material[]> {
-        return this.repository.find({ withDeleted: true });
-    }
+  async findAllWithDeleted(): Promise<Material[]> {
+    return this.repository.find({ withDeleted: true });
+  }
 
-    async findAllActive(): Promise<Material[]> {
-        return this.repository.find({ where: { isActive: true } });
-    }
+  async findAllActive(): Promise<Material[]> {
+    return this.repository.find({ where: { isActive: true } });
+  }
 
-    async findById(id: string): Promise<Material | null> {
-        return this.repository.findOne({ where: { id }, withDeleted: true });
-    }
+  async findById(id: string): Promise<Material | null> {
+    return this.repository.findOne({ where: { id }, withDeleted: true });
+  }
 
-    async findBySku(sku: string): Promise<Material | null> {
-        return this.repository.findOne({ where: { sku } });
-    }
+  async findBySku(sku: string): Promise<Material | null> {
+    return this.repository.findOne({ where: { sku } });
+  }
 
-    async create(data: Partial<Material>): Promise<Material> {
-        return this.repository.save(this.repository.create(data));
-    }
+  async create(data: Partial<Material>): Promise<Material> {
+    return this.repository.save(this.repository.create(data));
+  }
 
-    async update(id: string, data: Partial<Material>): Promise<Material | null> {
-        const material = await this.repository.findOne({ where: { id }, withDeleted: true });
-        if (!material) return null;
-        Object.assign(material, data);
-        return this.repository.save(material);
-    }
+  async update(id: string, data: Partial<Material>): Promise<Material | null> {
+    const material = await this.repository.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+    if (!material) return null;
+    Object.assign(material, data);
+    return this.repository.save(material);
+  }
 
-    async softDelete(id: string): Promise<void> {
-        const material = await this.repository.findOne({ where: { id }, withDeleted: true });
-        if (!material) return;
-        material.isActive = false;
-        material.deletedAt = new Date();
-        await this.repository.save(material);
-    }
+  async softDelete(id: string): Promise<void> {
+    const material = await this.repository.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+    if (!material) return;
+    material.isActive = false;
+    material.deletedAt = new Date();
+    await this.repository.save(material);
+  }
 
-    async restore(id: string): Promise<void> {
-        const material = await this.repository.findOne({ where: { id }, withDeleted: true });
-        if (!material) return;
-        material.isActive = true;
-        material.deletedAt = null;
-        await this.repository.save(material);
-    }
+  async restore(id: string): Promise<void> {
+    const material = await this.repository.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+    if (!material) return;
+    material.isActive = true;
+    material.deletedAt = null;
+    await this.repository.save(material);
+  }
 }

@@ -1,6 +1,6 @@
-import { ID, ObjectType, Field, Int } from "@nestjs/graphql";
-import { FrequencyType, FrequencyUnit, PreventiveTaskStatus } from "src/common";
-import { MachineType } from "src/modules/catalogs";
+import { ID, ObjectType, Field, Int } from '@nestjs/graphql';
+import { FrequencyType, FrequencyUnit, PreventiveTaskStatus } from 'src/common';
+import { MachineType } from 'src/modules/catalogs';
 
 @ObjectType('PreventiveTask')
 export class PreventiveTaskType {

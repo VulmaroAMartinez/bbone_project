@@ -6,21 +6,16 @@ import { TechnicianSchedulesRepository } from './infrastructure/repositories';
 import { TechnicianSchedulesService } from './application/services';
 import { TechnicianSchedulesResolver } from './presentation/resolvers';
 
-
-
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([TechnicianSchedule]),
-        AbsenceReasonsModule,
-    ],
-    providers: [
-        TechnicianSchedulesRepository,
-        TechnicianSchedulesService,
-        TechnicianSchedulesResolver,
-    ],
-    exports: [
-        TechnicianSchedulesService,
-        TypeOrmModule,
-    ],
+  imports: [
+    TypeOrmModule.forFeature([TechnicianSchedule]),
+    AbsenceReasonsModule,
+  ],
+  providers: [
+    TechnicianSchedulesRepository,
+    TechnicianSchedulesService,
+    TechnicianSchedulesResolver,
+  ],
+  exports: [TechnicianSchedulesService, TypeOrmModule],
 })
 export class TechnicianSchedulesModule {}

@@ -18,7 +18,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, Wrench } from 'lucide-react';
@@ -53,7 +52,9 @@ export default function SparePartsPage() {
     });
 
     const rawSpareParts = data?.sparePartsWithDeleted || [];
-    const machines = useFragment(MachineBasicFragmentDoc, machinesData?.machines || []);
+    const machines = (machinesData?.machinesWithDeleted ?? []).map((ref) =>
+        useFragment(MachineBasicFragmentDoc, ref),
+    );
 
     const unmask = useFragment;
     const spareParts = useMemo(() =>

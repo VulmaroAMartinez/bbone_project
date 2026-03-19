@@ -93,7 +93,7 @@ export const GET_SCHEDULED_WORK_ORDERS_QUERY = gql`
         assignedShiftId: $assignedShiftId
       }
       pagination: { limit: 100, page: 1 }
-      sort: { field: "scheduledDate", order: "ASC" }
+      sort: { field: SCHEDULED_DATE, order: ASC }
     ) {
       data {
         ...WorkOrderItem

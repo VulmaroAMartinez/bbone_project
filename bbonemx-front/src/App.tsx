@@ -1,9 +1,3 @@
-/**
- * BB Maintenance - App Router Principal
- * Configuracion de rutas con React Router para toda la aplicacion CMMS.
- * Cada ruta esta protegida por rol usando ProtectedRoute.
- */
-
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Providers } from '@/components/providers';
 import { ProtectedRoute } from './components/protected-route';
@@ -26,6 +20,7 @@ import FindingFeedbackPage from './pages/admin/findings/FindingFeedbackPage';
 import TecnicoAsignacionesPage from '@/pages/tecnico/AsignacionesPage';
 import TecnicoPendientesPage from '@/pages/tecnico/PendientesPage';
 import TecnicoOrdenPage from '@/pages/tecnico/OrdenTecnicoPage';
+import MisOrdenesJefePage from '@/pages/tecnico/MisOrdenesJefePage';
 
 // Solicitante
 import SolicitanteCrearOTPage from '@/pages/solicitante/CrearOTPage';
@@ -58,6 +53,7 @@ import MaterialRequestDetailPage from './pages/material-requests/MaterialRequest
 import CreateMaterialRequestPage from './pages/material-requests/CreateMaterialRequests';
 import RoleSelectorPage from './pages/RoleSelectorPage';
 import OvertimePage from './pages/overtime/OvertimePage';
+import MaterialRequestHistoryPage from './pages/admin/material-requests/MaterialRequestHistoryPage';
 
 const ShellLayout = ({ title }: { title: string }) => (
   <AppShell title={title}>
@@ -102,6 +98,7 @@ function App() {
               <Route path="/areas/:id/maquinas" element={<AreaMachinesPage />} />
               <Route path="/areas/:id/hallazgos" element={<AreaFindingsPage />} />
               <Route path="/solicitud-material" element={<MaterialRequestsPage />} />
+              <Route path="/seguimiento-solicitudes" element={<MaterialRequestHistoryPage />} />
               <Route path="/solicitud-material/:id" element={<MaterialRequestDetailPage />} />
               <Route path="/horas-extra" element={<OvertimePage />} />
             </Route>
@@ -110,6 +107,8 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN]} />}>
             <Route element={<ShellLayout title="Portal Técnico" />}>
               <Route path="/tecnico/pendientes" element={<TecnicoPendientesPage />} />
+              <Route path="/tecnico/mis-ordenes" element={<MisOrdenesJefePage />} />
+              <Route path="/tecnico/crear-ot" element={<SolicitanteCrearOTPage />} />
               <Route path="/horario" element={<TechSchedulePage />} />
               <Route path="/tecnico/asignaciones" element={<TecnicoAsignacionesPage />} />
               <Route path="/tecnico/orden/:id" element={<TecnicoOrdenPage />} />
@@ -117,8 +116,8 @@ function App() {
             </Route>
           </Route>
 
-          {/* SOLICITANTE - accesible también para BOSS */}
-          <Route element={<ProtectedRoute allowedRoles={[UserRole.REQUESTER, UserRole.BOSS]} />}>
+          {/* SOLICITANTE */}
+          <Route element={<ProtectedRoute allowedRoles={[UserRole.REQUESTER]} />}>
             <Route element={<ShellLayout title="Portal Solicitante" />}>
               <Route path="/solicitante/mis-ordenes" element={<SolicitanteMisOrdenesPage />} />
               <Route path="/solicitante/crear-ot" element={<SolicitanteCrearOTPage />} />
@@ -130,6 +129,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.BOSS]} />}>
             <Route element={<ShellLayout title="Solicitud de Material" />}>
               <Route path="/solicitud-material/nueva" element={<CreateMaterialRequestPage />} />
+              <Route path="/solicitud-material/:id/editar" element={<CreateMaterialRequestPage />} />
             </Route>
           </Route>
 

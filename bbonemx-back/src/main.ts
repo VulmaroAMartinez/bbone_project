@@ -3,11 +3,12 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  
+
   // Crear aplicación NestJS
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
@@ -16,7 +17,8 @@ async function bootstrap() {
   // Obtener configuración
   const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port');
-  const isDevelopment = configService.get<string>('app.nodeEnv') === 'development';
+  const isDevelopment =
+    configService.get<string>('app.nodeEnv') === 'development';
   const corsOrigins = configService.get<string[]>('app.cors.origin');
 
   // Prefijo global para API REST (health checks, etc.)
@@ -43,13 +45,20 @@ async function bootstrap() {
 
   // Compresión de respuestas
   app.use(compression());
+  app.use(cookieParser());
 
   // CORS
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-CSRF-Token',
+      'x-csrf-token',
+    ],
   });
 
   // Validation pipe global

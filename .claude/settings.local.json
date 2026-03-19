@@ -12,7 +12,11 @@
       "Bash(npm install:*)",
       "Bash(node -e \":*)",
       "Bash(npm list:*)",
-      "Bash(npx --yes pwa-asset-generator --help)"
+      "Bash(npx --yes pwa-asset-generator --help)",
+      "Bash(find /c/Users/vulma/Downloads/bbmaintenance -type f -name *mail* -o -name *email* -o -name *mailer* -o -name *smtp*)",
+      "Bash(find /c/Users/vulma/Downloads/bbmaintenance/bbonemx-back -type f \\\\\\(-name *.hbs -o -name *.html -o -name *.ejs \\\\\\))",
+      "Bash(grep -r \"emailService\\\\|EmailService\" /c/Users/vulma/Downloads/bbmaintenance/bbonemx-back/src --include=*.ts)",
+      "Bash(find /c/Users/vulma/Downloads/bbmaintenance/bbonemx-back -type f \\\\\\(-iname *.handlebars -o -iname *.hbs -o -iname *.ejs -o -iname *.mjml -o -iname *.pug \\\\\\))"
     ]
   }
 }

@@ -10,7 +10,12 @@ import {
 } from 'react';
 import { useMutation, useApolloClient } from '@apollo/client/react';
 import { gql } from '@apollo/client';
-import { LoginDocument, MeDocument, UserBasicFragmentDoc } from '@/lib/graphql/generated/graphql';
+import {
+  LoginDocument,
+  LogoutDocument,
+  MeDocument,
+  UserBasicFragmentDoc,
+} from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 
 const UnregisterDeviceTokenDocument = gql`
@@ -89,17 +94,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [activeRole, setActiveRoleState] = useState<string | null>(null);
 
   const [loginMutation] = useMutation(LoginDocument);
+  const [logoutMutation] = useMutation(LogoutDocument);
   const client = useApolloClient();
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('auth_token');
-
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
       try {
         const { data } = await client.query({
           query: MeDocument,
@@ -111,12 +110,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(unmasked);
           setActiveRoleState(resolveActiveRole(unmasked));
         } else {
-          localStorage.removeItem('auth_token');
           localStorage.removeItem(ACTIVE_ROLE_KEY);
         }
       } catch (error) {
         console.error('Error auth:', error);
-        localStorage.removeItem('auth_token');
         localStorage.removeItem(ACTIVE_ROLE_KEY);
       } finally {
         setIsLoading(false);
@@ -134,8 +131,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
 
         if (data?.login) {
-          const { accessToken, user: loggedUser } = data.login;
-          localStorage.setItem('auth_token', accessToken);
+          const { user: loggedUser } = data.login;
           const unmasked = unmaskFragment(UserBasicFragmentDoc, loggedUser) as unknown as AuthUser;
           setUser(unmasked);
           setActiveRoleState(resolveActiveRole(unmasked));
@@ -153,8 +149,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(async () => {
     // Unregister FCM token before clearing auth
     const fcmToken = localStorage.getItem('fcm_device_token');
-    const authToken = localStorage.getItem('auth_token');
-    if (fcmToken && authToken) {
+    if (fcmToken && user) {
       try {
         await client.mutate({
           mutation: UnregisterDeviceTokenDocument,
@@ -165,12 +160,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     }
 
-    localStorage.removeItem('auth_token');
+    try {
+      await logoutMutation();
+    } catch {
+      // Ignore network/auth errors in logout cleanup.
+    }
+
     localStorage.removeItem(ACTIVE_ROLE_KEY);
     localStorage.removeItem('fcm_device_token');
     setUser(null);
     setActiveRoleState(null);
-  }, [client]);
+    await client.clearStore();
+  }, [client, logoutMutation, user]);
 
   const selectRole = useCallback((role: string) => {
     localStorage.setItem(ACTIVE_ROLE_KEY, role);

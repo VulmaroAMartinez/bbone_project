@@ -26,6 +26,7 @@ import {
   User,
   RefreshCw,
   Timer,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -72,6 +73,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         { href: '/maquinas', label: 'Máquinas', icon: Forklift },
         { href: '/hallazgos', label: 'Hallazgos', icon: Search },
         { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
+        { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
         {
           label: 'Gestión de Técnicos',
           icon: Users,
@@ -99,13 +101,14 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
     if (isTechnician) {
       const items: NavItem[] = [
         { href: '/tecnico/pendientes', label: 'Mis Pendientes', icon: ClipboardList },
+        ...(isBoss ? [{ href: '/tecnico/mis-ordenes', label: 'Mis Órdenes', icon: ClipboardList } as NavItem] : []),
         { href: '/horario', label: 'Mi Horario', icon: Calendar },
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
         { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
       ];
       if (isBoss || isAdmin) {
         items.push(
-          { href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle },
+          ...(isBoss ? [] : [{ href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle } as NavItem]),
           { href: '/solicitud-material/nueva', label: 'Solicitud de Material', icon: FileCog2 },
         );
       }

@@ -347,7 +347,7 @@ export default function AdminCrearOTPage() {
                 </SelectContent>
               </Select>
               {errors.areaId && (
-                <p className="text-xs text-destructive">{errors.areaId.message}</p>
+                <p className="text-xs text-destructive">{String(errors.areaId.message)}</p>
               )}
             </div>
 
@@ -384,7 +384,7 @@ export default function AdminCrearOTPage() {
               />
               <div className="flex justify-between">
                 {errors.description ? (
-                  <p className="text-xs text-destructive">{errors.description.message}</p>
+                  <p className="text-xs text-destructive">{String(errors.description.message)}</p>
                 ) : <span />}
                 <p className="text-xs text-muted-foreground">
                   {description?.length || 0}/500
@@ -426,7 +426,7 @@ export default function AdminCrearOTPage() {
                   </SelectContent>
                 </Select>
                 {errors.priority && (
-                  <p className="text-xs text-destructive">{errors.priority.message}</p>
+                  <p className="text-xs text-destructive">{String(errors.priority.message)}</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -447,7 +447,7 @@ export default function AdminCrearOTPage() {
                   </SelectContent>
                 </Select>
                 {errors.stoppageType && (
-                  <p className="text-xs text-destructive">{errors.stoppageType.message}</p>
+                  <p className="text-xs text-destructive">{String(errors.stoppageType.message)}</p>
                 )}
               </div>
             </div>
@@ -465,7 +465,7 @@ export default function AdminCrearOTPage() {
                   </SelectContent>
                 </Select>
                 {errors.shiftId && (
-                  <p className="text-xs text-destructive">{errors.shiftId.message}</p>
+                  <p className="text-xs text-destructive">{String(errors.shiftId.message)}</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -479,7 +479,7 @@ export default function AdminCrearOTPage() {
                   </SelectContent>
                 </Select>
                 {errors.maintenanceType && (
-                  <p className="text-xs text-destructive">{errors.maintenanceType.message}</p>
+                  <p className="text-xs text-destructive">{String(errors.maintenanceType.message)}</p>
                 )}
               </div>
             </div>
@@ -495,7 +495,7 @@ export default function AdminCrearOTPage() {
                 </SelectContent>
               </Select>
               {errors.workType && (
-                <p className="text-xs text-destructive">{errors.workType.message}</p>
+                <p className="text-xs text-destructive">{String(errors.workType.message)}</p>
               )}
             </div>
 
@@ -508,7 +508,7 @@ export default function AdminCrearOTPage() {
                   {...register('scheduledDate')}
                 />
                 {errors.scheduledDate && (
-                  <p className="text-xs text-destructive">{errors.scheduledDate.message}</p>
+                  <p className="text-xs text-destructive">{String(errors.scheduledDate.message)}</p>
                 )}
               </div>
             )}
@@ -526,7 +526,7 @@ export default function AdminCrearOTPage() {
                   disabled={techLoading}
                 />
                 {errors.leadTechnicianId && (
-                  <p className="text-xs text-destructive">{errors.leadTechnicianId.message}</p>
+                  <p className="text-xs text-destructive">{String(errors.leadTechnicianId.message)}</p>
                 )}
               </div>
 

@@ -18,7 +18,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -34,7 +33,10 @@ const createSchema = (isEditing: boolean) =>
         phone: yup.string().trim().required('El teléfono es obligatorio'),
         password: isEditing
             ? yup.string().default('')
-            : yup.string().required('La contraseña es obligatoria').min(6, 'Mínimo 6 caracteres'),
+            : yup
+                .string()
+                .required('La contraseña es obligatoria')
+                .min(8, 'Mínimo 8 caracteres'),
         positionId: yup.string().required('Seleccione un cargo'),
         address: yup.string().trim().required('La dirección es obligatoria'),
         allergies: yup.string().trim().required('Indique alergias o "Ninguna"'),

@@ -21,3 +21,15 @@ export const ME_QUERY = gql`
     }
   }
 `;
+
+export const REFRESH_AUTH_MUTATION = gql`
+  mutation RefreshAuth {
+    refreshAuth
+  }
+`;
+
+export const LOGOUT_MUTATION = gql`
+  mutation Logout {
+    logout
+  }
+`;

@@ -9,10 +9,10 @@ export const NOTIFICATION_PUB_SUB = 'NOTIFICATION_PUB_SUB';
 
 /** Nombres de los triggers para las subscriptions */
 export const SUBSCRIPTION_TRIGGERS = {
-    /** Trigger genérico: nueva notificación para un usuario */
-    NEW_NOTIFICATION: 'newNotification',
-    /** Trigger: contador de no leídas actualizado */
-    UNREAD_COUNT_UPDATED: 'unreadCountUpdated',
+  /** Trigger genérico: nueva notificación para un usuario */
+  NEW_NOTIFICATION: 'newNotification',
+  /** Trigger: contador de no leídas actualizado */
+  UNREAD_COUNT_UPDATED: 'unreadCountUpdated',
 } as const;
 
 /**
@@ -24,6 +24,6 @@ export const SUBSCRIPTION_TRIGGERS = {
  *   useFactory: () => new RedisPubSub({ connection: { host: 'redis', port: 6379 } })
  */
 export const PubSubProvider: Provider = {
-    provide: NOTIFICATION_PUB_SUB,
-    useFactory: () => new PubSub(),
+  provide: NOTIFICATION_PUB_SUB,
+  useFactory: () => new PubSub(),
 };

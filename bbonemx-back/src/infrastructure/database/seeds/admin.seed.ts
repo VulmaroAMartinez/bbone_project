@@ -4,7 +4,6 @@ import { User } from '../../../modules/users/domain/entities/user.entity';
 import { getRoleByName } from './roles.seed';
 import { getDepartmentByName } from './departments.seed';
 
-
 const ADMIN_USER = {
   employeeNumber: 'ADMIN001',
   password: 'Admin123!',
@@ -15,7 +14,6 @@ const ADMIN_USER = {
 };
 
 export async function seedAdmin(dataSource: DataSource): Promise<void> {
-
   const userRepository = dataSource.getRepository(User);
 
   const existingAdmin = await userRepository.findOne({
@@ -32,7 +30,10 @@ export async function seedAdmin(dataSource: DataSource): Promise<void> {
     throw new Error('El rol ADMIN no existe');
   }
 
-  const maintenanceDepartment = await getDepartmentByName(dataSource, 'MAINTENANCE');
+  const maintenanceDepartment = await getDepartmentByName(
+    dataSource,
+    'MAINTENANCE',
+  );
 
   if (!maintenanceDepartment) {
     throw new Error('El departamento MAINTENANCE no existe');
@@ -53,5 +54,4 @@ export async function seedAdmin(dataSource: DataSource): Promise<void> {
   });
 
   await userRepository.save(admin);
-
 }

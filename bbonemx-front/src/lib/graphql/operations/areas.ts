@@ -68,7 +68,7 @@ export const GET_WORK_ORDERS_BY_AREA_QUERY = gql`
     workOrdersFiltered(
       filters: { areaId: $areaId }
       pagination: { page: $page, limit: $limit }
-      sort: { field: "createdAt", order: "DESC" }
+      sort: { field: CREATED_AT, order: DESC }
     ) {
       data {
         id

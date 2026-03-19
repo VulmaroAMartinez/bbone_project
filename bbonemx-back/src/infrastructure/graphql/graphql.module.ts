@@ -25,11 +25,15 @@ function calculateDepth(
 
   for (const selection of selectionSet) {
     if (selection.kind === 'Field') {
-      const field = selection as FieldNode;
+      const field = selection;
       if (!field.selectionSet) continue;
       maxDepth = Math.max(
         maxDepth,
-        calculateDepth(field.selectionSet.selections, fragments, currentDepth + 1),
+        calculateDepth(
+          field.selectionSet.selections,
+          fragments,
+          currentDepth + 1,
+        ),
       );
       continue;
     }
@@ -39,7 +43,11 @@ function calculateDepth(
       if (!fragment) continue;
       maxDepth = Math.max(
         maxDepth,
-        calculateDepth(fragment.selectionSet.selections, fragments, currentDepth + 1),
+        calculateDepth(
+          fragment.selectionSet.selections,
+          fragments,
+          currentDepth + 1,
+        ),
       );
       continue;
     }
@@ -47,7 +55,11 @@ function calculateDepth(
     if (selection.kind === 'InlineFragment') {
       maxDepth = Math.max(
         maxDepth,
-        calculateDepth(selection.selectionSet.selections, fragments, currentDepth + 1),
+        calculateDepth(
+          selection.selectionSet.selections,
+          fragments,
+          currentDepth + 1,
+        ),
       );
     }
   }
@@ -87,8 +99,12 @@ function countFields(
 }
 
 const queryLimitsRule: ValidationRule = (context) => {
-  const fragments = context.getDocument().definitions
-    .filter((definition): definition is FragmentDefinitionNode => definition.kind === 'FragmentDefinition')
+  const fragments = context
+    .getDocument()
+    .definitions.filter(
+      (definition): definition is FragmentDefinitionNode =>
+        definition.kind === 'FragmentDefinition',
+    )
     .reduce<Record<string, FragmentDefinitionNode>>((acc, fragment) => {
       acc[fragment.name.value] = fragment;
       return acc;
@@ -132,22 +148,22 @@ const queryLimitsRule: ValidationRule = (context) => {
       useFactory: (configService: ConfigService) => ({
         // Code First: genera schema automáticamente desde decoradores
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-        
+
         // Ordenar schema alfabéticamente
         sortSchema: true,
-        
+
         // Playground para desarrollo
         playground: configService.get<boolean>('graphql.playground'),
-        
+
         // Introspection para herramientas como GraphQL Playground
         introspection: configService.get<boolean>('graphql.introspection'),
-        
+
         // Debug mode
         debug: configService.get<boolean>('graphql.debug'),
-        
+
         // Contexto disponible en todos los resolvers
         context: ({ req, res }): IGqlContext => ({ req, res }),
-        
+
         // Configuración de subscriptions (para notificaciones en tiempo real)
         subscriptions: {
           'graphql-ws': {
@@ -159,12 +175,13 @@ const queryLimitsRule: ValidationRule = (context) => {
           },
           'subscriptions-transport-ws': true, // Legacy support
         },
-        
+
         // Formateo de errores
         formatError: (error) => {
           // En producción, ocultar detalles internos
-          const isProduction = configService.get('app.nodeEnv') === 'production';
-          
+          const isProduction =
+            configService.get('app.nodeEnv') === 'production';
+
           if (isProduction) {
             // Eliminar stack trace y detalles sensibles
             return {
@@ -174,18 +191,16 @@ const queryLimitsRule: ValidationRule = (context) => {
               },
             };
           }
-          
+
           // En desarrollo, mostrar todo
           return error;
         },
-        
+
         // Configuración de caché
         cache: 'bounded',
-        
+
         // Límites de seguridad
-        validationRules: [
-          queryLimitsRule,
-        ],
+        validationRules: [queryLimitsRule],
       }),
     }),
   ],

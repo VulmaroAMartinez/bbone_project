@@ -15,10 +15,7 @@ import { UserContext } from '../../../../common/context/user.context';
  * Lista de entidades a excluir de la auditoría.
  * Evita loops infinitos y registros innecesarios.
  */
-const EXCLUDED_ENTITIES = [
-  'AuditLog',
-  'migrations',
-];
+const EXCLUDED_ENTITIES = ['AuditLog', 'migrations'];
 
 /**
  * Campos a excluir de los valores auditados por seguridad o redundancia.
@@ -32,14 +29,14 @@ const EXCLUDED_FIELDS = [
 
 /**
  * Subscriber de TypeORM para auditoría automática.
- * 
+ *
  * Captura automáticamente todas las operaciones de INSERT, UPDATE, DELETE
  * y SOFT_DELETE en las entidades del sistema, registrando:
  * - Valores anteriores y nuevos
  * - Campos modificados
  * - Usuario que realizó la acción
  * - IP, User Agent y Session ID
- * 
+ *
  * Utiliza AsyncLocalStorage para obtener el contexto del usuario
  * sin necesidad de pasarlo como parámetro.
  */
@@ -143,20 +140,26 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     if (typeof entity !== 'object') return {};
 
     const result: Record<string, any> = {};
-    
+
     for (const key of Object.keys(entity)) {
       const value = entity[key];
-      
+
       // Excluir funciones y relaciones complejas
       if (typeof value === 'function') continue;
-      if (value && typeof value === 'object' && value.constructor?.name !== 'Object' && value.constructor?.name !== 'Array' && !(value instanceof Date)) {
+      if (
+        value &&
+        typeof value === 'object' &&
+        value.constructor?.name !== 'Object' &&
+        value.constructor?.name !== 'Array' &&
+        !(value instanceof Date)
+      ) {
         // Es una relación o entidad anidada, guardamos solo el ID si existe
         if (value.id) {
           result[`${key}Id`] = value.id;
         }
         continue;
       }
-      
+
       result[key] = value;
     }
 

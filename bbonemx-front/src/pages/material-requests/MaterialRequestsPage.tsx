@@ -94,7 +94,9 @@ export default function MaterialRequestsPage() {
                 !search ||
                 r.folio.toLowerCase().includes(search.toLowerCase()) ||
                 r.requester.fullName.toLowerCase().includes(search.toLowerCase()) ||
-                r.machine.name.toLowerCase().includes(search.toLowerCase());
+                (r.machines ?? []).some((mrm) =>
+                    mrm.machine.name.toLowerCase().includes(search.toLowerCase())
+                );
             const matchPriority = filterPriority === 'all' || r.priority === filterPriority;
             const matchCategory = filterCategory === 'all' || r.category === filterCategory;
             return matchSearch && matchPriority && matchCategory;
@@ -219,7 +221,14 @@ export default function MaterialRequestsPage() {
             ) : (
                 <div className="space-y-3">
                     {filtered.map((req) => {
-                        const areaName = req.machine.area?.name ?? req.machine.subArea?.name;
+                        const machineEntities = (req.machines ?? []).map((mrm) => mrm.machine);
+                        const areaNames = new Set(
+                            machineEntities.map((m) => m.area?.name ?? m.subArea?.area?.name).filter(Boolean)
+                        );
+                        const areaName =
+                            areaNames.size === 1 ? [...areaNames][0] : areaNames.size > 1 ? 'Diversas áreas' : undefined;
+                        const firstMachine = machineEntities[0];
+                        const extraCount = machineEntities.length - 1;
                         return (
                             <Card
                                 key={req.id}
@@ -258,12 +267,17 @@ export default function MaterialRequestsPage() {
                                                     <User className="h-3 w-3 shrink-0" />
                                                     {req.requester.fullName}
                                                 </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Cog className="h-3 w-3 shrink-0" />
-                                                    {req.machine.name}
-                                                </span>
+                                                {firstMachine && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Cog className="h-3 w-3 shrink-0" />
+                                                        {firstMachine.name}
+                                                        {extraCount > 0 && (
+                                                            <span className="text-xs text-muted-foreground/70">(+{extraCount})</span>
+                                                        )}
+                                                    </span>
+                                                )}
                                                 {areaName && (
-                                                    <span className="text-muted-foreground/80">{areaName}</span>
+                                                    <span className="text-muted-foreground/80">{areaName as string}</span>
                                                 )}
                                                 <span className="flex items-center gap-1">
                                                     <Calendar className="h-3 w-3 shrink-0" />

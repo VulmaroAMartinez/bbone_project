@@ -20,7 +20,7 @@ export interface IUserContext {
 /**
  * AsyncLocalStorage para mantener el contexto del usuario
  * a través de toda la ejecución de la request.
- * 
+ *
  * Esto permite acceder al contexto del usuario desde cualquier
  * parte del código sin necesidad de pasarlo como parámetro.
  */
@@ -75,7 +75,7 @@ export class UserContext {
   /**
    * Ejecuta una función dentro de un contexto de usuario específico.
    * Útil para operaciones que necesitan ejecutarse con un contexto particular.
-   * 
+   *
    * @param context - El contexto de usuario a usar.
    * @param callback - La función a ejecutar dentro del contexto.
    * @returns El resultado de la función callback.
@@ -86,7 +86,7 @@ export class UserContext {
 
   /**
    * Ejecuta una función asíncrona dentro de un contexto de usuario específico.
-   * 
+   *
    * @param context - El contexto de usuario a usar.
    * @param callback - La función asíncrona a ejecutar dentro del contexto.
    * @returns Una promesa con el resultado de la función callback.

@@ -1,14 +1,12 @@
 import { DataSource } from 'typeorm';
 import { Department } from '../../../modules/catalogs/departments/domain/entities/department.entity';
 
-
 const INITIAL_DEPARTMENTS = [
   { name: 'TI', description: 'Tecnologías de la Información' },
   { name: 'Mantenimiento', description: 'Mantenimiento' },
 ];
 
 export async function seedDepartments(dataSource: DataSource): Promise<void> {
-
   const departmentRepository = dataSource.getRepository(Department);
 
   for (const departmentData of INITIAL_DEPARTMENTS) {
@@ -28,7 +26,6 @@ export async function seedDepartments(dataSource: DataSource): Promise<void> {
 
     await departmentRepository.save(department);
   }
-
 }
 
 export async function getDepartmentByName(

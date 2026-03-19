@@ -1,24 +1,24 @@
-import { ObjectType, Field, ID, Int } from "@nestjs/graphql";
-import { FindingStatus } from "src/common";
-import { AreaType, MachineType, ShiftType } from "src/modules/catalogs";    
-import { UserType } from "src/modules/users/presentation/types";
-import { WorkOrderType } from "src/modules/work-orders";
+import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
+import { FindingStatus } from 'src/common';
+import { AreaType, MachineType, ShiftType } from 'src/modules/catalogs';
+import { UserType } from 'src/modules/users/presentation/types';
+import { WorkOrderType } from 'src/modules/work-orders';
 
 @ObjectType('Finding')
 export class FindingType {
-    @Field(() => ID) id: string;
-    @Field(() => Int) sequence: number;
-    @Field() folio: string;
-    @Field(() => AreaType) area: AreaType;
-    @Field(() => ID, { nullable: true }) machineId?: string;
-    @Field(() => MachineType, { nullable: true }) machine?: MachineType;
-    @Field(() => ShiftType) shift: ShiftType;
-    @Field() description: string;
-    @Field({ nullable: true }) photoPath?: string;
-    @Field(() => FindingStatus) status: FindingStatus;
-    @Field(() => WorkOrderType, { nullable: true }) convertedToWo?: WorkOrderType;
-    @Field() createdAt: Date;
-    @Field() updatedAt: Date;
+  @Field(() => ID) id: string;
+  @Field(() => Int) sequence: number;
+  @Field() folio: string;
+  @Field(() => AreaType) area: AreaType;
+  @Field(() => ID, { nullable: true }) machineId?: string;
+  @Field(() => MachineType, { nullable: true }) machine?: MachineType;
+  @Field(() => ShiftType) shift: ShiftType;
+  @Field() description: string;
+  @Field({ nullable: true }) photoPath?: string;
+  @Field(() => FindingStatus) status: FindingStatus;
+  @Field(() => WorkOrderType, { nullable: true }) convertedToWo?: WorkOrderType;
+  @Field() createdAt: Date;
+  @Field() updatedAt: Date;
 }
 
 @ObjectType()

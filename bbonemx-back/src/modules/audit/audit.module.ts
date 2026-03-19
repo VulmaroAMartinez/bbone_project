@@ -6,14 +6,14 @@ import { AuditSubscriber } from './infrastructure/subscribers/audit.subscriber';
 
 /**
  * Módulo de auditoría.
- * 
+ *
  * Proporciona:
  * - Registro automático de cambios en entidades mediante AuditSubscriber
  * - Servicio para consultar logs de auditoría
- * 
+ *
  * Este módulo es global para que el AuditSubscriber esté disponible
  * en toda la aplicación.
- * 
+ *
  * IMPORTANTE: El UserContextInterceptor debe estar registrado globalmente
  * en app.module.ts para que el contexto del usuario esté disponible.
  */

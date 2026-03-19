@@ -1,9 +1,9 @@
-import { Args, Query, Resolver } from "@nestjs/graphql";
-import { UseGuards } from "@nestjs/common";
-import { DashboardData } from "../types";
-import { DashboardInput } from "../../application/dto";
-import { DashboardService } from "../../application/services";
-import { JwtAuthGuard, RolesGuard, Role, Roles } from "src/common";
+import { Args, Query, Resolver } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { DashboardData } from '../types';
+import { DashboardInput } from '../../application/dto';
+import { DashboardService } from '../../application/services';
+import { JwtAuthGuard, RolesGuard, Role, Roles } from 'src/common';
 
 @Resolver(() => DashboardData)
 @UseGuards(JwtAuthGuard, RolesGuard)

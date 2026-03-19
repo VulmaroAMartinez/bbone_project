@@ -3,27 +3,27 @@ import { UserType } from '../../../users/presentation/types';
 
 @ObjectType('WorkOrderSignature')
 export class WorkOrderSignatureType {
-  @Field(() => ID) 
+  @Field(() => ID)
   id: string;
 
-  @Field(() => ID) 
+  @Field(() => ID)
   workOrderId: string;
 
-  @Field(() => ID) 
+  @Field(() => ID)
   signerId: string;
 
-  @Field(() => UserType) 
+  @Field(() => UserType)
   signer: UserType;
 
-  @Field() 
+  @Field()
   signatureImagePath: string;
 
-  @Field() 
+  @Field()
   signedAt: Date;
 
-  @Field() 
+  @Field()
   isActive: boolean;
 
-  @Field() 
+  @Field()
   createdAt: Date;
 }

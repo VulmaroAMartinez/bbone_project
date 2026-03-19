@@ -11,9 +11,32 @@ import { SubAreasModule } from './sub-areas';
 import { SparePartsModule } from './spare-parts';
 import { MaterialsModule } from './materials';
 
-
 @Module({
-    imports: [RolesModule, TechniciansModule, PositionsModule, ShiftsModule, AbsenceReasonsModule, AreasModule, SubAreasModule, MachinesModule, DepartmentsModule, SparePartsModule, MaterialsModule],
-    exports: [RolesModule, TechniciansModule, PositionsModule, ShiftsModule, AbsenceReasonsModule, AreasModule, SubAreasModule, MachinesModule, DepartmentsModule, SparePartsModule, MaterialsModule],
+  imports: [
+    RolesModule,
+    TechniciansModule,
+    PositionsModule,
+    ShiftsModule,
+    AbsenceReasonsModule,
+    AreasModule,
+    SubAreasModule,
+    MachinesModule,
+    DepartmentsModule,
+    SparePartsModule,
+    MaterialsModule,
+  ],
+  exports: [
+    RolesModule,
+    TechniciansModule,
+    PositionsModule,
+    ShiftsModule,
+    AbsenceReasonsModule,
+    AreasModule,
+    SubAreasModule,
+    MachinesModule,
+    DepartmentsModule,
+    SparePartsModule,
+    MaterialsModule,
+  ],
 })
 export class CatalogsModule {}

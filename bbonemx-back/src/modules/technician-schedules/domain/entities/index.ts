@@ -1,1 +1,1 @@
-export * from './technician-schedule.entity';	
+export * from './technician-schedule.entity';

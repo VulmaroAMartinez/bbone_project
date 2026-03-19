@@ -2,12 +2,9 @@ import { Resolver, Query, Mutation } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PreventiveTasksCronService } from '../../services';
-import { 
-  SchedulerStatus, 
-  CronJobStatus, 
-} from '../types';
+import { SchedulerStatus, CronJobStatus } from '../types';
 import { GenerateWorkOrdersResult } from 'src/modules/preventive-tasks';
-import { JwtAuthGuard, RolesGuard, Roles, Role} from 'src/common';
+import { JwtAuthGuard, RolesGuard, Roles, Role } from 'src/common';
 
 @Resolver()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -25,8 +22,11 @@ export class SchedulerResolver {
    */
   @Query(() => SchedulerStatus, { name: 'schedulerStatus' })
   getSchedulerStatus(): SchedulerStatus {
-    const globalEnabled = this.configService.get<boolean>('scheduler.enabled', true);
-    
+    const globalEnabled = this.configService.get<boolean>(
+      'scheduler.enabled',
+      true,
+    );
+
     const preventiveStatus = this.preventiveTasksCron.getStatus();
 
     const jobs: CronJobStatus[] = [
@@ -44,7 +44,6 @@ export class SchedulerResolver {
     };
   }
 
-
   @Query(() => CronJobStatus, { name: 'preventiveTasksCronStatus' })
   getPreventiveTasksCronStatus(): CronJobStatus {
     const status = this.preventiveTasksCron.getStatus();
@@ -56,7 +55,6 @@ export class SchedulerResolver {
     };
   }
 
-  
   @Mutation(() => GenerateWorkOrdersResult, { name: 'runPreventiveTasksCron' })
   async runPreventiveTasksCron(): Promise<GenerateWorkOrdersResult> {
     const result = await this.preventiveTasksCron.runManually();
@@ -66,7 +64,6 @@ export class SchedulerResolver {
     };
   }
 
-  
   @Mutation(() => Boolean, { name: 'pausePreventiveTasksCron' })
   pausePreventiveTasksCron(): boolean {
     this.preventiveTasksCron.pause();
@@ -78,5 +75,4 @@ export class SchedulerResolver {
     this.preventiveTasksCron.resume();
     return true;
   }
-
 }

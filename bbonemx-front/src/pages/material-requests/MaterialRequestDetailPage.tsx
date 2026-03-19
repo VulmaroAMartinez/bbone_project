@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
-import { GetMaterialRequestDocument } from '@/lib/graphql/generated/graphql';
+import { useQuery, useMutation } from '@apollo/client/react';
+import {
+    GetMaterialRequestDocument,
+    SendMaterialRequestEmailDocument,
+} from '@/lib/graphql/generated/graphql';
+import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,21 +41,25 @@ import {
     IMPORTANCE_COLORS,
 } from './MaterialRequestsPage';
 
-// ─── Email modal — solo demostración ─────────────────────────────────────────
+// ─── Email modal ─────────────────────────────────────────────────────────────
 
 interface EmailModalProps {
     open: boolean;
     onClose: () => void;
+    materialRequestId: string;
     folio: string;
 }
 
-function EmailModal({ open, onClose, folio }: EmailModalProps) {
+function EmailModal({ open, onClose, materialRequestId, folio }: EmailModalProps) {
     const [to, setTo] = useState('');
     const [cc, setCc] = useState('');
     const [message, setMessage] = useState(
         `Estimado equipo,\n\nAdjunto la solicitud de material ${folio} para su revisión y aprobación.\n\nSaludos.`,
     );
-    const [sending, setSending] = useState(false);
+
+    const [sendEmail, { loading: sending }] = useMutation(SendMaterialRequestEmailDocument, {
+        refetchQueries: ['GetMaterialRequest', 'GetMaterialRequests'],
+    });
 
     const handleClose = () => {
         setTo('');
@@ -59,13 +67,29 @@ function EmailModal({ open, onClose, folio }: EmailModalProps) {
         onClose();
     };
 
+    const parseEmails = (raw: string): string[] =>
+        raw.split(',').map((e) => e.trim()).filter(Boolean);
+
     const handleSend = async () => {
-        setSending(true);
-        // TODO: Email service will be implemented later.
-        // This is a demonstration-only placeholder — no real email is sent.
-        await new Promise((r) => setTimeout(r, 900));
-        setSending(false);
-        handleClose();
+        const toEmails = parseEmails(to);
+        if (toEmails.length === 0) return;
+
+        try {
+            await sendEmail({
+                variables: {
+                    input: {
+                        materialRequestId,
+                        to: toEmails,
+                        cc: cc.trim() ? parseEmails(cc) : undefined,
+                        message: message.trim() || undefined,
+                    },
+                },
+            });
+            toast.success('Correo enviado exitosamente');
+            handleClose();
+        } catch {
+            toast.error('Error al enviar el correo. Intenta de nuevo.');
+        }
     };
 
     return (
@@ -84,17 +108,20 @@ function EmailModal({ open, onClose, folio }: EmailModalProps) {
                         </Label>
                         <Input
                             id="email-to"
-                            type="email"
+                            type="text"
                             placeholder="destinatario@empresa.com"
                             value={to}
                             onChange={(e) => setTo(e.target.value)}
                         />
+                        <p className="text-xs text-muted-foreground">
+                            Separa múltiples correos con coma
+                        </p>
                     </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="email-cc">Con copia a</Label>
                         <Input
                             id="email-cc"
-                            type="email"
+                            type="text"
                             placeholder="copia@empresa.com"
                             value={cc}
                             onChange={(e) => setCc(e.target.value)}
@@ -109,9 +136,6 @@ function EmailModal({ open, onClose, folio }: EmailModalProps) {
                             onChange={(e) => setMessage(e.target.value)}
                         />
                     </div>
-                    <p className="text-xs text-muted-foreground italic">
-                        * Funcionalidad de demostración. El envío real se implementará próximamente.
-                    </p>
                 </div>
                 <DialogFooter className="gap-2">
                     <Button variant="outline" onClick={handleClose} disabled={sending}>
@@ -179,7 +203,7 @@ export default function MaterialRequestDetailPage() {
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
                 <Info className="h-10 w-10 text-muted-foreground" />
                 <p className="text-muted-foreground">Solicitud no encontrada.</p>
-                <Button variant="outline" onClick={() => navigate('/solicitudes-material')}>
+                <Button variant="outline" onClick={() => navigate('/solicitud-material')}>
                     Volver al listado
                 </Button>
             </div>
@@ -187,8 +211,15 @@ export default function MaterialRequestDetailPage() {
     }
 
     // ── Data ──────────────────────────────────────────────────────────────────
-    const areaName = request.machine.area?.name;
-    const subAreaName = request.machine.subArea?.name;
+    const machineEntities = (request.machines ?? []).map((mrm: any) => mrm.machine);
+    const areaNames = new Set(
+        machineEntities.map((m: any) => m?.area?.name ?? m?.subArea?.area?.name).filter(Boolean),
+    );
+    const derivedAreaName = areaNames.size === 1
+        ? [...areaNames][0]
+        : areaNames.size > 1
+            ? 'Diversas áreas'
+            : null;
 
     return (
         <div className="space-y-5 pb-24">
@@ -197,7 +228,7 @@ export default function MaterialRequestDetailPage() {
                 <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate('/solicitudes-material')}
+                    onClick={() => navigate('/solicitud-material')}
                     className="gap-1.5 -ml-2 text-muted-foreground"
                 >
                     <ArrowLeft className="h-4 w-4" />
@@ -213,6 +244,12 @@ export default function MaterialRequestDetailPage() {
                             <Calendar className="h-3.5 w-3.5" />
                             {formatDateLong(request.createdAt)}
                         </p>
+                        {request.emailSentAt && (
+                            <p className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                                <Mail className="h-3 w-3" />
+                                Correo enviado: {formatDateLong(request.emailSentAt)}
+                            </p>
+                        )}
                     </div>
                     <div className="flex gap-2 flex-wrap">
                         <Button
@@ -220,15 +257,17 @@ export default function MaterialRequestDetailPage() {
                             size="sm"
                             className="gap-1.5"
                             onClick={() => setEmailOpen(true)}
+                            disabled={!!request.emailSentAt}
                         >
                             <Mail className="h-4 w-4" />
-                            Enviar correo
+                            {request.emailSentAt ? 'Correo enviado' : 'Enviar correo'}
                         </Button>
                         <Button
                             variant="outline"
                             size="sm"
                             className="gap-1.5"
-                            onClick={() => navigate(`/solicitudes-material/${id}/editar`)}
+                            onClick={() => navigate(`/solicitud-material/${id}/editar`)}
+                            disabled={!!request.emailSentAt}
                         >
                             <Edit2 className="h-4 w-4" />
                             Editar
@@ -278,18 +317,12 @@ export default function MaterialRequestDetailPage() {
                             <p className="font-medium">{request.boss}</p>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/40">
-                        <div>
-                            <p className="text-xs text-muted-foreground mb-0.5">¿Acepta genérico?</p>
-                            <p className="font-medium">{request.isGenericAllowed ? 'Sí' : 'No'}</p>
+                    {request.suggestedSupplier && (
+                        <div className="pt-2 border-t border-border/40">
+                            <p className="text-xs text-muted-foreground mb-0.5">Proveedor sugerido</p>
+                            <p className="font-medium">{request.suggestedSupplier}</p>
                         </div>
-                        {request.suggestedSupplier && (
-                            <div>
-                                <p className="text-xs text-muted-foreground mb-0.5">Proveedor sugerido</p>
-                                <p className="font-medium">{request.suggestedSupplier}</p>
-                            </div>
-                        )}
-                    </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -302,27 +335,34 @@ export default function MaterialRequestDetailPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2.5 text-sm">
-                    <div className="flex items-start gap-2.5">
-                        <Cog className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                        <div>
-                            <p className="font-medium">{request.machine.name}</p>
-                            <p className="text-xs font-mono text-muted-foreground">{request.machine.code}</p>
-                            {(request.machine.brand || request.machine.model) && (
-                                <p className="text-xs text-muted-foreground">
-                                    {[request.machine.brand, request.machine.model].filter(Boolean).join(' · ')}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                    {(areaName || subAreaName) && (
+                    {derivedAreaName && (
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <MapPin className="h-4 w-4 shrink-0" />
-                            <p className="text-sm">
-                                {areaName}
-                                {subAreaName && <span className="text-muted-foreground/70"> › {subAreaName}</span>}
-                            </p>
+                            <p className="text-sm font-medium">{derivedAreaName}</p>
                         </div>
                     )}
+                    {machineEntities.map((machine: any, idx: number) => {
+                        const mArea = machine?.area?.name ?? machine?.subArea?.area?.name;
+                        const mSubArea = machine?.subArea?.name;
+                        return (
+                            <div key={machine?.id ?? idx} className="flex items-start gap-2.5">
+                                <Cog className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="font-medium">{machine?.name}</p>
+                                    {(machine?.brand || machine?.model) && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {[machine?.brand, machine?.model].filter(Boolean).join(' · ')}
+                                        </p>
+                                    )}
+                                    {mArea && machineEntities.length > 1 && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {mArea}{mSubArea && ` › ${mSubArea}`}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </CardContent>
             </Card>
 
@@ -420,6 +460,10 @@ export default function MaterialRequestDetailPage() {
                                                 {item.proposedMinStock}
                                             </div>
                                         )}
+                                        <div>
+                                            <span className="text-muted-foreground">Genérico: </span>
+                                            {item.isGenericAllowed ? 'Sí' : 'No'}
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -459,6 +503,7 @@ export default function MaterialRequestDetailPage() {
             <EmailModal
                 open={emailOpen}
                 onClose={() => setEmailOpen(false)}
+                materialRequestId={id!}
                 folio={request.folio}
             />
         </div>

@@ -16,9 +16,6 @@ import { WorkOrdersModule } from '../work-orders';
     PreventiveTasksService,
     PreventiveTasksResolver,
   ],
-  exports: [
-    PreventiveTasksService,
-    TypeOrmModule,
-  ],
+  exports: [PreventiveTasksService, TypeOrmModule],
 })
 export class PreventiveTasksModule {}

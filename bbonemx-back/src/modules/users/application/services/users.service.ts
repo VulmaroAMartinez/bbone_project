@@ -18,7 +18,7 @@ export class UsersService {
     private readonly passwordService: PasswordService,
     private readonly rolesRepository: RolesRepository,
     private readonly departmentsRepository: DepartmentsRepository,
-  ) { }
+  ) {}
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.findAll();
@@ -49,9 +49,8 @@ export class UsersService {
   }
 
   async create(input: CreateUserInput): Promise<User> {
-    const existsEmployeeNumber = await this.usersRepository.existsByEmployeeNumber(
-      input.employeeNumber,
-    );
+    const existsEmployeeNumber =
+      await this.usersRepository.existsByEmployeeNumber(input.employeeNumber);
     if (existsEmployeeNumber) {
       throw new ConflictException(
         `Ya existe un usuario con el número de empleado ${input.employeeNumber}`,
@@ -73,9 +72,13 @@ export class UsersService {
       throw new BadRequestException('Uno o más roles no existen');
     }
 
-    const department = await this.departmentsRepository.findById(input.departmentId);
+    const department = await this.departmentsRepository.findById(
+      input.departmentId,
+    );
     if (!department) {
-      throw new BadRequestException(`Departamento con ID ${input.departmentId} no encontrado`);
+      throw new BadRequestException(
+        `Departamento con ID ${input.departmentId} no encontrado`,
+      );
     }
 
     const hashedPassword = await this.passwordService.hash(input.password);
@@ -95,7 +98,10 @@ export class UsersService {
   async update(id: string, input: UpdateUserInput): Promise<User> {
     const user = await this.findByIdOrFail(id);
 
-    if (input.employeeNumber !== undefined && input.employeeNumber !== user.employeeNumber) {
+    if (
+      input.employeeNumber !== undefined &&
+      input.employeeNumber !== user.employeeNumber
+    ) {
       const exists = await this.usersRepository.existsByEmployeeNumberExcept(
         input.employeeNumber,
         id,
@@ -119,7 +125,8 @@ export class UsersService {
       }
     }
 
-    const nextRoleIds = input.roleIds ?? (input.roleId ? [input.roleId] : undefined);
+    const nextRoleIds =
+      input.roleIds ?? (input.roleId ? [input.roleId] : undefined);
 
     let rolePatch: Partial<User> = {};
     if (nextRoleIds !== undefined) {
@@ -135,19 +142,27 @@ export class UsersService {
     }
 
     if (input.departmentId !== undefined) {
-      const department = await this.departmentsRepository.findById(input.departmentId);
+      const department = await this.departmentsRepository.findById(
+        input.departmentId,
+      );
       if (!department) {
-        throw new BadRequestException(`Departamento con ID ${input.departmentId} no encontrado`);
+        throw new BadRequestException(
+          `Departamento con ID ${input.departmentId} no encontrado`,
+        );
       }
     }
 
     const updateData: Partial<User> = {
       ...(input.firstName !== undefined && { firstName: input.firstName }),
       ...(input.lastName !== undefined && { lastName: input.lastName }),
-      ...(input.employeeNumber !== undefined && { employeeNumber: input.employeeNumber }),
+      ...(input.employeeNumber !== undefined && {
+        employeeNumber: input.employeeNumber,
+      }),
       ...(input.email !== undefined && { email: input.email }),
       ...(input.phone !== undefined && { phone: input.phone }),
-      ...(input.departmentId !== undefined && { departmentId: input.departmentId }),
+      ...(input.departmentId !== undefined && {
+        departmentId: input.departmentId,
+      }),
       ...rolePatch,
     };
 

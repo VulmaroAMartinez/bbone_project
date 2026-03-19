@@ -104,6 +104,20 @@ const WORK_TYPES: { value: WorkTypeValue; label: string }[] = [
   { value: 'OTHER', label: 'Otro' },
 ];
 
+function formatMinutesToHm(totalMinutes: number): string {
+  const safeMinutes = Number.isFinite(totalMinutes) ? Math.max(0, Math.floor(totalMinutes)) : 0;
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
+
+  if (hours <= 0) {
+    return `${minutes} min`;
+  }
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${minutes} min`;
+}
+
 
 function AdminOrdenDetallePage() {
   const { id } = useParams<{ id: string }>();
@@ -580,8 +594,7 @@ function AdminOrdenDetallePage() {
                           Tiempo Funcional
                         </p>
                         <p className="text-lg font-bold text-primary">
-                          {workOrderRaw.functionalTimeMinutes}{' '}
-                          <span className="text-sm font-normal">min</span>
+                          {formatMinutesToHm(workOrderRaw.functionalTimeMinutes)}
                         </p>
                       </div>
                     )}

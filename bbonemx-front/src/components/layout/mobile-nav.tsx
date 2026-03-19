@@ -24,6 +24,7 @@ import {
   Clock,
   RefreshCw,
   Timer,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -71,6 +72,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
         { href: '/maquinas', label: 'Máquinas', icon: Forklift },
         { href: '/hallazgos', label: 'Hallazgos', icon: Search },
         { href: '/admin/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
+        { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
         {
           label: 'Gestión de Técnicos',
           icon: Users,
@@ -88,7 +90,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
             { href: '/departamentos', label: 'Departamentos', icon: Building },
             { href: '/puestos', label: 'Puestos', icon: Briefcase },
             { href: '/solicitantes', label: 'Solicitantes', icon: Users },
-            { href: '/repuestos', label: 'Repuestos', icon: Bolt },
+            { href: '/repuestos', label: 'Refacciones', icon: Bolt },
             { href: '/materiales', label: 'Materiales', icon: Drill },
             { href: '/turnos', label: 'Turnos', icon: Clock }
           ]
@@ -98,13 +100,14 @@ export function MobileNav({ onClose }: MobileNavProps) {
     if (isTechnician) {
       const items: NavItem[] = [
         { href: '/tecnico/pendientes', label: 'Mis Pendientes', icon: ClipboardList },
+        ...(isBoss ? [{ href: '/tecnico/mis-ordenes', label: 'Mis Órdenes', icon: ClipboardList } as NavItem] : []),
         { href: '/horario', label: 'Mi Horario', icon: Calendar },
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
         { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
       ];
       if (isBoss || isAdmin) {
         items.push(
-          { href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle },
+          ...(isBoss ? [] : [{ href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle } as NavItem]),
           { href: '/solicitud-material/nueva', label: 'Solicitud de Material', icon: FileCog2 },
         );
       }

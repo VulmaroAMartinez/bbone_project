@@ -213,10 +213,9 @@ input CreateMaterialRequestInput {
   customMachineName: String!
   description: String
   importance: String!
-  isGenericAllowed: Boolean!
   items: [CreateMaterialRequestItemInput!]
   justification: String
-  machineId: ID!
+  machineIds: [ID!]!
   priority: String!
   requesterId: ID!
   suggestedSupplier: String
@@ -226,6 +225,7 @@ input CreateMaterialRequestItemInput {
   brand: String
   customName: String
   description: String
+  isGenericAllowed: Boolean = false
   materialId: ID
   materialRequestId: ID
   model: String
@@ -634,20 +634,35 @@ type MaterialRequest {
   customMachineModel: String
   customMachineName: String
   description: String
+  emailSentAt: DateTime
   folio: String!
+  histories: [MaterialRequestHistory!]
   id: ID!
   importance: RequestImportance!
   isActive: Boolean!
-  isGenericAllowed: Boolean!
   items: [MaterialRequestItem!]!
   justification: String
-  machine: Machine!
-  machineId: ID!
+  machines: [MaterialRequestMachine!]!
   priority: RequestPriority!
   requester: User!
   requesterId: ID!
   sequence: Int!
   suggestedSupplier: String
+  updatedAt: DateTime!
+}
+
+type MaterialRequestHistory {
+  createdAt: DateTime!
+  deliveryDate: DateTime
+  deliveryMerchandise: String
+  id: ID!
+  isActive: Boolean!
+  materialRequestId: ID!
+  progressPercentage: Int
+  purchaseOrder: String
+  purchaseRequest: String
+  status: StatusHistoryMR!
+  supplier: String
   updatedAt: DateTime!
 }
 
@@ -657,6 +672,7 @@ type MaterialRequestItem {
   customName: String
   description: String
   id: ID!
+  isGenericAllowed: Boolean!
   material: Material
   materialId: ID
   model: String
@@ -669,6 +685,12 @@ type MaterialRequestItem {
   sparePartId: ID
   unitOfMeasure: String
   updatedAt: DateTime!
+}
+
+type MaterialRequestMachine {
+  id: ID!
+  machine: Machine!
+  machineId: ID!
 }
 
 type MixPoint {
@@ -760,6 +782,9 @@ type Mutation {
   """Inicia sesión con número de empleado y contraseña"""
   login(input: LoginInput!): LoginResponse!
 
+  """Cierra sesión y limpia cookies de autenticación"""
+  logout: Boolean!
+
   """
   Marca todas las notificaciones como leídas. Retorna cantidad actualizada.
   """
@@ -770,6 +795,9 @@ type Mutation {
   pausePreventiveTasksCron: Boolean!
   pauseWorkOrder(id: ID!, input: PauseWorkOrderInput!): WorkOrder!
 
+  """Renueva sesión con refresh token rotativo en cookie HttpOnly"""
+  refreshAuth: Boolean!
+
   """Registra un token FCM para recibir notificaciones push"""
   registerDeviceToken(input: RegisterDeviceTokenInput!): UserDeviceToken!
   removeMaterialFromRequest(materialRequestMaterialId: ID!): Boolean!
@@ -778,6 +806,7 @@ type Mutation {
   resumePreventiveTasksCron: Boolean!
   resumeWorkOrder(id: ID!): WorkOrder!
   runPreventiveTasksCron: GenerateWorkOrdersResult!
+  sendMaterialRequestEmail(input: SendMaterialRequestEmailInput!): Boolean!
   setLeadTechnician(id: ID!, technicianId: ID!): WorkOrderTechnician!
   signWorkOrder(input: CreateWorkOrderSignatureInput!): WorkOrderSignature!
   startWorkOrder(id: ID!, input: StartWorkOrderInput!): WorkOrder!
@@ -792,6 +821,7 @@ type Mutation {
   updateMachine(id: ID!, input: UpdateMachineInput!): Machine!
   updateMaterial(id: ID!, input: UpdateMaterialInput!): Material!
   updateMaterialRequest(id: ID!, input: UpdateMaterialRequestInput!): MaterialRequest!
+  updateMaterialRequestHistory(input: UpdateMaterialRequestHistoryInput!): MaterialRequest!
 
   """Actualiza una preferencia de notificación"""
   updateNotificationPreference(input: UpdateNotificationPreferenceInput!): NotificationPreference!
@@ -1241,6 +1271,13 @@ type SchedulerStatus {
   jobs: [CronJobStatus!]!
 }
 
+input SendMaterialRequestEmailInput {
+  cc: [String!]
+  materialRequestId: ID!
+  message: String
+  to: [String!]!
+}
+
 type Shift {
   createdAt: DateTime!
   endTime: String!
@@ -1249,6 +1286,11 @@ type Shift {
   name: String!
   startTime: String!
   updatedAt: DateTime!
+}
+
+enum SortOrder {
+  ASC
+  DESC
 }
 
 type SparePart {
@@ -1270,6 +1312,35 @@ input StartWorkOrderInput {
 
   """Descripción de la avería al iniciar (si aplica)"""
   observations: String
+}
+
+"""
+Estados posibles del historial de materiales de una solicitud de materiales
+"""
+enum StatusHistoryMR {
+  """Entregado"""
+  DELIVERED
+
+  """Pendiente de aprobación de cotización"""
+  PENDING_APPROVAL_QUOTATION
+
+  """Pendiente de entrega"""
+  PENDING_DELIVERY
+
+  """Pendiente de pago"""
+  PENDING_PAYMENT
+
+  """Pendiente de orden de compra"""
+  PENDING_PURCHASE_ORDER
+
+  """Pendiente de solicitud de compra"""
+  PENDING_PURCHASE_REQUEST
+
+  """Pendiente de cotización"""
+  PENDING_QUOTATION
+
+  """Pendiente de alta de proveedor"""
+  PENDING_SUPPLIER_REGISTRATION
 }
 
 """Tipo de parada de la orden de trabajo"""
@@ -1411,6 +1482,15 @@ input UpdateMaterialInput {
   unitOfMeasure: String
 }
 
+input UpdateMaterialRequestHistoryInput {
+  deliveryMerchandise: String
+  materialRequestId: ID!
+  purchaseOrder: String
+  purchaseRequest: String
+  status: StatusHistoryMR!
+  supplier: String
+}
+
 input UpdateMaterialRequestInput {
   boss: String
   category: String
@@ -1422,10 +1502,9 @@ input UpdateMaterialRequestInput {
   description: String
   id: ID!
   importance: String
-  isGenericAllowed: Boolean
   items: [CreateMaterialRequestItemInput!]
   justification: String
-  machineId: ID
+  machineIds: [ID!]
   priority: String
   requesterId: ID
   suggestedSupplier: String
@@ -1737,9 +1816,18 @@ type WorkOrderSignature {
   workOrderId: ID!
 }
 
+enum WorkOrderSortField {
+  CREATED_AT
+  FOLIO
+  PRIORITY
+  SCHEDULED_DATE
+  STATUS
+  UPDATED_AT
+}
+
 input WorkOrderSortInput {
-  field: String! = "createdAt"
-  order: String! = "DESC"
+  field: WorkOrderSortField! = CREATED_AT
+  order: SortOrder! = DESC
 }
 
 type WorkOrderSparePart {

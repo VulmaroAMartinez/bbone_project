@@ -1,7 +1,7 @@
 import { useQuery } from '@apollo/client/react';
 import { useNavigate } from 'react-router-dom';
 
-import { 
+import {
   MyAssignedWorkOrdersDocument,
   WorkOrderItemFragmentDoc,
   AreaBasicFragmentDoc,
@@ -67,16 +67,19 @@ function PendientesPage() {
             className="bg-card border-border hover:border-primary/40 transition-colors cursor-pointer"
             onClick={() => navigate(`/tecnico/orden/${order.id}`)}
           >
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
+            <CardHeader>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <CardTitle className="text-lg font-mono">{order.folio}</CardTitle>
                     <StatusBadge status={order.status} />
+                    {order.priority && <PriorityBadge priority={order.priority} />}
+                    {order.maintenanceType && (
+                      <MaintenanceTypeBadge type={order.maintenanceType} size="sm" />
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{order.description}</p>
                 </div>
-                {order.priority && <PriorityBadge priority={order.priority} />}
+                <p className="text-sm text-muted-foreground">{order.description}</p>
               </div>
             </CardHeader>
             <CardContent>
@@ -93,14 +96,12 @@ function PendientesPage() {
                     {machine?.name}
                   </span>
                 )}
-                {order.maintenanceType && (
-                  <MaintenanceTypeBadge type={order.maintenanceType} size="sm" />
-                )}
+
                 <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
                   {new Date(order.createdAt).toLocaleDateString('es-MX')}
                 </span>
-                
+
                 {order.priority === 'CRITICAL' && (
                   <span className="flex items-center gap-1 text-destructive">
                     <AlertTriangle className="h-4 w-4" />

@@ -13,5 +13,4 @@ export class CreateWorkOrderSignatureInput {
   @IsString()
   @MaxLength(500)
   signatureImagePath: string;
-
 }

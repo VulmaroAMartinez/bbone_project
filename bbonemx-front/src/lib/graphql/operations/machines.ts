@@ -48,7 +48,7 @@ export const GET_MACHINE_WORK_ORDERS = gql`
     workOrdersFiltered(
       filters: { search: $id }
       pagination: { page: 1, limit: 50 }
-      sort: { field: "createdAt", order: "DESC" }
+      sort: { field: CREATED_AT, order: DESC }
     ) {
       data {
         id
@@ -79,7 +79,6 @@ export const GET_MACHINE_MATERIAL_REQUESTS = gql`
         priority
         importance
         boss
-        isGenericAllowed
         suggestedSupplier
         comments
         justification
