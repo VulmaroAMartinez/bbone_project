@@ -55,6 +55,12 @@ import RoleSelectorPage from './pages/RoleSelectorPage';
 import OvertimePage from './pages/overtime/OvertimePage';
 import MaterialRequestHistoryPage from './pages/admin/material-requests/MaterialRequestHistoryPage';
 
+// Activities
+import ActivitiesPage from './pages/admin/activities/ActivitiesPage';
+import ActivityFormPage from './pages/admin/activities/ActivityFormPage';
+import ActivityWorkOrdersPage from './pages/admin/activities/ActivityWorkOrdersPage';
+import ActivityMaterialRequestsPage from './pages/admin/activities/ActivityMaterialRequestsPage';
+
 const ShellLayout = ({ title }: { title: string }) => (
   <AppShell title={title}>
     <Outlet />
@@ -101,6 +107,11 @@ function App() {
               <Route path="/seguimiento-solicitudes" element={<MaterialRequestHistoryPage />} />
               <Route path="/solicitud-material/:id" element={<MaterialRequestDetailPage />} />
               <Route path="/horas-extra" element={<OvertimePage />} />
+              <Route path="/admin/actividades" element={<ActivitiesPage />} />
+              <Route path="/admin/actividades/nueva" element={<ActivityFormPage />} />
+              <Route path="/admin/actividades/:id/editar" element={<ActivityFormPage />} />
+              <Route path="/admin/actividades/:id/ordenes" element={<ActivityWorkOrdersPage />} />
+              <Route path="/admin/actividades/:id/solicitudes" element={<ActivityMaterialRequestsPage />} />
             </Route>
           </Route>
 

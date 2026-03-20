@@ -27,6 +27,7 @@ import {
   RefreshCw,
   Timer,
   ClipboardCheck,
+  ListChecks,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -70,6 +71,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/admin/ordenes', label: 'Órdenes', icon: ClipboardList },
         { href: '/admin/ordenes-programadas', label: 'Programadas', icon: Calendar },
+        { href: '/admin/actividades', label: 'Actividades', icon: ListChecks },
         { href: '/maquinas', label: 'Máquinas', icon: Forklift },
         { href: '/hallazgos', label: 'Hallazgos', icon: Search },
         { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },

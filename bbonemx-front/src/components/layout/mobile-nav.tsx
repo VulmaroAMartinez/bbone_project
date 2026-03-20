@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Timer,
   ClipboardCheck,
+  ListChecks,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -69,6 +70,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
         { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/admin/ordenes', label: 'Órdenes', icon: ClipboardList },
         { href: '/admin/ordenes-programadas', label: 'Programadas', icon: Calendar },
+        { href: '/admin/actividades', label: 'Actividades', icon: ListChecks },
         { href: '/maquinas', label: 'Máquinas', icon: Forklift },
         { href: '/hallazgos', label: 'Hallazgos', icon: Search },
         { href: '/admin/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },

@@ -1,18 +1,12 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useNavigate } from 'react-router-dom';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
 import { toast } from 'sonner';
 import {
     MachineBasicFragmentDoc,
     GetMachinesPageDataDocument,
-    CreateMachineDocument,
-    UpdateMachineDocument,
     DeactivateMachineDocument,
     ActivateMachineDocument,
-    SubAreaBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
 import type { MachineBasicFragment } from '@/lib/graphql/generated/graphql';
 import { useAuth } from '@/contexts/auth-context';
@@ -20,7 +14,6 @@ import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -30,13 +23,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Combobox } from '@/components/ui/combobox';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogFooter,
     DialogDescription,
 } from '@/components/ui/dialog';
 import {
@@ -70,7 +61,6 @@ import {
     PowerOff,
     Power,
     MoreVertical,
-    Loader2,
     Cog,
     Info,
     ClipboardList,
@@ -79,45 +69,9 @@ import {
     MapPin,
     ArrowUpDown,
     X,
-    Upload,
-    ImageIcon,
-    Trash2,
 } from 'lucide-react';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
-import { useAreaMachineSelector } from '@/hooks/useAreaMachineSelector';
-
-// ─── Schema de validación ───────────────────────────────────
-
-const machineSchema = yup.object({
-    code: yup.string().trim().required('El código es obligatorio'),
-    name: yup.string().trim().required('El nombre es obligatorio'),
-    areaId: yup.string().required('Seleccione un área'),
-    subAreaId: yup.string().default(''), // ← YA NO ES REQUIRED
-    description: yup.string().trim().default(''),
-    brand: yup.string().trim().default(''),
-    model: yup.string().trim().default(''),
-    serialNumber: yup.string().trim().default(''),
-    installationDate: yup.string().default(''),
-    machinePhotoUrl: yup.string().trim().default(''),
-    operationalManualUrl: yup.string().trim().url('URL no válida').default(''),
-});
-
-
-type MachineFormValues = yup.InferType<typeof machineSchema>;
-
-const EMPTY_FORM: MachineFormValues = {
-    code: '',
-    name: '',
-    areaId: '',
-    subAreaId: '',
-    description: '',
-    brand: '',
-    model: '',
-    serialNumber: '',
-    installationDate: '',
-    machinePhotoUrl: '',
-    operationalManualUrl: '',
-};
+import { MachineFormModal } from './modals/MachineFormModal';
 
 const getMachineLocationText = (machine: MachineBasicFragment) => {
     if (machine.area) {
@@ -142,8 +96,6 @@ export default function MachinesPage() {
     });
 
     // ─── Mutations
-    const [createMachine] = useMutation(CreateMachineDocument);
-    const [updateMachine] = useMutation(UpdateMachineDocument);
     const [deactivateMachine] = useMutation(DeactivateMachineDocument);
     const [activateMachine] = useMutation(ActivateMachineDocument);
 
@@ -156,43 +108,10 @@ export default function MachinesPage() {
     const [editingMachine, setEditingMachine] = useState<MachineBasicFragment | null>(null);
     const [viewingMachine, setViewingMachine] = useState<MachineBasicFragment | null>(null);
     const [deactivatingMachine, setDeactivatingMachine] = useState<MachineBasicFragment | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
-    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const {
-        selectedAreaId,
-        selectedSubAreaId: _hookSubAreaId, // no usamos este, react-hook-form lo maneja
-        subAreasData,
-        isLoadingSubAreas: subAreasLoading,
-        hasSubAreas,
-        subAreasLoaded,
-        handleAreaChange: hookAreaChange,
-        handleSubAreaChange: hookSubAreaChange,
-        initWith: initSelector,
-    } = useAreaMachineSelector();
-
-    // ─── Form
-    const {
-        register,
-        handleSubmit,
-        reset,
-        control,
-        setValue,
-        watch,
-        formState: { errors },
-    } = useForm<MachineFormValues>({
-        resolver: yupResolver(machineSchema),
-        defaultValues: EMPTY_FORM,
-    });
 
     // ─── Datos derivados
     const machines = unmaskFragment(MachineBasicFragmentDoc, data?.machinesWithDeleted ?? []);
     const areas = data?.areasActive ?? [];
-
-    const subAreas = subAreasData?.subAreasByArea
-        ? unmaskFragment(SubAreaBasicFragmentDoc, subAreasData.subAreasByArea)
-        : [];
 
     const filteredMachines = useMemo(() => {
         let result = [...machines];
@@ -222,38 +141,12 @@ export default function MachinesPage() {
     // ─── Handlers
 
     const openCreateForm = () => {
-        initSelector('', '');
         setEditingMachine(null);
-        reset(EMPTY_FORM);
-        setPhotoPreview(null);
         setIsFormOpen(true);
     };
 
     const openEditForm = (machine: MachineBasicFragment) => {
         setEditingMachine(machine);
-        // Obtener el área desde la relación directa o desde la sub-área
-        const areaId = machine.areaId ?? machine.subArea?.area?.id ?? '';
-        const subAreaId = machine.subAreaId ?? '';
-
-        // Inicializar el hook con los valores de la máquina
-        initSelector(areaId, subAreaId || undefined);
-
-        reset({
-            code: machine.code,
-            name: machine.name,
-            areaId,
-            subAreaId,
-            description: machine.description ?? '',
-            brand: machine.brand ?? '',
-            model: machine.model ?? '',
-            serialNumber: machine.serialNumber ?? '',
-            installationDate: machine.installationDate
-                ? new Date(machine.installationDate).toISOString().split('T')[0]
-                : '',
-            machinePhotoUrl: machine.machinePhotoUrl ?? '',
-            operationalManualUrl: machine.operationalManualUrl ?? '',
-        });
-        setPhotoPreview(machine.machinePhotoUrl || null);
         setIsFormOpen(true);
     };
 
@@ -261,94 +154,6 @@ export default function MachinesPage() {
         setViewingMachine(machine);
         setIsInfoOpen(true);
     };
-
-    const API_BASE = import.meta.env.VITE_GRAPHQL_URL?.replace('/graphql', '') ?? 'http://localhost:3000';
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setIsUploading(true);
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            const res = await fetch(`${API_BASE}/api/uploads`, {
-                method: 'POST',
-                credentials: 'include',
-                body: formData,
-            });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.message || 'Error al subir la imagen');
-            }
-            const { url } = await res.json();
-            const fullUrl = `${API_BASE}${url}`;
-            setValue('machinePhotoUrl', fullUrl);
-            setPhotoPreview(fullUrl);
-            toast.success('Imagen subida correctamente');
-        } catch (err: any) {
-            toast.error(err.message || 'Error al subir la imagen');
-        } finally {
-            setIsUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
-
-    const removePhoto = () => {
-        setValue('machinePhotoUrl', '');
-        setPhotoPreview(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-
-    /** Al cambiar el área en el form, resetear sub-área */
-    const handleAreaChange = (areaId: string) => {
-        hookAreaChange(areaId);        // hook maneja la cascada de queries
-        setValue('areaId', areaId);
-        setValue('subAreaId', '');       // limpiar sub-área del form
-    };
-
-
-    const onSubmit = async (values: MachineFormValues) => {
-        setIsSaving(true);
-        try {
-            const payload: any = {
-                code: values.code,
-                name: values.name,
-                description: values.description || undefined,
-                brand: values.brand || undefined,
-                model: values.model || undefined,
-                serialNumber: values.serialNumber || undefined,
-                installationDate: values.installationDate
-                    ? new Date(values.installationDate).toISOString()
-                    : undefined,
-                machinePhotoUrl: values.machinePhotoUrl || undefined,
-                operationalManualUrl: values.operationalManualUrl || undefined,
-            };
-
-            // ── XOR: enviar areaId O subAreaId, nunca ambos ──
-            if (values.subAreaId) {
-                payload.subAreaId = values.subAreaId;
-                // NO enviar areaId cuando hay subAreaId
-            } else {
-                payload.areaId = values.areaId;
-                // NO enviar subAreaId cuando hay areaId directo
-            }
-
-            if (editingMachine) {
-                await updateMachine({ variables: { id: editingMachine.id, input: payload } });
-                toast.success('Máquina actualizada correctamente');
-            } else {
-                await createMachine({ variables: { input: payload } });
-                toast.success('Máquina creada correctamente');
-            }
-            setIsFormOpen(false);
-            refetch();
-        } catch (err: any) {
-            toast.error(err.message || 'Error al guardar la máquina');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
 
     const handleToggleStatus = async (machine: MachineBasicFragment) => {
         if (machine.isActive) {
@@ -380,12 +185,6 @@ export default function MachinesPage() {
         setSearchTerm('');
         setFilterAreaId('all');
         setFilterStatus('all');
-    };
-
-    // ─── Helper de errores del form
-    const FieldError = ({ name }: { name: keyof MachineFormValues }) => {
-        const err = errors[name];
-        return err ? <p className="text-xs text-destructive mt-1">{err.message}</p> : null;
     };
 
     // ─── Render ───────────────────────────────────────────────
@@ -516,208 +315,13 @@ export default function MachinesPage() {
             )}
 
             {/* ─── Modal: Crear / Editar ──────────────────────────── */}
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {editingMachine ? 'Editar Máquina' : 'Nueva Máquina'}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {editingMachine
-                                ? `Modificando ${editingMachine.code} - ${editingMachine.name}`
-                                : 'Completa los datos para registrar una máquina.'}
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 py-2">
-                        {/* Identificación */}
-                        <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/10">
-                            <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">
-                                Identificación
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label>Código *</Label>
-                                    <Input {...register('code')} placeholder="Ej: MAQ-001" />
-                                    <FieldError name="code" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Nombre *</Label>
-                                    <Input {...register('name')} placeholder="Nombre de la máquina" />
-                                    <FieldError name="name" />
-                                </div>
-                                <div className="sm:col-span-2 space-y-1.5">
-                                    <Label>Descripción</Label>
-                                    <Input {...register('description')} placeholder="Descripción opcional" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Ubicación (Área → Sub-área) */}
-                        <div className="space-y-4 p-4 rounded-lg border border-border">
-                            <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">
-                                Ubicación
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label>Área *</Label>
-                                    <Controller
-                                        name="areaId"
-                                        control={control}
-                                        render={() => (
-                                            <Combobox
-                                                options={areas.map((a: any) => ({ value: a.id, label: a.name }))}
-                                                value={watch('areaId')}
-                                                onValueChange={handleAreaChange}
-                                                placeholder="Seleccionar área..."
-                                                searchPlaceholder="Buscar área..."
-                                            />
-                                        )}
-                                    />
-                                    <FieldError name="areaId" />
-                                </div>
-                                {selectedAreaId && subAreasLoaded && hasSubAreas && (
-                                    <div className="space-y-1.5">
-                                        <Label>Sub-área (Opcional)</Label>
-                                        <Controller
-                                            name="subAreaId"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <Combobox
-                                                    options={subAreas.map((sa: any) => ({ value: sa.id, label: sa.name }))}
-                                                    value={field.value}
-                                                    onValueChange={(val) => {
-                                                        field.onChange(val);
-                                                        hookSubAreaChange(val);
-                                                    }}
-                                                    placeholder={subAreasLoading ? 'Cargando...' : 'Seleccionar sub-área (opcional)...'}
-                                                    searchPlaceholder="Buscar sub-área..."
-                                                    disabled={subAreasLoading}
-                                                />
-                                            )}
-                                        />
-                                    </div>
-                                )}
-
-                            </div>
-                        </div>
-
-                        {/* Especificaciones técnicas */}
-                        <div className="space-y-4 p-4 rounded-lg border border-border">
-                            <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">
-                                Especificaciones
-                            </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label>Marca</Label>
-                                    <Input {...register('brand')} placeholder="Ej: Siemens" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Modelo</Label>
-                                    <Input {...register('model')} placeholder="Ej: S7-1200" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Número de serie</Label>
-                                    <Input {...register('serialNumber')} placeholder="Ej: SN-123456" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Fecha de instalación</Label>
-                                    <Input type="date" {...register('installationDate')} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Foto + Documentación */}
-                        <div className="space-y-4 p-4 rounded-lg border border-border">
-                            <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">
-                                Foto y Documentación
-                            </h4>
-                            <div className="space-y-4">
-                                <div className="space-y-1.5">
-                                    <Label>Foto de máquina</Label>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/jpg,image/webp"
-                                        onChange={handleFileUpload}
-                                        className="hidden"
-                                    />
-                                    {photoPreview ? (
-                                        <div className="relative rounded-lg border border-border overflow-hidden">
-                                            <img
-                                                src={photoPreview}
-                                                alt="Foto de máquina"
-                                                className="w-full h-40 object-cover"
-                                            />
-                                            <div className="absolute top-2 right-2 flex gap-1">
-                                                <Button
-                                                    type="button"
-                                                    variant="secondary"
-                                                    size="icon-sm"
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    disabled={isUploading}
-                                                    title="Cambiar imagen"
-                                                >
-                                                    <Upload className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive"
-                                                    size="icon-sm"
-                                                    onClick={removePhoto}
-                                                    title="Eliminar imagen"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="w-full h-24 flex flex-col gap-1.5 text-muted-foreground"
-                                            onClick={() => fileInputRef.current?.click()}
-                                            disabled={isUploading}
-                                        >
-                                            {isUploading ? (
-                                                <>
-                                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                                    <span className="text-xs">Subiendo...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <ImageIcon className="h-5 w-5" />
-                                                    <span className="text-xs">Haz clic para subir una imagen</span>
-                                                    <span className="text-[10px]">JPG, PNG o WebP (máx. 5MB)</span>
-                                                </>
-                                            )}
-                                        </Button>
-                                    )}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>URL Manual operativo</Label>
-                                    <Input
-                                        {...register('operationalManualUrl')}
-                                        placeholder="https://..."
-                                        type="url"
-                                    />
-                                    <FieldError name="operationalManualUrl" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <DialogFooter className="pt-4 border-t border-border sticky bottom-0 bg-background">
-                            <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>
-                                Cancelar
-                            </Button>
-                            <Button type="submit" disabled={isSaving}>
-                                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                                {editingMachine ? 'Guardar cambios' : 'Crear máquina'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <MachineFormModal
+                open={isFormOpen}
+                onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingMachine(null); }}
+                machine={editingMachine}
+                areas={areas}
+                onSuccess={() => refetch()}
+            />
 
             {/* ─── Modal: Ver información ────────────────────────── */}
             <MachineInfoModal

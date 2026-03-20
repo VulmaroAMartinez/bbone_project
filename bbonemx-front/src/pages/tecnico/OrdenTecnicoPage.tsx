@@ -1,9 +1,5 @@
-import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { useAuth } from '@/contexts/auth-context';
 
 import {
@@ -16,39 +12,21 @@ import {
   WorkOrderItemFragmentDoc,
   AreaBasicFragmentDoc,
   MachineBasicFragmentDoc,
-  type WorkOrderStatus,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import {
   ADD_WORK_ORDER_SPARE_PART_MUTATION,
   ADD_WORK_ORDER_MATERIAL_MUTATION,
-  GET_MACHINE_SPARE_PARTS_FOR_WO,
-  GET_ACTIVE_MATERIALS_QUERY,
 } from '@/lib/graphql/operations/work-orders';
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge, PriorityBadge, MaintenanceTypeBadge, StopTypeBadge } from '@/components/ui/status-badge';
 import { WorkOrderDetailSkeleton } from '@/components/ui/skeleton-loaders';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { SignatureDialog } from '@/components/ui/signature-dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Combobox } from '@/components/ui/combobox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   ArrowLeft,
   MapPin,
@@ -61,51 +39,12 @@ import {
   Pause,
   ImageIcon,
   Pen,
-  Package,
-  Boxes,
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ─── Schema del modal de cierre ─────────────────────────────────────────────
-const closeSchema = yup.object({
-  finalStatus: yup
-    .mixed<WorkOrderStatus>()
-    .oneOf(['COMPLETED', 'TEMPORARY_REPAIR'])
-    .required('El estado final es requerido'),
-  breakdownDescription: yup.string().default(''),
-  cause: yup.string().when('$isAveria', {
-    is: true,
-    then: (s) => s.trim().required('La causa raíz es requerida para averías'),
-    otherwise: (s) => s.default(''),
-  }),
-  actionTaken: yup.string().when('$isAveria', {
-    is: true,
-    then: (s) => s.trim().required('La acción realizada es requerida para averías'),
-    otherwise: (s) => s.default(''),
-  }),
-  downtimeMinutes: yup.number().when('$isAveria', {
-    is: true,
-    then: (s) =>
-      s
-        .typeError('Debe ser un número')
-        .min(0, 'No puede ser negativo')
-        .required('El tiempo muerto es requerido para averías'),
-    otherwise: (s) => s.nullable().optional(),
-  }),
-  observations: yup.string().when('$isAveria', {
-    is: false,
-    then: (s) => s.trim().required('Las observaciones son requeridas'),
-    otherwise: (s) => s.default(''),
-  }),
-  toolsUsed: yup.string().default(''),
-  sparePartId: yup.string().nullable().optional(),
-  customSparePart: yup.string().default(''),
-  materialId: yup.string().nullable().optional(),
-  customMaterial: yup.string().default(''),
-});
-
-type CloseFormValues = yup.InferType<typeof closeSchema>;
+import { PauseModal } from './modals/PauseModal';
+import { CompleteModal, type CloseFormValues } from './modals/CompleteModal';
 
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function TecnicoOrdenPage() {
@@ -120,13 +59,6 @@ export default function TecnicoOrdenPage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  const [fetchSpareParts, { data: sparePartsData, loading: sparePartsLoading }] =
-    useLazyQuery(GET_MACHINE_SPARE_PARTS_FOR_WO);
-
-  const { data: materialsData } = useQuery(GET_ACTIVE_MATERIALS_QUERY, {
-    fetchPolicy: 'cache-first',
-  });
-
   const [startOrder, { loading: starting }] = useMutation(StartWorkOrderDocument);
   const [pauseOrder, { loading: pausing }] = useMutation(PauseWorkOrderDocument);
   const [completeOrder, { loading: completing }] = useMutation(CompleteWorkOrderDocument);
@@ -137,7 +69,6 @@ export default function TecnicoOrdenPage() {
 
   // ─── Local state
   const [pauseOpen, setPauseOpen] = useState(false);
-  const [pauseReason, setPauseReason] = useState('');
   const [completeOpen, setCompleteOpen] = useState(false);
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const [photoAfterPreview, setPhotoAfterPreview] = useState<string | null>(null);
@@ -153,46 +84,6 @@ export default function TecnicoOrdenPage() {
   const isProcessing = starting || pausing || completing;
   const isClosed =
     order?.status === 'COMPLETED' || order?.status === 'TEMPORARY_REPAIR';
-
-  // ─── Close modal form
-  const {
-    register,
-    handleSubmit,
-    control,
-    watch,
-    reset,
-    formState: { errors },
-  } = useForm<CloseFormValues>({
-    resolver: yupResolver<CloseFormValues, any, any>(closeSchema),
-    context: { isAveria },
-    defaultValues: {
-      finalStatus: 'COMPLETED',
-      breakdownDescription: '',
-      cause: '',
-      actionTaken: '',
-      downtimeMinutes: undefined,
-      observations: '',
-      toolsUsed: '',
-      sparePartId: null,
-      customSparePart: '',
-      materialId: null,
-      customMaterial: '',
-    },
-  });
-
-  const watchedSparePartId = watch('sparePartId');
-  const watchedMaterialId = watch('materialId');
-
-  // ─── Cargar refacciones al abrir el modal (solo si hay máquina)
-  useEffect(() => {
-    if (completeOpen && order?.machineId) {
-      fetchSpareParts({ variables: { machineId: order.machineId } });
-    }
-  }, [completeOpen, order?.machineId, fetchSpareParts]);
-
-  // ─── Derivados
-  const spareParts = (sparePartsData as any)?.sparePartsByMachine ?? [];
-  const materials = (materialsData as any)?.materialsActive ?? [];
 
   const photoBefore = workOrderRaw?.photos?.find((p) => p.photoType === 'BEFORE');
   const photoAfterServer = workOrderRaw?.photos?.find((p) => p.photoType === 'AFTER');
@@ -217,36 +108,18 @@ export default function TecnicoOrdenPage() {
     }
   };
 
-  const handlePause = async () => {
-    if (!order || !pauseReason.trim()) return;
+  const handlePause = async (reason: string) => {
+    if (!order) return;
     try {
       await pauseOrder({
-        variables: { id: order.id, input: { pauseReason: pauseReason.trim() } },
+        variables: { id: order.id, input: { pauseReason: reason } },
       });
       setPauseOpen(false);
-      setPauseReason('');
       await refetch();
       toast.success('Orden pausada');
     } catch (err: any) {
       toast.error(err.message || 'Error al pausar la orden');
     }
-  };
-
-  const openCompleteModal = () => {
-    reset({
-      finalStatus: 'COMPLETED',
-      breakdownDescription: '',
-      cause: '',
-      actionTaken: '',
-      downtimeMinutes: undefined,
-      observations: '',
-      toolsUsed: '',
-      sparePartId: null,
-      customSparePart: '',
-      materialId: null,
-      customMaterial: '',
-    });
-    setCompleteOpen(true);
   };
 
   const handleConfirmCompletion = async (values: CloseFormValues) => {
@@ -434,7 +307,7 @@ export default function TecnicoOrdenPage() {
                   <Pause className="h-4 w-4" /> Pausar
                 </Button>
                 <Button
-                  onClick={openCompleteModal}
+                  onClick={() => setCompleteOpen(true)}
                   disabled={isProcessing}
                   className="gap-2 bg-chart-3 hover:bg-chart-3/90 text-primary-foreground"
                 >
@@ -748,299 +621,22 @@ export default function TecnicoOrdenPage() {
       )}
 
       {/* ── Modal de Pausa ─────────────────────────────────────────────────── */}
-      <Dialog open={pauseOpen} onOpenChange={setPauseOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Pausar Orden de Trabajo</DialogTitle>
-            <DialogDescription>
-              Indica el motivo. Solo el Administrador podrá reanudarla.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>
-                Motivo de la Pausa <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                value={pauseReason}
-                onChange={(e) => setPauseReason(e.target.value)}
-                placeholder="Ej: Falta de refacción, espera de proveedor..."
-                className="min-h-[100px]"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPauseOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handlePause}
-              disabled={!pauseReason.trim() || isProcessing}
-            >
-              {pausing ? 'Pausando...' : 'Confirmar Pausa'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PauseModal
+        open={pauseOpen}
+        onOpenChange={setPauseOpen}
+        onConfirm={handlePause}
+        isPausing={pausing}
+      />
 
       {/* ── Modal de Cierre ────────────────────────────────────────────────── */}
-      <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
-        <DialogContent className="max-w-2xl w-full">
-          <DialogHeader>
-            <DialogTitle>Cerrar Orden de Trabajo</DialogTitle>
-            <DialogDescription>
-              Complete el reporte técnico antes de cerrar la OT.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit(handleConfirmCompletion)}>
-            <ScrollArea className="max-h-[70vh] pr-4">
-              <div className="space-y-5 py-2">
-
-                {/* 1. Estado final */}
-                <div className="space-y-2">
-                  <Label className="text-base font-semibold">Estado Final</Label>
-                  <Controller
-                    name="finalStatus"
-                    control={control}
-                    render={({ field }) => (
-                      <RadioGroup
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        className="grid gap-3"
-                      >
-                        <div
-                          className="flex items-start space-x-3 border p-4 rounded-lg hover:bg-muted/50 cursor-pointer"
-                          onClick={() => field.onChange('COMPLETED')}
-                        >
-                          <RadioGroupItem value="COMPLETED" id="status-completed" className="mt-1" />
-                          <div>
-                            <Label htmlFor="status-completed" className="text-sm font-semibold cursor-pointer">
-                              Arreglo Definitivo (Completada)
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              La máquina quedó reparada en óptimas condiciones.
-                            </p>
-                          </div>
-                        </div>
-                        <div
-                          className="flex items-start space-x-3 border border-amber-500/30 bg-amber-500/5 p-4 rounded-lg hover:bg-amber-500/10 cursor-pointer"
-                          onClick={() => field.onChange('TEMPORARY_REPAIR')}
-                        >
-                          <RadioGroupItem value="TEMPORARY_REPAIR" id="status-temp" className="mt-1" />
-                          <div>
-                            <Label htmlFor="status-temp" className="text-sm font-semibold text-amber-700 cursor-pointer">
-                              Reparación Temporal (Parche)
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Funciona, pero requiere intervención definitiva posterior.
-                            </p>
-                          </div>
-                        </div>
-                      </RadioGroup>
-                    )}
-                  />
-                </div>
-
-                <hr className="border-border/50" />
-
-                {/* 2. Campos según tipo de parada */}
-                {isAveria ? (
-                  <div className="space-y-4">
-                    <p className="text-sm font-semibold flex items-center gap-2 text-destructive">
-                      <AlertTriangle className="h-4 w-4" /> Reporte de Avería
-                    </p>
-
-                    <div className="space-y-2">
-                      <Label>Descripción técnica de la falla</Label>
-                      <Textarea
-                        {...register('breakdownDescription')}
-                        placeholder="Detalle técnico de lo encontrado fallando..."
-                        rows={2}
-                      />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>
-                          Causa Raíz <span className="text-destructive">*</span>
-                        </Label>
-                        <Textarea
-                          {...register('cause')}
-                          placeholder="Motivo que originó la falla..."
-                          rows={3}
-                        />
-                        {errors.cause && (
-                          <p className="text-xs text-destructive">{errors.cause.message}</p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label>
-                          Tiempo Muerto <span className="text-destructive">*</span>
-                        </Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            {...register('downtimeMinutes', { valueAsNumber: true })}
-                            className="w-32"
-                            placeholder="0"
-                          />
-                          <span className="text-sm text-muted-foreground">minutos</span>
-                        </div>
-                        {errors.downtimeMinutes && (
-                          <p className="text-xs text-destructive">
-                            {errors.downtimeMinutes.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>
-                        Acción Realizada <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        {...register('actionTaken')}
-                        placeholder="Describe las acciones realizadas..."
-                        rows={3}
-                      />
-                      {errors.actionTaken && (
-                        <p className="text-xs text-destructive">{errors.actionTaken.message}</p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label>
-                      Observaciones <span className="text-destructive">*</span>
-                    </Label>
-                    <Textarea
-                      {...register('observations')}
-                      placeholder="Describe las observaciones del trabajo realizado..."
-                      rows={3}
-                    />
-                    {errors.observations && (
-                      <p className="text-xs text-destructive">{errors.observations.message}</p>
-                    )}
-                  </div>
-                )}
-
-                <hr className="border-border/50" />
-
-                {/* 4. Herramienta utilizada (independiente, no obligatoria) */}
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Wrench className="h-4 w-4 text-muted-foreground" /> Herramienta utilizada
-                    <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
-                  </Label>
-                  <Input
-                    {...register('toolsUsed')}
-                    placeholder="Ej: Llave 10mm, pinza de punta..."
-                  />
-                </div>
-
-                {/* 5. Refacciones utilizadas (solo si hay máquina) */}
-                {order.machineId && (
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-muted-foreground" /> Refacción utilizada
-                      <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
-                    </Label>
-                    {sparePartsLoading ? (
-                      <Skeleton className="h-9 w-full" />
-                    ) : (
-                      <Controller
-                        name="sparePartId"
-                        control={control}
-                        render={({ field }) => (
-                          <Combobox
-                            options={[
-                              { value: '', label: 'Sin refacción' },
-                              ...spareParts.map((sp: any) => ({
-                                value: sp.id,
-                                label: `${sp.brand} ${sp.model} — ${sp.partNumber}`,
-                              })),
-                              { value: 'OTHER', label: 'Otra (especificar)' },
-                            ]}
-                            value={field.value ?? ''}
-                            onValueChange={(v) => field.onChange(v || null)}
-                            placeholder="Selecciona una refacción..."
-                            searchPlaceholder="Buscar refacción..."
-                          />
-                        )}
-                      />
-                    )}
-                    {watchedSparePartId === 'OTHER' && (
-                      <Input
-                        {...register('customSparePart')}
-                        placeholder="Describe la refacción utilizada..."
-                        className="mt-2"
-                      />
-                    )}
-                    {spareParts.length === 0 && !sparePartsLoading && (
-                      <p className="text-xs text-muted-foreground">
-                        Esta máquina no tiene refacciones registradas en catálogo.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* 6. Materiales utilizados */}
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Boxes className="h-4 w-4 text-muted-foreground" /> Material utilizado
-                    <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
-                  </Label>
-                  <Controller
-                    name="materialId"
-                    control={control}
-                    render={({ field }) => (
-                      <Combobox
-                        options={[
-                          { value: '', label: 'Sin material' },
-                          ...materials.map((m: any) => ({
-                            value: m.id,
-                            label: `${m.description}${m.brand ? ` — ${m.brand}` : ''}${m.partNumber ? ` (${m.partNumber})` : ''}`,
-                          })),
-                          { value: 'OTHER', label: 'Otro (especificar)' },
-                        ]}
-                        value={field.value ?? ''}
-                        onValueChange={(v) => field.onChange(v || null)}
-                        placeholder="Selecciona un material..."
-                        searchPlaceholder="Buscar material..."
-                      />
-                    )}
-                  />
-                  {watchedMaterialId === 'OTHER' && (
-                    <Input
-                      {...register('customMaterial')}
-                      placeholder="Describe el material utilizado..."
-                      className="mt-2"
-                    />
-                  )}
-                </div>
-
-              </div>
-            </ScrollArea>
-
-            <DialogFooter className="pt-4 border-t border-border/50 mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCompleteOpen(false)}
-                disabled={completing}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={completing}>
-                {completing ? 'Guardando...' : 'Confirmar Cierre'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CompleteModal
+        open={completeOpen}
+        onOpenChange={setCompleteOpen}
+        isAveria={!!isAveria}
+        machineId={order?.machineId}
+        onConfirm={handleConfirmCompletion}
+        isCompleting={completing}
+      />
 
       {/* Modal de Firma */}
       <SignatureDialog

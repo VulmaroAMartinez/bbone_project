@@ -37,6 +37,7 @@ import { MaterialRequestsModule } from './modules/material-requests';
 import { DashboardModule } from './modules/dashboard';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { OvertimeModule } from './modules/overtime';
+import { ActivitiesModule } from './modules/activities';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { OvertimeModule } from './modules/overtime';
     SchedulerModule,
     UsersModule,
     WorkOrdersModule,
+    ActivitiesModule,
     UploadsModule,
     OvertimeModule,
 

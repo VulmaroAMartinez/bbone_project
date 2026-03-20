@@ -11,6 +11,121 @@ type AbsenceReason {
   updatedAt: DateTime!
 }
 
+type Activity {
+  activity: String!
+  area: Area!
+  areaId: ID!
+  comments: String
+  createdAt: DateTime!
+  endDate: DateTime!
+  id: ID!
+  isActive: Boolean!
+  machine: Machine!
+  machineId: ID!
+  materialRequests: [ActivityMaterialRequest!]!
+  priority: Boolean!
+  progress: Int!
+  startDate: DateTime!
+  status: ActivityStatus!
+  technicians: [ActivityTechnician!]!
+  updatedAt: DateTime!
+  workOrders: [ActivityWorkOrder!]!
+}
+
+input ActivityFiltersInput {
+  areaId: ID
+  machineId: ID
+
+  """Filtrar solo actividades prioritarias"""
+  priority: Boolean
+
+  """Búsqueda por nombre de actividad"""
+  search: String
+  status: ActivityStatus
+}
+
+type ActivityMaterialRequest {
+  activityId: ID!
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  materialRequest: MaterialRequest!
+  materialRequestId: ID!
+}
+
+type ActivityPaginatedResponse {
+  data: [Activity!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+input ActivityPaginationInput {
+  limit: Int! = 20
+  page: Int! = 1
+}
+
+"""Campos disponibles para ordenar actividades"""
+enum ActivitySortField {
+  """Fecha de creación"""
+  CREATED_AT
+
+  """Fecha de fin"""
+  END_DATE
+
+  """Fecha de inicio"""
+  START_DATE
+}
+
+input ActivitySortInput {
+  field: ActivitySortField! = CREATED_AT
+  order: SortOrder! = DESC
+}
+
+"""Estados posibles de una actividad de mantenimiento"""
+enum ActivityStatus {
+  """Realizado"""
+  COMPLETED
+
+  """En progreso"""
+  IN_PROGRESS
+
+  """Pendiente"""
+  PENDING
+}
+
+type ActivityTechnician {
+  activityId: ID!
+  assignedAt: DateTime!
+  assignedBy: ID!
+  assigner: User!
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  technician: User!
+  technicianId: ID!
+}
+
+type ActivityWorkOrder {
+  activityId: ID!
+  createdAt: DateTime!
+  id: ID!
+  isActive: Boolean!
+  workOrder: WorkOrder!
+  workOrderId: ID!
+}
+
+input AddActivityMaterialRequestByFolioInput {
+  activityId: ID!
+  folio: String!
+}
+
+input AddActivityWorkOrderByFolioInput {
+  activityId: ID!
+  folio: String!
+}
+
 input AddWorkOrderMaterialInput {
   materialId: ID!
   notes: String
@@ -155,6 +270,21 @@ input CreateAbsenceReasonInput {
   """Máximo permitido por semana (NULL = Sin límite)"""
   maxPerWeek: Int
   name: String!
+}
+
+input CreateActivityInput {
+  activity: String!
+  areaId: ID!
+  comments: String
+  endDate: String!
+  machineId: ID!
+  priority: Boolean! = false
+  progress: Int! = 0
+  startDate: String!
+  status: ActivityStatus! = PENDING
+
+  """IDs de técnicos a asignar"""
+  technicianIds: [ID!]!
 }
 
 input CreateAreaInput {
@@ -713,6 +843,8 @@ type Mutation {
   activateSubArea(id: ID!): SubArea!
   activateTechnician(id: ID!): Technician!
   activateUser(id: ID!): User!
+  addActivityMaterialRequest(input: AddActivityMaterialRequestByFolioInput!): ActivityMaterialRequest!
+  addActivityWorkOrder(input: AddActivityWorkOrderByFolioInput!): ActivityWorkOrder!
   addMaterialToRequest(input: CreateMaterialRequestItemInput!, materialRequestId: ID!): MaterialRequestItem!
   addWorkOrderMaterial(input: AddWorkOrderMaterialInput!): WorkOrderMaterial!
   addWorkOrderSparePart(input: AddWorkOrderSparePartInput!): WorkOrderSparePart!
@@ -734,6 +866,7 @@ type Mutation {
   """Copia los horarios de una semana a otra (reasignación)"""
   copyWeekSchedules(input: CopyWeekSchedulesInput!): [TechnicianSchedule!]!
   createAbsenceReason(input: CreateAbsenceReasonInput!): AbsenceReason!
+  createActivity(input: CreateActivityInput!): Activity!
   createArea(input: CreateAreaInput!): Area!
   createDepartment(input: CreateDepartmentInput!): Department!
   createFinding(input: CreateFindingInput!): Finding!
@@ -767,6 +900,7 @@ type Mutation {
   deactivateSubArea(id: ID!): Boolean!
   deactivateTechnician(id: ID!): Boolean!
   deactivateUser(id: ID!): Boolean!
+  deleteActivity(id: ID!): Boolean!
   deleteFinding(id: ID!): Finding!
 
   """Elimina una notificación (soft delete)"""
@@ -800,6 +934,8 @@ type Mutation {
 
   """Registra un token FCM para recibir notificaciones push"""
   registerDeviceToken(input: RegisterDeviceTokenInput!): UserDeviceToken!
+  removeActivityMaterialRequest(activityId: ID!, materialRequestId: ID!): Boolean!
+  removeActivityWorkOrder(activityId: ID!, workOrderId: ID!): Boolean!
   removeMaterialFromRequest(materialRequestMaterialId: ID!): Boolean!
   removeWorkOrderMaterial(id: ID!): Boolean!
   removeWorkOrderSparePart(id: ID!): Boolean!
@@ -815,6 +951,8 @@ type Mutation {
   """Elimina un token FCM (al cerrar sesión)"""
   unregisterDeviceToken(input: UnregisterDeviceTokenInput!): Boolean!
   updateAbsenceReason(id: ID!, input: UpdateAbsenceReasonInput!): AbsenceReason!
+  updateActivity(id: ID!, input: UpdateActivityInput!): Activity!
+  updateActivityPriority(id: ID!, priority: Boolean!): Activity!
   updateArea(id: ID!, input: UpdateAreaInput!): Area!
   updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
   updateFinding(id: ID!, input: UpdateFindingInput!): Finding!
@@ -1027,6 +1165,8 @@ type Query {
   absenceReasons: [AbsenceReason!]!
   absenceReasonsActive: [AbsenceReason!]!
   absenceReasonsWithDeleted: [AbsenceReason!]!
+  activitiesFiltered(filters: ActivityFiltersInput, pagination: ActivityPaginationInput, sort: ActivitySortInput): ActivityPaginatedResponse!
+  activity(id: ID!): Activity
   area(id: ID!): Area
   areaByName(name: String!): Area
   areas: [Area!]!
@@ -1434,6 +1574,21 @@ input UpdateAbsenceReasonInput {
   """Máximo permitido por semana (NULL = Sin límite)"""
   maxPerWeek: Int
   name: String
+}
+
+input UpdateActivityInput {
+  activity: String
+  areaId: ID
+  comments: String
+  endDate: String
+  machineId: ID
+  priority: Boolean
+  progress: Int
+  startDate: String
+  status: ActivityStatus
+
+  """IDs de técnicos (reemplaza todos los existentes)"""
+  technicianIds: [ID!]
 }
 
 input UpdateAreaInput {
