@@ -1,11 +1,12 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { USER_ROLES, type UserRole } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
 
-const HOME_BY_ROLE: Record<string, string> = {
-  ADMIN: '/admin/dashboard',
-  TECHNICIAN: '/tecnico/asignaciones',
-  REQUESTER: '/solicitante/mis-ordenes',
+const HOME_BY_ROLE: Partial<Record<UserRole, string>> = {
+  [USER_ROLES.ADMIN]: '/admin/dashboard',
+  [USER_ROLES.TECHNICIAN]: '/tecnico/asignaciones',
+  [USER_ROLES.REQUESTER]: '/solicitante/mis-ordenes',
 };
 
 export default function HomePage() {
@@ -34,7 +35,7 @@ export default function HomePage() {
   }
 
   const redirectTo =
-    activeRole === 'TECHNICIAN' && isBoss
+    activeRole === USER_ROLES.TECHNICIAN && isBoss
       ? '/tecnico/mis-ordenes'
       : HOME_BY_ROLE[activeRole] ?? '/login';
   return <Navigate to={redirectTo} replace />;

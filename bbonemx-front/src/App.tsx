@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { Providers } from '@/components/providers';
 import { ProtectedRoute } from './components/protected-route';
 import { AppShell } from './components/layout/app-shell';
-import { UserRole } from './lib/types';
+import { USER_ROLES } from './lib/types';
 // Pages
 import LoginPage from '@/pages/LoginPage';
 import HomePage from '@/pages/HomePage';
@@ -75,7 +75,7 @@ function App() {
           {/* Rutas Públicas */}
           <Route path="/login" element={<LoginPage />} />
 
-          <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]} />}>
 
             <Route element={<ShellLayout title="Panel de Administración" />}>
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
@@ -115,7 +115,7 @@ function App() {
             </Route>
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.TECHNICIAN]} />}>
             <Route element={<ShellLayout title="Portal Técnico" />}>
               <Route path="/tecnico/pendientes" element={<TecnicoPendientesPage />} />
               <Route path="/tecnico/mis-ordenes" element={<MisOrdenesJefePage />} />
@@ -128,7 +128,7 @@ function App() {
           </Route>
 
           {/* SOLICITANTE */}
-          <Route element={<ProtectedRoute allowedRoles={[UserRole.REQUESTER]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.REQUESTER]} />}>
             <Route element={<ShellLayout title="Portal Solicitante" />}>
               <Route path="/solicitante/mis-ordenes" element={<SolicitanteMisOrdenesPage />} />
               <Route path="/solicitante/crear-ot" element={<SolicitanteCrearOTPage />} />
@@ -137,7 +137,7 @@ function App() {
           </Route>
 
           {/* Crear solicitud de material - accesible para BOSS desde modo técnico */}
-          <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.BOSS]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.ADMIN, USER_ROLES.BOSS]} />}>
             <Route element={<ShellLayout title="Solicitud de Material" />}>
               <Route path="/solicitud-material/nueva" element={<CreateMaterialRequestPage />} />
               <Route path="/solicitud-material/:id/editar" element={<CreateMaterialRequestPage />} />

@@ -16,6 +16,8 @@ import {
   MeDocument,
   UserBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
+import type { AuthUser, UserRole } from '@/lib/types';
+import { DEFAULT_SWITCHABLE_ROLES, USER_ROLES } from '@/lib/types';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 
 const UnregisterDeviceTokenDocument = gql`
@@ -25,26 +27,6 @@ const UnregisterDeviceTokenDocument = gql`
 `;
 
 const ACTIVE_ROLE_KEY = 'auth_active_role';
-
-/** Fully-resolved user type (no fragment masking) */
-export interface AuthUser {
-  id: string;
-  employeeNumber: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  email?: string | null;
-  isActive: boolean;
-  roleIds?: string[];
-  role?: {
-    id: string;
-    name: string;
-  };
-  roles?: Array<{
-    id: string;
-    name: string;
-  }>;
-}
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -56,9 +38,9 @@ interface AuthContextType {
   isTechnician: boolean;
   isRequester: boolean;
   isBoss: boolean;
-  activeRole: string | null;
+  activeRole: UserRole | null;
   canSwitchRoles: boolean;
-  selectRole: (role: string) => void;
+  selectRole: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,31 +49,31 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-function getRoleNames(user: AuthUser | null): string[] {
+function getRoleNames(user: AuthUser | null): UserRole[] {
   if (!user) return [];
-  return user.roles?.map((r) => r.name) ?? (user.role?.name ? [user.role.name] : []);
+  return (user.roles?.map((r) => r.name) ?? (user.role?.name ? [user.role.name] : [])) as UserRole[];
 }
 
-function resolveActiveRole(user: AuthUser): string | null {
+function resolveActiveRole(user: AuthUser): UserRole | null {
   const roleNames = getRoleNames(user);
-  const hasAdmin = roleNames.includes('ADMIN');
-  const hasTechnician = roleNames.includes('TECHNICIAN');
-  const hasRequester = roleNames.includes('REQUESTER');
+  const hasAdmin = roleNames.includes(USER_ROLES.ADMIN);
+  const hasTechnician = roleNames.includes(USER_ROLES.TECHNICIAN);
+  const hasRequester = roleNames.includes(USER_ROLES.REQUESTER);
 
   if (hasAdmin && hasTechnician) {
     const stored = localStorage.getItem(ACTIVE_ROLE_KEY);
-    return stored === 'ADMIN' || stored === 'TECHNICIAN' ? stored : null;
+    return DEFAULT_SWITCHABLE_ROLES.includes(stored as (typeof DEFAULT_SWITCHABLE_ROLES)[number]) ? (stored as (typeof DEFAULT_SWITCHABLE_ROLES)[number]) : null;
   }
-  if (hasAdmin) return 'ADMIN';
-  if (hasTechnician) return 'TECHNICIAN';
-  if (hasRequester) return 'REQUESTER';
+  if (hasAdmin) return USER_ROLES.ADMIN;
+  if (hasTechnician) return USER_ROLES.TECHNICIAN;
+  if (hasRequester) return USER_ROLES.REQUESTER;
   return null;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeRole, setActiveRoleState] = useState<string | null>(null);
+  const [activeRole, setActiveRoleState] = useState<UserRole | null>(null);
 
   const [loginMutation] = useMutation(LoginDocument);
   const [logoutMutation] = useMutation(LogoutDocument);
@@ -173,20 +155,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await client.clearStore();
   }, [client, logoutMutation, user]);
 
-  const selectRole = useCallback((role: string) => {
+  const selectRole = useCallback((role: UserRole) => {
     localStorage.setItem(ACTIVE_ROLE_KEY, role);
     setActiveRoleState(role);
   }, []);
 
   const roleNames = getRoleNames(user);
-  const hasAdmin = roleNames.includes('ADMIN');
-  const hasTechnician = roleNames.includes('TECHNICIAN');
-  const isBoss = roleNames.includes('BOSS');
+  const hasAdmin = roleNames.includes(USER_ROLES.ADMIN);
+  const hasTechnician = roleNames.includes(USER_ROLES.TECHNICIAN);
+  const isBoss = roleNames.includes(USER_ROLES.BOSS);
   const canSwitchRoles = hasAdmin && hasTechnician;
 
-  const isAdmin = activeRole === 'ADMIN';
-  const isTechnician = activeRole === 'TECHNICIAN';
-  const isRequester = activeRole === 'REQUESTER';
+  const isAdmin = activeRole === USER_ROLES.ADMIN;
+  const isTechnician = activeRole === USER_ROLES.TECHNICIAN;
+  const isRequester = activeRole === USER_ROLES.REQUESTER;
 
   const value: AuthContextType = {
     user,

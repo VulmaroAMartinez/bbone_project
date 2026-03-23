@@ -3,10 +3,10 @@
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from './ui/skeleton';
-import type { AllowedRole } from '@/lib/types';
+import { USER_ROLES, type UserRole } from '@/lib/types';
 
 interface ProtectedRouteProps {
-  allowedRoles?: AllowedRole[];
+  allowedRoles?: UserRole[];
   requireActive?: boolean;
   redirectUnauthorizedTo?: string;
 }
@@ -40,8 +40,8 @@ export const ProtectedRoute = ({
 
   if (allowedRoles && allowedRoles.length > 0) {
     const hasAccess =
-      (activeRole !== null && allowedRoles.includes(activeRole as AllowedRole)) ||
-      (isBoss && allowedRoles.includes('BOSS' as AllowedRole));
+      (activeRole !== null && allowedRoles.includes(activeRole)) ||
+      (isBoss && allowedRoles.includes(USER_ROLES.BOSS));
 
     if (!hasAccess) {
       return <Navigate to={redirectUnauthorizedTo} replace />;

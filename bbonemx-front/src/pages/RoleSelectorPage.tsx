@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { USER_ROLES, type UserRole } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,11 +10,11 @@ export default function RoleSelectorPage() {
   const { user, selectRole, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleSelect = (role: string) => {
+  const handleSelect = (role: UserRole) => {
     selectRole(role);
-    const HOME: Record<string, string> = {
-      ADMIN: '/admin/dashboard',
-      TECHNICIAN: '/tecnico/asignaciones',
+    const HOME: Partial<Record<UserRole, string>> = {
+      [USER_ROLES.ADMIN]: '/admin/dashboard',
+      [USER_ROLES.TECHNICIAN]: '/tecnico/asignaciones',
     };
     navigate(HOME[role] ?? '/', { replace: true });
   };
@@ -35,7 +36,7 @@ export default function RoleSelectorPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
         <button
-          onClick={() => handleSelect('ADMIN')}
+          onClick={() => handleSelect(USER_ROLES.ADMIN)}
           className="group focus:outline-none"
         >
           <Card className="h-full border-2 border-transparent hover:border-primary transition-all cursor-pointer group-focus-visible:border-primary">
@@ -52,7 +53,7 @@ export default function RoleSelectorPage() {
         </button>
 
         <button
-          onClick={() => handleSelect('TECHNICIAN')}
+          onClick={() => handleSelect(USER_ROLES.TECHNICIAN)}
           className="group focus:outline-none"
         >
           <Card className="h-full border-2 border-transparent hover:border-primary transition-all cursor-pointer group-focus-visible:border-primary">
