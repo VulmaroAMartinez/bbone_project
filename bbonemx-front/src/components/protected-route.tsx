@@ -11,6 +11,14 @@ interface ProtectedRouteProps {
   redirectUnauthorizedTo?: string;
 }
 
+const hasAllowedRole = (
+  allowedRoles: UserRole[],
+  activeRole: UserRole | null,
+  isBoss: boolean
+) =>
+  (activeRole !== null && allowedRoles.includes(activeRole)) ||
+  (isBoss && allowedRoles.includes(USER_ROLES.BOSS));
+
 export const ProtectedRoute = ({
   allowedRoles,
   requireActive = true,
@@ -38,14 +46,8 @@ export const ProtectedRoute = ({
     return <Navigate to={redirectUnauthorizedTo} replace />;
   }
 
-  if (allowedRoles && allowedRoles.length > 0) {
-    const hasAccess =
-      (activeRole !== null && allowedRoles.includes(activeRole)) ||
-      (isBoss && allowedRoles.includes(USER_ROLES.BOSS));
-
-    if (!hasAccess) {
-      return <Navigate to={redirectUnauthorizedTo} replace />;
-    }
+  if (allowedRoles && allowedRoles.length > 0 && !hasAllowedRole(allowedRoles, activeRole, isBoss)) {
+    return <Navigate to={redirectUnauthorizedTo} replace />;
   }
 
   return <Outlet/>;

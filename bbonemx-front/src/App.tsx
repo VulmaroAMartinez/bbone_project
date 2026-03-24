@@ -61,6 +61,11 @@ import ActivityFormPage from './pages/admin/activities/ActivityFormPage';
 import ActivityWorkOrdersPage from './pages/admin/activities/ActivityWorkOrdersPage';
 import ActivityMaterialRequestsPage from './pages/admin/activities/ActivityMaterialRequestsPage';
 
+const ADMIN_ONLY_ROLES = [USER_ROLES.ADMIN] as const;
+const TECHNICIAN_ONLY_ROLES = [USER_ROLES.TECHNICIAN] as const;
+const REQUESTER_ONLY_ROLES = [USER_ROLES.REQUESTER] as const;
+const MATERIAL_REQUEST_CREATOR_ROLES = [USER_ROLES.ADMIN, USER_ROLES.BOSS] as const;
+
 const ShellLayout = ({ title }: { title: string }) => (
   <AppShell title={title}>
     <Outlet />
@@ -75,7 +80,7 @@ function App() {
           {/* Rutas Públicas */}
           <Route path="/login" element={<LoginPage />} />
 
-          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.ADMIN]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[...ADMIN_ONLY_ROLES]} />}>
 
             <Route element={<ShellLayout title="Panel de Administración" />}>
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
@@ -115,7 +120,7 @@ function App() {
             </Route>
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.TECHNICIAN]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[...TECHNICIAN_ONLY_ROLES]} />}>
             <Route element={<ShellLayout title="Portal Técnico" />}>
               <Route path="/tecnico/pendientes" element={<TecnicoPendientesPage />} />
               <Route path="/tecnico/mis-ordenes" element={<MisOrdenesJefePage />} />
@@ -128,7 +133,7 @@ function App() {
           </Route>
 
           {/* SOLICITANTE */}
-          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.REQUESTER]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[...REQUESTER_ONLY_ROLES]} />}>
             <Route element={<ShellLayout title="Portal Solicitante" />}>
               <Route path="/solicitante/mis-ordenes" element={<SolicitanteMisOrdenesPage />} />
               <Route path="/solicitante/crear-ot" element={<SolicitanteCrearOTPage />} />
@@ -137,7 +142,7 @@ function App() {
           </Route>
 
           {/* Crear solicitud de material - accesible para BOSS desde modo técnico */}
-          <Route element={<ProtectedRoute allowedRoles={[USER_ROLES.ADMIN, USER_ROLES.BOSS]} />}>
+          <Route element={<ProtectedRoute allowedRoles={[...MATERIAL_REQUEST_CREATOR_ROLES]} />}>
             <Route element={<ShellLayout title="Solicitud de Material" />}>
               <Route path="/solicitud-material/nueva" element={<CreateMaterialRequestPage />} />
               <Route path="/solicitud-material/:id/editar" element={<CreateMaterialRequestPage />} />
