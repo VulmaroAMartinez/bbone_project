@@ -12,6 +12,7 @@ import {
 import type { MachineBasicFragment } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 import { useAreaMachineSelector } from '@/hooks/useAreaMachineSelector';
+import { uploadFileToBackend } from '@/lib/utils/uploads';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -136,28 +137,15 @@ export function MachineFormModal({ open, onOpenChange, machine, areas, onSuccess
     }
   }, [open, machine, reset, initSelector]);
 
-  const API_BASE = import.meta.env.VITE_GRAPHQL_URL?.replace('/graphql', '') ?? 'http://localhost:3000';
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch(`${API_BASE}/api/uploads`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Error al subir la imagen');
-      }
-      const { url } = await res.json();
-      const fullUrl = `${API_BASE}${url}`;
-      setValue('machinePhotoUrl', fullUrl);
-      setPhotoPreview(fullUrl);
+      const uploadedFile = await uploadFileToBackend(file);
+      setValue('machinePhotoUrl', uploadedFile.absoluteUrl);
+      setPhotoPreview(uploadedFile.absoluteUrl);
       toast.success('Imagen subida correctamente');
     } catch (err: any) {
       toast.error(err.message || 'Error al subir la imagen');

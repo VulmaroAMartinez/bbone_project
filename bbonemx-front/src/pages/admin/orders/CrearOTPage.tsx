@@ -29,6 +29,7 @@ import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 import { useNavigate } from 'react-router-dom';
 import { useAreaMachineSelector } from '@/hooks/useAreaMachineSelector';
 import { CREATE_WORK_ORDER_MUTATION, ASSIGN_WORK_ORDER_MUTATION, UPLOAD_WORK_ORDER_PHOTO_MUTATION } from '@/lib/graphql/operations/work-orders';
+import { uploadFileToBackend } from '@/lib/utils/uploads';
 
 const adminCrearOTSchema = yup.object({
   areaId: yup.string().required('El área es obligatoria.'),
@@ -264,7 +265,7 @@ export default function AdminCrearOTPage() {
 
       // 3. Subir Foto
       if (photoFile) {
-        const mockPath = `uploads/${newWorkOrderId}/${photoFile.name}`;
+        const uploadedPhoto = await uploadFileToBackend(photoFile);
         await uploadPhoto({
           variables: {
             input: {
@@ -272,7 +273,7 @@ export default function AdminCrearOTPage() {
               fileName: photoFile.name,
               mimeType: photoFile.type,
               photoType: 'BEFORE',
-              filePath: mockPath,
+              filePath: uploadedPhoto.url,
             }
           }
         });
