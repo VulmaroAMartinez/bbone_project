@@ -22,6 +22,7 @@ import {
   ArrowLeft, Calendar, MapPin, Clock, Wrench, FileText,
   CheckCircle, AlertTriangle, Settings, Pen, User, Building2,
 } from 'lucide-react';
+import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
 
 
 export default function OrdenDetallePage() {
@@ -283,7 +284,7 @@ export default function OrdenDetallePage() {
                   </p>
                   {/* Reemplaza con lógica real de mostrar imagen basada en filePath */}
                   <div className="aspect-video w-full rounded-lg border border-border bg-muted/30 flex items-center justify-center overflow-hidden">
-                    <img src={`/${photoBefore.filePath}`} alt="Antes" width={1280} height={720} className="object-cover w-full h-full" onError={(e) => e.currentTarget.style.display = 'none'} />
+                    <img src={resolveBackendAssetUrl(photoBefore.filePath)} alt="Antes" width={1280} height={720} className="object-cover w-full h-full" onError={(e) => e.currentTarget.style.display = 'none'} />
                     <span className="text-muted-foreground text-xs absolute">Imagen no disponible</span>
                   </div>
                 </div>
@@ -294,7 +295,7 @@ export default function OrdenDetallePage() {
                     <span className="h-2 w-2 rounded-full bg-success"></span> Después
                   </p>
                   <div className="aspect-video w-full rounded-lg border border-border bg-muted/30 flex items-center justify-center overflow-hidden">
-                    <img src={`/${photoAfter.filePath}`} alt="Después" width={1280} height={720} className="object-cover w-full h-full" onError={(e) => e.currentTarget.style.display = 'none'} />
+                    <img src={resolveBackendAssetUrl(photoAfter.filePath)} alt="Después" width={1280} height={720} className="object-cover w-full h-full" onError={(e) => e.currentTarget.style.display = 'none'} />
                     <span className="text-muted-foreground text-xs absolute">Imagen no disponible</span>
                   </div>
                 </div>
