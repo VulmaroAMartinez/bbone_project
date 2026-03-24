@@ -42,6 +42,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { resolveBackendAssetUrl, uploadFileToBackend } from '@/lib/utils/uploads';
 
 import { PauseModal } from './modals/PauseModal';
 import { CompleteModal, type CloseFormValues } from './modals/CompleteModal';
@@ -171,7 +172,7 @@ export default function TecnicoOrdenPage() {
 
       // Subir foto evidencia final si existe
       if (photoFile) {
-        const mockPath = `uploads/${order.id}/${photoFile.name}`;
+        const uploadedPhoto = await uploadFileToBackend(photoFile);
         await uploadPhoto({
           variables: {
             input: {
@@ -179,7 +180,7 @@ export default function TecnicoOrdenPage() {
               fileName: photoFile.name,
               mimeType: photoFile.type,
               photoType: 'AFTER',
-              filePath: mockPath,
+              filePath: uploadedPhoto.url,
             },
           },
         });
@@ -451,7 +452,7 @@ export default function TecnicoOrdenPage() {
             </CardHeader>
             <CardContent>
               <img
-                src={`/${photoBefore.filePath}`}
+                src={resolveBackendAssetUrl(photoBefore.filePath)}
                 alt="Antes"
                 className="w-full aspect-video rounded-lg border border-border object-cover"
                 onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
@@ -470,7 +471,7 @@ export default function TecnicoOrdenPage() {
             <CardContent className="pt-4">
               {photoAfterServer ? (
                 <img
-                  src={`/${photoAfterServer.filePath}`}
+                  src={resolveBackendAssetUrl(photoAfterServer.filePath)}
                   alt="Después"
                   className="w-full aspect-video rounded-lg border border-border object-cover"
                   onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')}

@@ -27,6 +27,7 @@ import {
   RESUME_WORK_ORDER_MUTATION,
   ASSIGN_WORK_ORDER_MUTATION,
 } from '@/lib/graphql/operations/work-orders';
+import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -428,7 +429,7 @@ function AdminOrdenDetallePage() {
                   Evidencia inicial (Antes)
                 </p>
                 <img
-                  src={`/${photoBefore.filePath}`}
+                  src={resolveBackendAssetUrl(photoBefore.filePath)}
                   alt="Antes"
                   width={800}
                   height={256}
@@ -543,7 +544,7 @@ function AdminOrdenDetallePage() {
                     Evidencia Final (Después)
                   </p>
                   <img
-                    src={`/${photoAfter.filePath}`}
+                    src={resolveBackendAssetUrl(photoAfter.filePath)}
                     alt="Después"
                     width={800}
                     height={192}
