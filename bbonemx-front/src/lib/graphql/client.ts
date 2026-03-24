@@ -4,7 +4,6 @@ import {
   HttpLink,
   ApolloLink,
   Observable,
-  type FetchResult,
 } from '@apollo/client';
 import { ErrorLink } from '@apollo/client/link/error';
 import {
@@ -79,7 +78,7 @@ const errorLink = new ErrorLink(({ error, operation, forward }) => {
         refreshPromise = null;
       });
 
-      return new Observable<FetchResult>((observer) => {
+      return new Observable<ApolloLink.Result>((observer) => {
         refreshPromise
           ?.then((didRefresh) => {
             if (!didRefresh || isLoginOperation) {

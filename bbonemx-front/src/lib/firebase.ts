@@ -49,7 +49,8 @@ export function getFirebaseMessaging(): Messaging | null {
 
 /**
  * Registers the Firebase messaging service worker.
- * Config is hardcoded in the SW file (public client credentials).
+ * Firebase public config is passed via query params because files in /public
+ * are served as-is and cannot read import.meta.env/process.env directly.
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) {
@@ -58,7 +59,15 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+    const swUrl = new URL('/firebase-messaging-sw.js', window.location.origin);
+    swUrl.searchParams.set('apiKey', firebaseConfig.apiKey ?? '');
+    swUrl.searchParams.set('authDomain', firebaseConfig.authDomain ?? '');
+    swUrl.searchParams.set('projectId', firebaseConfig.projectId ?? '');
+    swUrl.searchParams.set('storageBucket', firebaseConfig.storageBucket ?? '');
+    swUrl.searchParams.set('messagingSenderId', firebaseConfig.messagingSenderId ?? '');
+    swUrl.searchParams.set('appId', firebaseConfig.appId ?? '');
+
+    const registration = await navigator.serviceWorker.register(swUrl.toString(), {
       scope: '/',
     });
     console.log('[SW] Service Worker registrado');

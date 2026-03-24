@@ -235,7 +235,6 @@ export class TechnicianSchedulesRepository {
 
     const map = new Map<string, TechnicianSchedule>();
     for (const r of records) {
-      // schedule_date es tipo 'date' en PG, TypeORM lo devuelve como string "YYYY-MM-DD" o Date
       const dateKey =
         r.scheduleDate instanceof Date
           ? r.scheduleDate.toISOString().split('T')[0]
@@ -313,26 +312,18 @@ export class TechnicianSchedulesRepository {
         const existing = existingMap.get(day.scheduleDate);
 
         if (existing) {
-          // UPDATE: el registro ya existe para esta fecha.
-          // Usar save() en vez de QueryBuilder .set() para evitar
-          // problemas de tipado con _QueryDeepPartialEntity.
-          // Se usa (null as any) para forzar NULL en BD cuando se
-          // cambia de turno a ausencia o viceversa.
           existing.shiftId = day.shiftId || (null as any);
           existing.absenceReasonId = day.absenceReasonId || (null as any);
-          existing.notes = day.notes || (null as any);
           await repo.save(existing);
           resultIds.push(existing.id);
         } else {
-          // CREATE: no existe registro activo para esta fecha
           const newEntity = repo.create({
             technicianId,
-            scheduleDate: day.scheduleDate as any, // String YYYY-MM-DD directo a PG date
+            scheduleDate: day.scheduleDate as any,
             weekNumber,
             year,
             shiftId: day.shiftId || undefined,
             absenceReasonId: day.absenceReasonId || undefined,
-            notes: day.notes,
           });
           const saved = await repo.save(newEntity);
           resultIds.push(saved.id);

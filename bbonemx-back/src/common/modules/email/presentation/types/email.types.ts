@@ -45,6 +45,19 @@ export interface MaterialRequestEmailMachineData {
   subAreaName?: string;
 }
 
+export interface TechnicianBirthdayEmailRowData {
+  fullName: string;
+  employeeNumber?: string;
+  birthdayThisWeekLabel: string;
+  positionName?: string;
+}
+
+export interface TechnicianBirthdaysWeeklyTemplateData {
+  weekTitle: string;
+  introMessage: string;
+  birthdays: TechnicianBirthdayEmailRowData[];
+}
+
 export interface MaterialRequestEmailTemplateData {
   folio: string;
   createdAt: string;

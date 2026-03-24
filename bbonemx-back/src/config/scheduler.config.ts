@@ -1,7 +1,8 @@
 import { registerAs } from '@nestjs/config';
 
 export default registerAs('scheduler', () => ({
-  enabled: process.env.SCHEDULER_ENABLED === 'false',
+  // Si no se define la variable, asumimos scheduler habilitado.
+  enabled: process.env.SCHEDULER_ENABLED !== 'false',
   jobs: {
     preventiveTasks: {
       enabled: process.env.CRON_PREVENTIVE_TASKS_ENABLED === 'true',
@@ -16,6 +17,12 @@ export default registerAs('scheduler', () => ({
     reminders: {
       enabled: process.env.CRON_REMINDERS_ENABLED === 'true',
       cron: process.env.CRON_REMINDERS || '0 8 * * *',
+    },
+    technicianBirthdays: {
+      enabled: process.env.CRON_TECHNICIAN_BIRTHDAYS_ENABLED === 'true',
+      cron: process.env.CRON_TECHNICIAN_BIRTHDAYS || '0 8 * * 1',
+      timeZone:
+        process.env.CRON_TECHNICIAN_BIRTHDAYS_TZ || 'America/Mexico_City',
     },
   },
 }));

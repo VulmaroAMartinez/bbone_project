@@ -36,18 +36,20 @@ export class AuthResolver {
     @Args('input') input: LoginInput,
     @Context() context: unknown,
   ): Promise<LoginResponse> {
-    const gqlContext = context as IGqlContext;
+    const gqlContext = context as IGqlContext | undefined;
     const user = await this.authService.authenticateUser(
       input.employeeNumber,
       input.password,
-      gqlContext.req?.ip,
+      gqlContext?.req?.ip,
     );
     const session = await this.authService.createSession(user, {
-      ipAddress: gqlContext.req?.ip,
-      userAgent: readUserAgent(gqlContext.req?.headers['user-agent']),
+      ipAddress: gqlContext?.req?.ip,
+      userAgent: readUserAgent(gqlContext?.req?.headers?.['user-agent']),
     });
 
-    setAuthCookies(gqlContext.res, this.configService, session);
+    if (gqlContext?.res) {
+      setAuthCookies(gqlContext.res, this.configService, session);
+    }
     return this.authService.login(session.user);
   }
 
@@ -56,18 +58,20 @@ export class AuthResolver {
     description: 'Renueva sesión con refresh token rotativo en cookie HttpOnly',
   })
   async refreshAuth(@Context() context: unknown): Promise<boolean> {
-    const gqlContext = context as IGqlContext;
-    const refreshToken = gqlContext.req?.cookies?.[REFRESH_TOKEN_COOKIE];
+    const gqlContext = context as IGqlContext | undefined;
+    const refreshToken = gqlContext?.req?.cookies?.[REFRESH_TOKEN_COOKIE];
     if (!refreshToken) {
       return false;
     }
 
     const session = await this.authService.refreshSession(refreshToken, {
-      ipAddress: gqlContext.req?.ip,
-      userAgent: readUserAgent(gqlContext.req?.headers['user-agent']),
+      ipAddress: gqlContext?.req?.ip,
+      userAgent: readUserAgent(gqlContext?.req?.headers?.['user-agent']),
     });
 
-    setAuthCookies(gqlContext.res, this.configService, session);
+    if (gqlContext?.res) {
+      setAuthCookies(gqlContext.res, this.configService, session);
+    }
     return true;
   }
 
@@ -76,10 +80,12 @@ export class AuthResolver {
     description: 'Cierra sesión y limpia cookies de autenticación',
   })
   async logout(@Context() context: unknown): Promise<boolean> {
-    const gqlContext = context as IGqlContext;
-    const refreshToken = gqlContext.req?.cookies?.[REFRESH_TOKEN_COOKIE];
+    const gqlContext = context as IGqlContext | undefined;
+    const refreshToken = gqlContext?.req?.cookies?.[REFRESH_TOKEN_COOKIE];
     await this.authService.revokeRefreshToken(refreshToken);
-    clearAuthCookies(gqlContext.res, this.configService);
+    if (gqlContext?.res) {
+      clearAuthCookies(gqlContext.res, this.configService);
+    }
     return true;
   }
 

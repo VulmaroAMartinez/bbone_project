@@ -46,16 +46,10 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     dataSource.subscribers.push(this);
   }
 
-  /**
-   * Verifica si la entidad debe ser auditada.
-   */
   private shouldAudit(entityName: string): boolean {
     return !EXCLUDED_ENTITIES.includes(entityName);
   }
 
-  /**
-   * Limpia los valores sensibles de un objeto.
-   */
   private sanitizeValues(values: Record<string, any>): Record<string, any> {
     if (!values) return values;
 
@@ -106,7 +100,6 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     data: Partial<AuditLog>,
   ): Promise<void> {
     try {
-      // Obtener contexto del usuario desde AsyncLocalStorage
       const context = UserContext.getCurrentContext();
 
       const auditLog = manager.create(AuditLog, {
@@ -117,7 +110,6 @@ export class AuditSubscriber implements EntitySubscriberInterface {
         sessionId: context?.sessionId,
       });
 
-      // Usar query builder para evitar triggers recursivos
       await manager
         .createQueryBuilder()
         .insert()
@@ -125,7 +117,6 @@ export class AuditSubscriber implements EntitySubscriberInterface {
         .values(auditLog)
         .execute();
     } catch (error) {
-      // Log del error pero no interrumpir la operación principal
       console.error('Error creating audit log:', error);
     }
   }
@@ -194,12 +185,10 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     const entityName = event.metadata.name;
     if (!this.shouldAudit(entityName)) return;
 
-    // Obtener valores anteriores del databaseEntity
     const oldValues = this.sanitizeValues(
       this.entityToObject(event.databaseEntity),
     );
 
-    // Obtener nuevos valores combinando databaseEntity con los cambios
     const newValues = this.sanitizeValues(
       this.entityToObject({
         ...event.databaseEntity,
@@ -209,7 +198,6 @@ export class AuditSubscriber implements EntitySubscriberInterface {
 
     const changedFields = this.getChangedFields(oldValues, newValues);
 
-    // Solo crear log si realmente hubo cambios
     if (changedFields.length === 0) return;
 
     await this.createAuditLog(event.manager, {

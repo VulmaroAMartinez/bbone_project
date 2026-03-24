@@ -6,10 +6,7 @@ import { dateColumnTransformer } from 'src/common/transformers';
 
 @Entity({ name: 'overtime' })
 export class Overtime extends BaseEntity {
-  @Column({
-    name: 'work_date',
-    type: 'date',
-    transformer: dateColumnTransformer,
+  @Column({ name: 'work_date', type: 'date', transformer: dateColumnTransformer,
   })
   workDate: Date;
 
@@ -22,11 +19,7 @@ export class Overtime extends BaseEntity {
   @Column({ type: 'text' })
   activity: string;
 
-  @Column({
-    name: 'reason_for_payment',
-    type: 'enum',
-    enum: ReasonForPayment,
-    nullable: true,
+  @Column({ name: 'reason_for_payment', type: 'enum', enum: ReasonForPayment, nullable: true,
   })
   reasonForPayment?: ReasonForPayment;
 
@@ -45,7 +38,7 @@ export class Overtime extends BaseEntity {
     const [sh, sm] = this.startTime.split(':').map(Number);
     const [eh, em] = this.endTime.split(':').map(Number);
     let totalMinutes = eh * 60 + em - (sh * 60 + sm);
-    if (totalMinutes < 0) totalMinutes += 24 * 60; // cruza medianoche
+    if (totalMinutes < 0) totalMinutes += 24 * 60;
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return `${hours}h ${minutes}m`;

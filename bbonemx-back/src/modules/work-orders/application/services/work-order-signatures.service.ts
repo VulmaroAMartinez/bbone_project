@@ -97,26 +97,22 @@ export class WorkOrderSignaturesService {
     return count >= 3;
   }
 
-  /** Validate that the signer is the requester, an assigned technician, or an admin */
   private async validateSignerRelationship(
     wo: WorkOrder,
     user: User,
   ): Promise<void> {
-    // Admins can always sign
     if (user.isAdmin()) return;
 
-    // Requester can sign their own WO
     if (wo.requesterId === user.id) return;
 
-    // Assigned technicians can sign
-    if (user.isTechnician()) {
+    if (user.isTechnician() || user.isBoss()) {
       const isAssigned =
         await this.woTechniciansRepository.isTechnicianAssigned(wo.id, user.id);
       if (isAssigned) return;
     }
 
     throw new ForbiddenException(
-      'Solo el solicitante, técnicos asignados o administradores pueden firmar la OT',
+      'Solo el solicitante, jefes, técnicos asignados o administradores pueden firmar la OT',
     );
   }
 }

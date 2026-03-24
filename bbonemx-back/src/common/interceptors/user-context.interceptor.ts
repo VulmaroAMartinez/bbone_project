@@ -47,12 +47,10 @@ export class UserContextInterceptor implements NestInterceptor {
     const contextType = context.getType<string>();
     let request: any;
 
-    // Obtener request según el tipo de contexto
     if (contextType === 'graphql') {
       const gqlContext = GqlExecutionContext.create(context);
       request = gqlContext.getContext().req;
     } else {
-      // HTTP context
       request = context.switchToHttp().getRequest();
     }
 
@@ -73,7 +71,6 @@ export class UserContextInterceptor implements NestInterceptor {
    * Extrae el ID del usuario del token JWT (ya procesado por el guard).
    */
   private extractUserId(request: any): string | undefined {
-    // El user es poblado por JwtAuthGuard después de validar el token
     return request.user?.id || request.user?.sub;
   }
 
@@ -82,10 +79,8 @@ export class UserContextInterceptor implements NestInterceptor {
    * Considera headers de proxies como X-Forwarded-For.
    */
   private extractIpAddress(request: any): string | undefined {
-    // Prioridad: X-Forwarded-For > X-Real-IP > connection.remoteAddress
     const forwardedFor = request.headers?.['x-forwarded-for'];
     if (forwardedFor) {
-      // X-Forwarded-For puede contener múltiples IPs separadas por coma
       const ips = forwardedFor.split(',');
       return ips[0]?.trim();
     }
@@ -95,7 +90,6 @@ export class UserContextInterceptor implements NestInterceptor {
       return realIp;
     }
 
-    // IP directa de la conexión
     return (
       request.ip ||
       request.connection?.remoteAddress ||
@@ -115,19 +109,16 @@ export class UserContextInterceptor implements NestInterceptor {
    * Puede venir de un header personalizado o de una cookie.
    */
   private extractSessionId(request: any): string | undefined {
-    // Verificar header personalizado
     const sessionHeader = request.headers?.['x-session-id'];
     if (sessionHeader) {
       return sessionHeader;
     }
 
-    // Verificar cookie de sesión
     const sessionCookie = request.cookies?.['session_id'];
     if (sessionCookie) {
       return sessionCookie;
     }
 
-    // Verificar JWT jti (JWT ID) como identificador de sesión
     return request.user?.jti;
   }
 }

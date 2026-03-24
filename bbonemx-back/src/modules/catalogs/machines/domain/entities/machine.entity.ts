@@ -49,7 +49,10 @@ export class Machine extends BaseEntity {
   })
   serialNumber?: string;
 
-  @Column({ name: 'installation_date', type: 'date', nullable: true })
+  @Column({ 
+    name: 'installation_date', 
+    type: 'date', 
+    nullable: true })
   installationDate?: Date;
 
   @Column({

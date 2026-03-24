@@ -159,7 +159,6 @@ export class NotificationDispatcherService {
         `Creadas ${notifications.length} notificaciones in-app`,
       );
 
-      // 2. Publicar via PubSub para GraphQL Subscriptions (IN_APP real-time)
       for (const notification of notifications) {
         await this.pubSub.publish(SUBSCRIPTION_TRIGGERS.NEW_NOTIFICATION, {
           [SUBSCRIPTION_TRIGGERS.NEW_NOTIFICATION]: notification,
@@ -178,7 +177,6 @@ export class NotificationDispatcherService {
           type,
         );
 
-        // Verificar si push está habilitado y no está en quiet hours
         if (pref.pushEnabled && !pref.isInQuietHours()) {
           const userTokens = tokensMap.get(notification.recipientId) || [];
           for (const deviceToken of userTokens) {
@@ -188,7 +186,6 @@ export class NotificationDispatcherService {
         }
       }
 
-      // 4. Enviar push en batch
       if (tokensToSend.length > 0) {
         const fcmMessage: FcmMessage = { title, body, data };
         const results = await this.fcmProvider.sendToTokens(
@@ -204,7 +201,6 @@ export class NotificationDispatcherService {
             await this.notificationsService.updatePushSent(notifId, true);
           }
 
-          // Marcar tokens expirados
           if (
             !result.success &&
             result.error &&

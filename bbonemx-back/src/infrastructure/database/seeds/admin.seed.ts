@@ -6,7 +6,6 @@ import { getDepartmentByName } from './departments.seed';
 
 const ADMIN_USER = {
   employeeNumber: 'ADMIN001',
-  password: 'Admin123!',
   firstName: 'Administrador',
   lastName: 'Sistema',
   email: 'admin@bbonemx.com',
@@ -39,8 +38,19 @@ export async function seedAdmin(dataSource: DataSource): Promise<void> {
     throw new Error('El departamento MAINTENANCE no existe');
   }
 
+  const seedPassword =
+    process.env.ADMIN_SEED_PASSWORD ??
+    process.env.SEED_ADMIN_PASSWORD ??
+    (process.env.NODE_ENV === 'production' ? undefined : 'Admin123!');
+
+  if (!seedPassword) {
+    throw new Error(
+      'ADMIN_SEED_PASSWORD/SEED_ADMIN_PASSWORD es requerido en producción para seedAdmin',
+    );
+  }
+
   const saltRounds = 10;
-  const hashedPassword = await bcrypt.hash(ADMIN_USER.password, saltRounds);
+  const hashedPassword = await bcrypt.hash(seedPassword, saltRounds);
 
   const admin = userRepository.create({
     employeeNumber: ADMIN_USER.employeeNumber,

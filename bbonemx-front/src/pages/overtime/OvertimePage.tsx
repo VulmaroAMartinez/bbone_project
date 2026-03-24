@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
-import { toast } from 'sonner';
+import { useQuery } from '@apollo/client/react';
 import { useAuth } from '@/contexts/auth-context';
 import {
   GET_OVERTIME_RECORDS_QUERY,
   GET_MY_OVERTIME_RECORDS_QUERY,
-  DELETE_OVERTIME_MUTATION,
   GET_ACTIVE_TECHNICIANS_QUERY,
   GET_POSITIONS_QUERY,
 } from '@/lib/graphql/operations/overtime';
@@ -35,7 +33,6 @@ import {
   Plus,
   Pencil,
   Eye,
-  Trash2,
   Clock,
   Filter,
   X,
@@ -159,21 +156,6 @@ export default function OvertimePage() {
 
   const { data: posData } = useQuery(GET_POSITIONS_QUERY, { skip: !isAdmin });
   const positions: PositionOption[] = ((posData as { positions: PositionOption[] })?.positions ?? []).filter((p: PositionOption) => p.isActive);
-
-  // ── Delete Mutation ──
-  const [deleteOvertime] = useMutation(DELETE_OVERTIME_MUTATION);
-
-  // ── Handlers ──
-  const handleDelete = async (record: OvertimeRecord) => {
-    if (!confirm('¿Estas seguro de eliminar este registro?')) return;
-    try {
-      await deleteOvertime({ variables: { id: record.id } });
-      toast.success('Registro eliminado');
-      refetch();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Error al eliminar registro');
-    }
-  };
 
   const openCreate = () => {
     setEditingRecord(null);
@@ -369,11 +351,6 @@ export default function OvertimePage() {
                           {canEdit(record) && (
                             <Button variant="ghost" size="icon" onClick={() => openEdit(record)} title="Editar">
                               <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canEdit(record) && (
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(record)} title="Eliminar" className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
                         </div>

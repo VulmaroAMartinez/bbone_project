@@ -16,7 +16,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Combobox } from '@/components/ui/combobox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -151,16 +150,16 @@ export function CompleteModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-full">
-        <DialogHeader>
+      <DialogContent className="w-full max-w-2xl sm:max-w-2xl h-[90vh] max-h-[90vh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Cerrar Orden de Trabajo</DialogTitle>
           <DialogDescription>
             Complete el reporte técnico antes de cerrar la OT.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onConfirm)}>
-          <ScrollArea className="max-h-[70vh] pr-4">
+        <form onSubmit={handleSubmit(onConfirm)} className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
+          <div className="min-h-0 overflow-y-auto pr-4">
             <div className="space-y-5 py-2">
               {/* 1. Estado final */}
               <div className="space-y-3 p-4 rounded-lg border border-border bg-muted/10">
@@ -397,7 +396,7 @@ export function CompleteModal({
                 </div>
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="pt-4 border-t border-border/50 mt-4">
             <Button

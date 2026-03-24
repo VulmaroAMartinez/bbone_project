@@ -37,9 +37,9 @@ Después de ejecutar los seeds, tendrás acceso con:
 |-------|-------|
 | Número de empleado | `ADMIN001` |
 | Email | `admin@bbonemx.com` |
-| Contraseña | `Admin123!` |
+| Contraseña | `ADMIN_SEED_PASSWORD` (variable de entorno) |
 
-> ⚠️ **IMPORTANTE**: Cambia la contraseña del administrador en producción.
+> ⚠️ **IMPORTANTE**: Define `ADMIN_SEED_PASSWORD` (o `SEED_ADMIN_PASSWORD`) antes de ejecutar seeds, especialmente en producción.
 
 ## Agregar nuevos seeds
 

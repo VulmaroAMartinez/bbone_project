@@ -52,7 +52,6 @@ export class FcmProvider implements OnModuleInit {
   }
 
   private resolveCredential(): admin.credential.Credential | null {
-    // Opción 1: Ruta al archivo JSON (recomendado por Firebase)
     const serviceAccountPath = this.configService.get<string>(
       'FIREBASE_SERVICE_ACCOUNT_PATH',
     );
@@ -117,7 +116,6 @@ export class FcmProvider implements OnModuleInit {
           ...(message.imageUrl && { imageUrl: message.imageUrl }),
         },
         data: message.data,
-        // Configuración para foreground y background
         android: {
           priority: 'high',
           notification: {

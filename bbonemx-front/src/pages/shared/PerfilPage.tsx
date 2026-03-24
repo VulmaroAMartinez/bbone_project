@@ -124,6 +124,7 @@ function getRoleLabel(role: string): string {
     case 'ADMIN': return 'Administrador';
     case 'TECHNICIAN': return 'Técnico';
     case 'REQUESTER': return 'Solicitante';
+    case 'BOSS': return 'Jefe';
     default: return role;
   }
 }
