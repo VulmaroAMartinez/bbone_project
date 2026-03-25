@@ -13,7 +13,8 @@ export class PdfGeneratorService {
     // Usar fonts incluidas en `pdfmake` (node_modules) para evitar assets externos.
     // Nota: esto no guarda archivos; solo referencia recursos del paquete instalado.
     const pdfmakeRoot = dirname(require.resolve('pdfmake/package.json'));
-    const fontsDir = join(pdfmakeRoot, 'examples', 'fonts');
+    // En `pdfmake@0.3.x` las fuentes Roboto vienen en `fonts/Roboto` (y también en `build/fonts/Roboto`).
+    const fontsDir = join(pdfmakeRoot, 'fonts', 'Roboto');
 
     const fonts = {
       Roboto: {
