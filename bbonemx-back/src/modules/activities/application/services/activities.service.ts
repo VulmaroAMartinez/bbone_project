@@ -7,6 +7,7 @@ import { ActivitiesRepository } from '../../infrastructure/repositories/activiti
 import { ActivityTechniciansRepository } from '../../infrastructure/repositories/activity-technicians.repository';
 import { AreasService } from 'src/modules/catalogs/areas/application/services/areas.service';
 import { MachinesService } from 'src/modules/catalogs/machines/application/services/machines.service';
+import { ExcelGeneratorService } from 'src/infrastructure/excel';
 import { Activity } from '../../domain/entities';
 import { CreateActivityInput, UpdateActivityInput } from '../dto/activity.dto';
 import {
@@ -14,6 +15,7 @@ import {
   ActivityPaginationInput,
   ActivitySortInput,
 } from '../dto/activity-filters.dto';
+import { ACTIVITY_EXCEL_REPORT } from '../constants/activity-excel-columns';
 import { ActivityStatus } from 'src/common/enums';
 
 @Injectable()
@@ -25,6 +27,7 @@ export class ActivitiesService {
     private readonly activityTechniciansRepository: ActivityTechniciansRepository,
     private readonly areasService: AreasService,
     private readonly machinesService: MachinesService,
+    private readonly excelGeneratorService: ExcelGeneratorService,
   ) {}
 
   async findAll(): Promise<Activity[]> {
@@ -128,5 +131,95 @@ export class ActivitiesService {
   async deactivate(id: string): Promise<void> {
     await this.findByIdOrFail(id);
     await this.activitiesRepository.softDelete(id);
+  }
+
+  async exportToExcel(
+    filters: ActivityFiltersInput,
+    sort: ActivitySortInput,
+  ): Promise<string> {
+    const data = await this.activitiesRepository.findAllWithFilters(filters, sort);
+    const buffer = await this.excelGeneratorService.generateExcelBuffer(
+      data,
+      ACTIVITY_EXCEL_REPORT,
+    );
+    return buffer.toString('base64');
+  }
+
+  async countForExcelExport(
+    filters: ActivityFiltersInput,
+    sort: ActivitySortInput,
+  ): Promise<number> {
+    return this.activitiesRepository.countForExcelExport(filters, sort);
+  }
+
+  async exportToExcelBuffer(
+    filters: ActivityFiltersInput,
+    sort: ActivitySortInput,
+  ): Promise<Buffer> {
+    const startedAt = Date.now();
+    const data = await this.activitiesRepository.findAllWithFilters(filters, sort);
+    const buffer = await this.excelGeneratorService.generateExcelBuffer(data, ACTIVITY_EXCEL_REPORT);
+    this.logger.log('Excel buffer generado', {
+      sheetName: ACTIVITY_EXCEL_REPORT.sheetName,
+      rows: data.length,
+      elapsedMs: Date.now() - startedAt,
+    });
+    return buffer;
+  }
+
+  async streamToExcel(
+    filters: ActivityFiltersInput,
+    sort: ActivitySortInput,
+    writable: NodeJS.WritableStream,
+    batchSize = 500,
+  ): Promise<void> {
+    const startedAt = Date.now();
+    let rowsYielded = 0;
+    const streamGenerator = this.createExcelRowStream(
+      filters,
+      sort,
+      batchSize,
+      () => {
+        rowsYielded += 1;
+      },
+    );
+    await this.excelGeneratorService.streamExcelToWritable(
+      streamGenerator,
+      ACTIVITY_EXCEL_REPORT,
+      writable,
+    );
+    this.logger.log('Excel stream enviado', {
+      sheetName: ACTIVITY_EXCEL_REPORT.sheetName,
+      batchSize,
+      rows: rowsYielded,
+      elapsedMs: Date.now() - startedAt,
+    });
+  }
+
+  private async *createExcelRowStream(
+    filters: ActivityFiltersInput,
+    sort: ActivitySortInput,
+    batchSize: number,
+    onRow?: () => void,
+  ): AsyncGenerator<Activity> {
+    let page = 1;
+    // Repetimos hasta que la consulta por lotes regrese un batch vacío.
+    // Esto evita cargar todos los datos en memoria para reportes grandes.
+    while (true) {
+      const batch = await this.activitiesRepository.findAllWithFiltersBatch(
+        filters,
+        sort,
+        { page, limit: batchSize },
+      );
+
+      if (!batch.length) return;
+
+      for (const row of batch) {
+        onRow?.();
+        yield row;
+      }
+
+      page += 1;
+    }
   }
 }

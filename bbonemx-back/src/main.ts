@@ -71,7 +71,7 @@ async function bootstrap() {
   );
 
   // Iniciar servidor
-  await app.listen(port || 3000);
+  await app.listen(port || 3000, '0.0.0.0');
 
   // Logs de inicio
   logger.log(`Application is running on: http://localhost:${port}`);

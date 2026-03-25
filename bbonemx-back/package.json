@@ -45,6 +45,7 @@
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
     "firebase": "^12.9.0",
     "firebase-admin": "^13.6.1",
     "graphql": "^16.12.0",
@@ -106,6 +107,9 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

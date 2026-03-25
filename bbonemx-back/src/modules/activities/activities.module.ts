@@ -28,6 +28,8 @@ import { UsersModule } from '../users/users.module';
 import { WorkOrdersModule } from '../work-orders/work-orders.module';
 import { MaterialRequestsModule } from '../material-requests/material-requests.module';
 
+import { ActivitiesExcelController } from './presentation/controllers/activities-excel.controller';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -52,6 +54,7 @@ import { MaterialRequestsModule } from '../material-requests/material-requests.m
     ActivityMaterialRequestsService,
     ActivitiesResolver,
   ],
+  controllers: [ActivitiesExcelController],
   exports: [
     ActivitiesService,
     TypeOrmModule,

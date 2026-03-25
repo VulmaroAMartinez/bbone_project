@@ -1181,6 +1181,9 @@ type Query {
   departments: [Department!]!
   departmentsActive: [Department!]!
   departmentsWithDeleted: [Department!]!
+
+  """Exportar actividades a Excel (Base64)"""
+  exportActivitiesExcel(filters: ActivityFiltersInput, sort: ActivitySortInput): String!
   finding(id: ID!): Finding
   findingByFolio(folio: String!): Finding
   findings: [Finding!]!

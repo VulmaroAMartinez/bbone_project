@@ -22,6 +22,7 @@ import {
   UserContextInterceptor,
 } from './common/interceptors';
 import { PasswordModule, EmailModule } from './common/modules';
+import { ExcelModule } from './infrastructure/excel';
 
 // Módulos de dominio
 import { FindingsModule } from './modules/findings';
@@ -67,6 +68,7 @@ import { HealthController } from './health.controller';
     CustomGraphqlModule,
     PasswordModule,
     EmailModule,
+    ExcelModule,
 
     // Módulo de auditoría (debe cargarse antes que otros módulos de dominio)
     AuditModule,

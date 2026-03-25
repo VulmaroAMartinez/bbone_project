@@ -10,6 +10,7 @@ import {
 } from '@/lib/graphql/generated/graphql';
 import type { ActivitySortField, ActivityStatus, SortOrder } from '@/lib/graphql/generated/graphql';
 import { gql } from '@apollo/client';
+import { downloadExcelBlob } from '@/lib/utils/excel-download';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,7 @@ import {
   FileText,
   ArrowUpDown,
   Trash2,
+  Download,
 } from 'lucide-react';
 
 const GET_AREAS_FOR_FILTER = gql`
@@ -86,6 +88,7 @@ export default function ActivitiesPage() {
   const [sortField, setSortField] = useState<ActivitySortField>('CREATED_AT');
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
   const [viewActivity, setViewActivity] = useState<any>(null);
+  const [exporting, setExporting] = useState(false);
 
   const { data: areasData } = useQuery<AreasForFilterQuery>(GET_AREAS_FOR_FILTER);
   const { data: machinesData } = useQuery(GetMachinesByAreaDocument, {
@@ -110,6 +113,47 @@ export default function ActivitiesPage() {
 
   const [updatePriority] = useMutation(UpdateActivityPriorityDocument);
   const [deleteActivity] = useMutation(DeleteActivityDocument);
+
+  const filename = `actividades-${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch('/api/activities/export/excel', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filters: {
+            areaId: areaFilter || undefined,
+            machineId: machineFilter || undefined,
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+            priority: priorityFilter || undefined,
+            search: searchTerm || undefined,
+          },
+          sort: { field: sortField, order: sortOrder },
+          filename,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      downloadExcelBlob(blob, filename);
+      toast.success('Excel descargado correctamente');
+    } catch (err) {
+      toast.error(
+        `Error al exportar: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const activities = data?.activitiesFiltered?.data || [];
   const total = data?.activitiesFiltered?.total || 0;
@@ -169,9 +213,19 @@ export default function ActivitiesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-foreground">Actividades</h1>
-        <Button onClick={() => navigate('/admin/actividades/nueva')}>
-          <Plus className="h-4 w-4 mr-2" /> Nueva Actividad
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={exporting}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {exporting ? 'Exportando...' : 'Exportar Excel'}
+          </Button>
+          <Button onClick={() => navigate('/admin/actividades/nueva')}>
+            <Plus className="h-4 w-4 mr-2" /> Nueva Actividad
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
