@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import { dirname, join } from 'path';
+import * as fs from 'fs';
 
 import type { PdfTableDefinition, PdfTableRenderOptions } from './pdf-table-definition';
 
@@ -38,7 +39,13 @@ export class PdfGeneratorService {
       });
       throw new InternalServerErrorException('No se pudo inicializar el generador de PDF');
     }
-    return new Printer(fonts);
+    // URLResolver es requerido por pdfmake para resolver recursos (fonts/images).
+    const urlResolverMod: any = await import('pdfmake/js/URLResolver.js');
+    const URLResolver = urlResolverMod?.default ?? urlResolverMod;
+    const urlResolver = new URLResolver(fs);
+
+    // Constructor: new PdfPrinter(fontDescriptors, virtualfs, urlResolver)
+    return new Printer(fonts, undefined, urlResolver);
   }
 
   private getDefaultOptions(): Required<PdfTableRenderOptions> {
@@ -184,7 +191,7 @@ export class PdfGeneratorService {
       }
 
       const printer = await this.createPrinter();
-      const doc = (printer as any).createPdfKitDocument(docDefinition);
+      const doc = await (printer as any).createPdfKitDocument(docDefinition);
 
       doc.on('error', (err: any) => {
         this.logger.error('Error en stream PDFKit', {
