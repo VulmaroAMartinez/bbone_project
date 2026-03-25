@@ -26,7 +26,18 @@ export class PdfGeneratorService {
     // En runtime backend, usar build CommonJS (`js/Printer.js`) para evitar problemas
     // de resolución ESM/NodeNext dentro de `src/`.
     const mod: any = await import('pdfmake/js/Printer.js');
-    const Printer = mod?.default ?? mod;
+    // Con NodeNext, el import puede venir envuelto (default o incluso default.default).
+    let Printer = mod?.default ?? mod;
+    if (Printer?.default) {
+      Printer = Printer.default;
+    }
+    if (typeof Printer !== 'function') {
+      this.logger.error('Pdfmake Printer no es un constructor', {
+        keys: mod ? Object.keys(mod) : [],
+        typeofPrinter: typeof Printer,
+      });
+      throw new InternalServerErrorException('No se pudo inicializar el generador de PDF');
+    }
     return new Printer(fonts);
   }
 
