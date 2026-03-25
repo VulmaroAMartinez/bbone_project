@@ -23,8 +23,9 @@ export class PdfGeneratorService {
       },
     };
 
-    // En NodeNext, `pdfmake/src/printer` se carga mejor con `import()` (ESM).
-    const mod: any = await import('pdfmake/src/printer.js');
+    // En runtime backend, usar build CommonJS (`js/Printer.js`) para evitar problemas
+    // de resolución ESM/NodeNext dentro de `src/`.
+    const mod: any = await import('pdfmake/js/Printer.js');
     const Printer = mod?.default ?? mod;
     return new Printer(fonts);
   }
