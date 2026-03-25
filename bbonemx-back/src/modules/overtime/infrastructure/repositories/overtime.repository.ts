@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, FindOptionsWhere } from 'typeorm';
+import {
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { Overtime } from '../../domain/entities';
 import { ReasonForPayment } from 'src/common/enums/reason-for-payment.enum';
 
@@ -13,6 +16,58 @@ export class OvertimeRepository {
     private readonly repository: Repository<Overtime>,
   ) {}
 
+  private createBaseQuery(): SelectQueryBuilder<Overtime> {
+    return this.repository
+      .createQueryBuilder('overtime')
+      .leftJoinAndSelect('overtime.technician', 'technician')
+      .leftJoinAndSelect('technician.user', 'user')
+      .leftJoinAndSelect('technician.position', 'position')
+      .where('overtime.is_active = :active', { active: true });
+  }
+
+  private applyFilters(
+    qb: SelectQueryBuilder<Overtime>,
+    filters?: {
+      startDate?: string;
+      endDate?: string;
+      technicianId?: string;
+      positionId?: string;
+      reasonForPayment?: ReasonForPayment;
+    },
+  ): void {
+    if (!filters) return;
+
+    if (filters.technicianId) {
+      qb.andWhere('overtime.technician_id = :technicianId', {
+        technicianId: filters.technicianId,
+      });
+    }
+    if (filters.reasonForPayment) {
+      qb.andWhere('overtime.reason_for_payment = :reasonForPayment', {
+        reasonForPayment: filters.reasonForPayment,
+      });
+    }
+    if (filters.positionId) {
+      qb.andWhere('technician.position_id = :positionId', {
+        positionId: filters.positionId,
+      });
+    }
+    if (filters.startDate) {
+      qb.andWhere('overtime.work_date >= :startDate', {
+        startDate: filters.startDate,
+      });
+    }
+    if (filters.endDate) {
+      qb.andWhere('overtime.work_date <= :endDate', {
+        endDate: filters.endDate,
+      });
+    }
+  }
+
+  private applyDefaultOrder(qb: SelectQueryBuilder<Overtime>): void {
+    qb.orderBy('overtime.workDate', 'DESC').addOrderBy('overtime.startTime', 'DESC');
+  }
+
   async findAll(filters?: {
     startDate?: string;
     endDate?: string;
@@ -20,33 +75,10 @@ export class OvertimeRepository {
     positionId?: string;
     reasonForPayment?: ReasonForPayment;
   }): Promise<Overtime[]> {
-    const where: FindOptionsWhere<Overtime> = { isActive: true };
-
-    if (filters?.technicianId) {
-      where.technicianId = filters.technicianId;
-    }
-    if (filters?.reasonForPayment) {
-      where.reasonForPayment = filters.reasonForPayment;
-    }
-    if (filters?.startDate && filters?.endDate) {
-      where.workDate = Between(
-        new Date(filters.startDate),
-        new Date(filters.endDate),
-      );
-    }
-
-    const results = await this.repository.find({
-      where,
-      relations: RELATIONS,
-      order: { workDate: 'DESC', startTime: 'DESC' },
-    });
-
-    if (filters?.positionId) {
-      return results.filter(
-        (ot) => ot.technician?.positionId === filters.positionId,
-      );
-    }
-    return results;
+    const qb = this.createBaseQuery();
+    this.applyFilters(qb, filters);
+    this.applyDefaultOrder(qb);
+    return qb.getMany();
   }
 
   async findByTechnicianId(technicianId: string): Promise<Overtime[]> {
@@ -84,5 +116,38 @@ export class OvertimeRepository {
     record.isActive = false;
     record.deletedAt = new Date();
     await this.repository.save(record);
+  }
+
+  async countForExport(filters?: {
+    startDate?: string;
+    endDate?: string;
+    technicianId?: string;
+    positionId?: string;
+    reasonForPayment?: ReasonForPayment;
+  }): Promise<number> {
+    const qb = this.createBaseQuery();
+    this.applyFilters(qb, filters);
+    return qb.getCount();
+  }
+
+  async findForExportBatch(
+    filters: {
+      startDate?: string;
+      endDate?: string;
+      technicianId?: string;
+      positionId?: string;
+      reasonForPayment?: ReasonForPayment;
+    } | undefined,
+    pagination: { page?: number; limit?: number },
+  ): Promise<Overtime[]> {
+    const qb = this.createBaseQuery();
+    this.applyFilters(qb, filters);
+    this.applyDefaultOrder(qb);
+
+    const page = pagination.page || 1;
+    const limit = pagination.limit || 100;
+    qb.skip((page - 1) * limit).take(limit);
+
+    return qb.getMany();
   }
 }

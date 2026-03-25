@@ -36,7 +36,17 @@ import {
   Clock,
   Filter,
   X,
+  Download,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { getApiBaseUrl } from '@/lib/utils/uploads';
+import { downloadBlob } from '@/lib/utils/excel-download';
 
 import { OvertimeFormModal } from './modals/OvertimeFormModal';
 import { OvertimeViewModal } from './modals/OvertimeViewModal';
@@ -130,6 +140,7 @@ export default function OvertimePage() {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [filterPositionId, setFilterPositionId] = useState('');
   const [filterReason, setFilterReason] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   // ── Queries ──
   const query = isAdmin ? GET_OVERTIME_RECORDS_QUERY : GET_MY_OVERTIME_RECORDS_QUERY;
@@ -185,6 +196,84 @@ export default function OvertimePage() {
   };
 
   const hasFilters = filterStartDate || filterEndDate || filterPositionId || filterReason;
+  const baseName = `horas-extra-${new Date().toISOString().split('T')[0]}`;
+  const excelFilename = `${baseName}.xlsx`;
+  const pdfFilename = `${baseName}.pdf`;
+
+  const exportBody = {
+    filters: {
+      startDate: filterStartDate || undefined,
+      endDate: filterEndDate || undefined,
+      positionId: filterPositionId || undefined,
+      reasonForPayment: filterReason || undefined,
+    },
+    periodFrom: filterStartDate || undefined,
+    periodTo: filterEndDate || undefined,
+  };
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/overtime/export/excel`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...exportBody,
+          filename: excelFilename,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      downloadBlob(blob, excelFilename);
+      toast.success('Excel descargado correctamente');
+    } catch (err) {
+      toast.error(
+        `Error al exportar: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/overtime/export/pdf`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...exportBody,
+          filename: pdfFilename,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      downloadBlob(blob, pdfFilename);
+      toast.success('PDF descargado correctamente');
+    } catch (err) {
+      toast.error(
+        `Error al exportar: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // ── Render ──────────────────────────────────────────
   return (
@@ -196,10 +285,30 @@ export default function OvertimePage() {
             {isAdmin ? 'Gestion de horas extra de todos los tecnicos' : 'Mis registros de horas extra'}
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Registrar
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={exporting}>
+                  <Download className="mr-2 h-4 w-4" />
+                  {exporting ? 'Exportando...' : 'Exportar'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportExcel}>
+                  Exportar Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPdf}>
+                  Exportar PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Registrar
+          </Button>
+        </div>
       </div>
 
       {/* ── Filters ── */}
@@ -277,7 +386,7 @@ export default function OvertimePage() {
                 <TableRow>
                   {isAdmin && (
                     <>
-                      <TableHead>No. Empleado</TableHead>
+                      <TableHead>No. Nómina</TableHead>
                       <TableHead>Nombre</TableHead>
                       <TableHead>Puesto</TableHead>
                     </>
@@ -287,6 +396,7 @@ export default function OvertimePage() {
                   <TableHead>Fin</TableHead>
                   <TableHead>Horas</TableHead>
                   <TableHead>Razon de pago</TableHead>
+                  <TableHead>Actividad</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -343,6 +453,7 @@ export default function OvertimePage() {
                           {getReasonLabel(record.reasonForPayment)}
                         </Badge>
                       </TableCell>
+                      <TableCell>{record.activity}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" onClick={() => openView(record)} title="Ver detalle">

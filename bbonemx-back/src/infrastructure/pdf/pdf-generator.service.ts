@@ -4,14 +4,16 @@ import { dirname, join } from 'path';
 import * as fs from 'fs';
 
 import type { PdfTableDefinition, PdfTableRenderOptions } from './pdf-table-definition';
+import type {
+  DashboardChartPdfItem,
+  DashboardChartsPdfOptions,
+} from './pdf-charts-definition';
 
 @Injectable()
 export class PdfGeneratorService {
   private readonly logger = new Logger(PdfGeneratorService.name);
 
   private async createPrinter(): Promise<any> {
-    // Usar fonts incluidas en `pdfmake` (node_modules) para evitar assets externos.
-    // Nota: esto no guarda archivos; solo referencia recursos del paquete instalado.
     const pdfmakeRoot = dirname(require.resolve('pdfmake/package.json'));
     // En `pdfmake@0.3.x` las fuentes Roboto vienen en `fonts/Roboto` (y también en `build/fonts/Roboto`).
     const fontsDir = join(pdfmakeRoot, 'fonts', 'Roboto');
@@ -60,14 +62,15 @@ export class PdfGeneratorService {
     return new Printer(fonts, undefined, urlResolver);
   }
 
-  private getDefaultOptions(): Required<PdfTableRenderOptions> {
+  private getDefaultOptions(): PdfTableRenderOptions {
     return {
       title: '',
       subtitle: '',
-      headerFontSize: 10,
+      headerFontSize: 12,
       bodyFontSize: 9,
       rowPadding: 3,
       rowsPerBlock: 35,
+      tableHeaderFillColor: '#1F4E79',
     };
   }
 
@@ -122,6 +125,12 @@ export class PdfGeneratorService {
     }
 
     const opts = { ...this.getDefaultOptions(), ...(definition.renderOptions ?? {}) };
+    const rowsPerBlock = opts.rowsPerBlock ?? 35;
+    const rowPadding = opts.rowPadding ?? 3;
+    const bodyFontSize = opts.bodyFontSize ?? 9;
+    const headerFontSize = opts.headerFontSize ?? 12;
+    const tableHeaderFillColor = opts.tableHeaderFillColor ?? '#1F4E79';
+    const topHeader = opts.topHeader;
     const startedAt = Date.now();
 
     try {
@@ -137,19 +146,75 @@ export class PdfGeneratorService {
         for (const row of data as Iterable<T>) rows.push(row);
       }
 
-      const header = definition.columns.map((c) => c.header);
-      const blocks = this.chunk(rows, opts.rowsPerBlock);
+      const header = definition.columns.map((c) => ({
+        text: c.header,
+        style: 'tableHeader',
+      }));
+      const blocks = this.chunk(rows, rowsPerBlock);
 
       const widths = definition.columns.map((c) => c.width ?? '*');
-      const bodyFontSize = opts.bodyFontSize;
-      const headerFontSize = opts.headerFontSize;
 
       const content: any[] = [];
-      if (opts.title) {
-        content.push({ text: opts.title, fontSize: 14, bold: true, margin: [0, 0, 0, 6] });
-      }
-      if (opts.subtitle) {
-        content.push({ text: opts.subtitle, fontSize: 10, margin: [0, 0, 0, 10] });
+
+      if (topHeader) {
+        const top = topHeader;
+        const labelColor = top.labelColor ?? '000000';
+        const valueColor = top.valueColor ?? 'C00000';
+
+        const kv = (label: string, value: string) => ({
+          text: [
+            { text: `${label} `, bold: true, color: labelColor },
+            {
+              text: value,
+              bold: true,
+              color: valueColor,
+              decoration: 'underline',
+            },
+          ],
+        });
+
+        // Construimos un bloque de 3 filas, imitando encabezado tipo nómina:
+        // fila 1: Empresa + Fecha de elaboración
+        // fila 2: AREA + Fecha de entrega a nómina
+        // fila 3: PERIODO
+        content.push({
+          margin: [0, 0, 0, 10],
+          table: {
+            widths: ['*', '*'],
+            body: [
+              [
+                kv(top.empresa.label, top.empresa.value),
+                kv(top.fechaElaboracion.label, top.fechaElaboracion.value),
+              ],
+              [
+                kv(top.area.label, top.area.value),
+                kv(top.fechaEntrega.label, top.fechaEntrega.value),
+              ],
+              [
+                {
+                  colSpan: 2,
+                  ...kv(top.periodo.label, top.periodo.value),
+                },
+                {},
+              ],
+            ],
+          },
+          layout: {
+            hLineWidth: () => 0,
+            vLineWidth: () => 0,
+            paddingLeft: () => 0,
+            paddingRight: () => 0,
+            paddingTop: () => 0,
+            paddingBottom: () => 0,
+          },
+        });
+      } else {
+        if (opts.title) {
+          content.push({ text: opts.title, fontSize: 14, bold: true, margin: [0, 0, 0, 6] });
+        }
+        if (opts.subtitle) {
+          content.push({ text: opts.subtitle, fontSize: 10, margin: [0, 0, 0, 10] });
+        }
       }
 
       blocks.forEach((block, idx) => {
@@ -162,13 +227,14 @@ export class PdfGeneratorService {
             body,
           },
           layout: {
-            fillColor: (rowIndex: number) => (rowIndex === 0 ? '#1F4E79' : null),
+            fillColor: (rowIndex: number) =>
+              (rowIndex === 0 ? tableHeaderFillColor : null),
             hLineWidth: () => 0.5,
             vLineWidth: () => 0.5,
-            paddingLeft: () => opts.rowPadding,
-            paddingRight: () => opts.rowPadding,
-            paddingTop: () => opts.rowPadding,
-            paddingBottom: () => opts.rowPadding,
+            paddingLeft: () => rowPadding,
+            paddingRight: () => rowPadding,
+            paddingTop: () => rowPadding,
+            paddingBottom: () => rowPadding,
           },
           fontSize: bodyFontSize,
           // Forzar salto por bloque para legibilidad.
@@ -228,6 +294,151 @@ export class PdfGeneratorService {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.error('Error generando PDF', { err: message, elapsedMs: Date.now() - startedAt });
       throw new InternalServerErrorException('Error al generar el PDF');
+    }
+  }
+
+  private static readonly MAX_CHART_ITEMS = 12;
+  private static readonly MAX_IMAGE_BYTES = 900_000;
+
+  private normalizeChartDataUrl(dataUrl: string): string {
+    const trimmed = dataUrl?.trim() ?? '';
+    const m = trimmed.match(
+      /^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=\s]+)$/i,
+    );
+    if (!m) {
+      throw new BadRequestException(
+        'Cada imagen debe ser data URL base64 (image/png o image/jpeg)',
+      );
+    }
+    const mime = m[1].toLowerCase();
+    const base64 = m[2].replace(/\s/g, '');
+    let buf: Buffer;
+    try {
+      buf = Buffer.from(base64, 'base64');
+    } catch {
+      throw new BadRequestException('Imagen base64 inválida');
+    }
+    if (buf.length === 0) {
+      throw new BadRequestException('Imagen vacía');
+    }
+    if (buf.length > PdfGeneratorService.MAX_IMAGE_BYTES) {
+      throw new BadRequestException(
+        `Imagen demasiado grande (máx. ${PdfGeneratorService.MAX_IMAGE_BYTES} bytes)`,
+      );
+    }
+    return `data:${mime};base64,${base64}`;
+  }
+
+  /**
+   * Valida data URLs antes de fijar headers HTTP (evita PDF corrupto en errores 400).
+   */
+  preflightChartsPdfItems(items: DashboardChartPdfItem[]): void {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new BadRequestException('Se requiere al menos una gráfica');
+    }
+    if (items.length > PdfGeneratorService.MAX_CHART_ITEMS) {
+      throw new BadRequestException(
+        `Máximo ${PdfGeneratorService.MAX_CHART_ITEMS} gráficas por exportación`,
+      );
+    }
+    for (const item of items) {
+      this.normalizeChartDataUrl(item.imageDataUrl);
+    }
+  }
+
+  /**
+   * PDF con gráficas como imágenes (capturadas en el cliente). Sin tablas.
+   */
+  async streamChartsPdfToWritable(
+    options: DashboardChartsPdfOptions,
+    writable: NodeJS.WritableStream,
+  ): Promise<void> {
+    if (!writable || typeof (writable as any).write !== 'function') {
+      throw new BadRequestException('writable debe ser un stream válido');
+    }
+    const items = options?.items;
+    this.preflightChartsPdfItems(items);
+
+    const imageMaxWidth = options.imageMaxWidth ?? 720;
+    const startedAt = Date.now();
+
+    const content: any[] = [];
+    const title = options.documentTitle?.trim() || 'Dashboard — Gráficas';
+    content.push({
+      text: title,
+      fontSize: 16,
+      bold: true,
+      margin: [0, 0, 0, 6],
+    });
+    if (options.subtitle?.trim()) {
+      content.push({
+        text: options.subtitle.trim(),
+        fontSize: 9,
+        color: '#444444',
+        margin: [0, 0, 0, 12],
+      });
+    }
+
+    items.forEach((item, idx) => {
+      const safeTitle = item.title?.trim() || `Gráfica ${idx + 1}`;
+      const image = this.normalizeChartDataUrl(item.imageDataUrl);
+      content.push({
+        text: safeTitle,
+        fontSize: 11,
+        bold: true,
+        margin: [0, idx === 0 ? 0 : 10, 0, 6],
+      });
+      content.push({
+        image,
+        width: imageMaxWidth,
+        alignment: 'center',
+        margin: [0, 0, 0, 4],
+      });
+      if (idx < items.length - 1) {
+        content.push({ text: '', pageBreak: 'after' as const });
+      }
+    });
+
+    const docDefinition: TDocumentDefinitions = {
+      pageSize: 'A4',
+      pageOrientation: 'landscape',
+      pageMargins: [40, 40, 40, 40],
+      content,
+      defaultStyle: {
+        font: 'Roboto',
+        fontSize: 9,
+      },
+    };
+
+    try {
+      const printer = await this.createPrinter();
+      const doc = await (printer as any).createPdfKitDocument(docDefinition);
+      doc.on('error', (err: any) => {
+        this.logger.error('Error en stream PDFKit (charts)', {
+          err: err instanceof Error ? err.message : String(err),
+        });
+      });
+      doc.pipe(writable);
+      doc.end();
+      await new Promise<void>((resolve, reject) => {
+        writable.on('finish', resolve);
+        writable.on('error', reject);
+        doc.on('error', reject);
+      });
+      this.logger.log('PDF de gráficas generado', {
+        charts: items.length,
+        elapsedMs: Date.now() - startedAt,
+      });
+    } catch (err) {
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error('Error generando PDF de gráficas', {
+        err: message,
+        elapsedMs: Date.now() - startedAt,
+      });
+      throw new InternalServerErrorException('Error al generar el PDF del dashboard');
     }
   }
 }

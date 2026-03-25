@@ -51,5 +51,39 @@ describe('PdfGeneratorService', () => {
     expect(bytes.length).toBeGreaterThan(0);
     expect(bytes.subarray(0, 4).toString('utf8')).toBe('%PDF');
   });
+
+  it('streamChartsPdfToWritable genera PDF con imágenes', async () => {
+    const service = new PdfGeneratorService();
+    (service as any).createPrinter = async () => ({
+      createPdfKitDocument: () => {
+        const doc = new PassThrough();
+        const originalEnd = doc.end.bind(doc);
+        doc.end = ((...args: any[]) => {
+          doc.write(Buffer.from('%PDF-1.4\n'));
+          return originalEnd(...args);
+        }) as any;
+        return doc;
+      },
+    });
+
+    const tinyPng =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+    const pass = new PassThrough();
+    const chunks: Buffer[] = [];
+    pass.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+
+    await service.streamChartsPdfToWritable(
+      {
+        documentTitle: 'Test dashboard',
+        items: [{ title: 'Gráfica 1', imageDataUrl: tinyPng }],
+      },
+      pass,
+    );
+
+    const bytes = Buffer.concat(chunks);
+    expect(bytes.length).toBeGreaterThan(0);
+    expect(bytes.subarray(0, 4).toString('utf8')).toBe('%PDF');
+  });
 });
 

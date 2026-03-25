@@ -72,9 +72,10 @@ export class ExcelGeneratorService {
   private styleHeaderRowBuffer(
     worksheet: ExcelJS.Worksheet,
     report: ExcelReportDefinition<any>,
+    headerRowIndex: number,
   ): void {
     const render = this.resolveRenderOptions(report);
-    const headerRow = worksheet.getRow(1);
+    const headerRow = worksheet.getRow(headerRowIndex);
     headerRow.eachCell((cell) => {
       cell.fill = {
         type: 'pattern',
@@ -97,11 +98,12 @@ export class ExcelGeneratorService {
   private styleDataRowsBuffer(
     worksheet: ExcelJS.Worksheet,
     report: ExcelReportDefinition<any>,
+    headerRowIndex: number,
   ): void {
     const render = this.resolveRenderOptions(report);
     if (!render.enableBorders) return;
 
-    for (let i = 2; i <= worksheet.rowCount; i++) {
+    for (let i = headerRowIndex + 1; i <= worksheet.rowCount; i++) {
       worksheet.getRow(i).eachCell({ includeEmpty: true }, (cell) => {
         cell.border = {
           top: { style: 'thin' },
@@ -109,6 +111,42 @@ export class ExcelGeneratorService {
           bottom: { style: 'thin' },
           right: { style: 'thin' },
         };
+      });
+    }
+  }
+
+  private stylePreRowsBuffer(
+    worksheet: ExcelJS.Worksheet,
+    report: ExcelReportDefinition<any>,
+    preRowsCount: number,
+  ): void {
+    const style = report.preRowsRenderOptions;
+    if (!style || preRowsCount <= 0) return;
+
+    const labelColumns = style.labelColumns ?? [];
+    const valueColumns = style.valueColumns ?? [];
+
+    for (let rowIndex = 1; rowIndex <= preRowsCount; rowIndex++) {
+      const row = worksheet.getRow(rowIndex);
+      // Incluimos celdas vacías para no dejar estilos inconsistentes.
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        if (labelColumns.includes(colNumber)) {
+          cell.font = {
+            bold: style.labelBold ?? true,
+            color: { argb: style.labelFontColor ?? '000000' },
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        } else if (valueColumns.includes(colNumber)) {
+          cell.font = {
+            bold: style.valueBold ?? true,
+            color: { argb: style.valueFontColor ?? 'C00000' },
+            underline: style.underlineValue ? 'single' : undefined,
+          };
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        } else {
+          // Limpiamos estilo previo por si ExcelJS recrea celdas con default.
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        }
       });
     }
   }
@@ -140,13 +178,21 @@ export class ExcelGeneratorService {
         rows += 1;
       }
 
-      this.styleHeaderRowBuffer(worksheet, report);
-      this.styleDataRowsBuffer(worksheet, report);
+      const preRows = report.preRows ?? [];
+      if (preRows.length > 0) {
+        worksheet.spliceRows(1, 0, ...preRows);
+      }
+
+      const headerRowIndex = preRows.length + 1;
+
+      this.stylePreRowsBuffer(worksheet, report, preRows.length);
+      this.styleHeaderRowBuffer(worksheet, report, headerRowIndex);
+      this.styleDataRowsBuffer(worksheet, report, headerRowIndex);
 
       if (render.enableAutoFilter) {
         worksheet.autoFilter = {
-          from: { row: 1, column: 1 },
-          to: { row: 1, column: report.columns.length },
+          from: { row: headerRowIndex, column: 1 },
+          to: { row: headerRowIndex, column: report.columns.length },
         };
       }
 

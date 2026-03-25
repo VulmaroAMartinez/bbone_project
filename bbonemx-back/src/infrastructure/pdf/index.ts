@@ -6,4 +6,8 @@ export type {
   PdfTableRenderOptions,
   PdfTableAlign,
 } from './pdf-table-definition';
+export type {
+  DashboardChartPdfItem,
+  DashboardChartsPdfOptions,
+} from './pdf-charts-definition';
 
