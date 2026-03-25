@@ -11,6 +11,7 @@ import {
 import type { ActivitySortField, ActivityStatus, SortOrder } from '@/lib/graphql/generated/graphql';
 import { gql } from '@apollo/client';
 import { downloadExcelBlob } from '@/lib/utils/excel-download';
+import { getApiBaseUrl } from '@/lib/utils/uploads';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -119,7 +120,9 @@ export default function ActivitiesPage() {
   const handleExportExcel = async () => {
     setExporting(true);
     try {
-      const response = await fetch('/api/activities/export/excel', {
+      const response = await fetch(
+        `${getApiBaseUrl()}/api/activities/export/excel`,
+        {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -136,7 +139,8 @@ export default function ActivitiesPage() {
           sort: { field: sortField, order: sortOrder },
           filename,
         }),
-      });
+        },
+      );
 
       if (!response.ok) {
         const text = await response.text().catch(() => '');

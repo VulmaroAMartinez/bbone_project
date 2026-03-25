@@ -77,7 +77,8 @@ describe('ActivitiesExcelController', () => {
     await workbook.xlsx.load(bytes);
     const sheet = workbook.getWorksheet('Actividades');
     expect(sheet).toBeDefined();
-    expect(sheet!.getRow(1).getCell(1).value).toBe('Actividad');
+    expect(sheet!.getRow(1).getCell(1).value).toBe('Área');
+    expect(sheet!.getRow(1).getCell(3).value).toBe('Actividad');
 
     await app.close();
   });
