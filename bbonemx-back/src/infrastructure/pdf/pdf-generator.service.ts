@@ -41,7 +41,18 @@ export class PdfGeneratorService {
     }
     // URLResolver es requerido por pdfmake para resolver recursos (fonts/images).
     const urlResolverMod: any = await import('pdfmake/js/URLResolver.js');
-    const URLResolver = urlResolverMod?.default ?? urlResolverMod;
+    let URLResolver = urlResolverMod?.default ?? urlResolverMod;
+    // NodeNext puede envolver doble (default.default)
+    if (URLResolver?.default) {
+      URLResolver = URLResolver.default;
+    }
+    if (typeof URLResolver !== 'function') {
+      this.logger.error('Pdfmake URLResolver no es un constructor', {
+        keys: urlResolverMod ? Object.keys(urlResolverMod) : [],
+        typeofURLResolver: typeof URLResolver,
+      });
+      throw new InternalServerErrorException('No se pudo inicializar el resolvedor de URLs para PDF');
+    }
     const urlResolver = new URLResolver(fs);
 
     // Constructor: new PdfPrinter(fontDescriptors, virtualfs, urlResolver)
