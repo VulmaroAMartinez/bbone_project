@@ -29,6 +29,7 @@ import { WorkOrdersModule } from '../work-orders/work-orders.module';
 import { MaterialRequestsModule } from '../material-requests/material-requests.module';
 
 import { ActivitiesExcelController } from './presentation/controllers/activities-excel.controller';
+import { ActivitiesPdfController } from './presentation/controllers/activities-pdf.controller';
 
 @Module({
   imports: [
@@ -54,7 +55,7 @@ import { ActivitiesExcelController } from './presentation/controllers/activities
     ActivityMaterialRequestsService,
     ActivitiesResolver,
   ],
-  controllers: [ActivitiesExcelController],
+  controllers: [ActivitiesExcelController, ActivitiesPdfController],
   exports: [
     ActivitiesService,
     TypeOrmModule,

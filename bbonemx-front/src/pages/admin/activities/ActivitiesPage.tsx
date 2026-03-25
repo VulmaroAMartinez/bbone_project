@@ -10,7 +10,7 @@ import {
 } from '@/lib/graphql/generated/graphql';
 import type { ActivitySortField, ActivityStatus, SortOrder } from '@/lib/graphql/generated/graphql';
 import { gql } from '@apollo/client';
-import { downloadExcelBlob } from '@/lib/utils/excel-download';
+import { downloadBlob } from '@/lib/utils/excel-download';
 import { getApiBaseUrl } from '@/lib/utils/uploads';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -115,7 +115,9 @@ export default function ActivitiesPage() {
   const [updatePriority] = useMutation(UpdateActivityPriorityDocument);
   const [deleteActivity] = useMutation(DeleteActivityDocument);
 
-  const filename = `actividades-${new Date().toISOString().split('T')[0]}.xlsx`;
+  const baseName = `actividades-${new Date().toISOString().split('T')[0]}`;
+  const excelFilename = `${baseName}.xlsx`;
+  const pdfFilename = `${baseName}.pdf`;
 
   const handleExportExcel = async () => {
     setExporting(true);
@@ -137,7 +139,7 @@ export default function ActivitiesPage() {
             search: searchTerm || undefined,
           },
           sort: { field: sortField, order: sortOrder },
-          filename,
+          filename: excelFilename,
         }),
         },
       );
@@ -148,8 +150,50 @@ export default function ActivitiesPage() {
       }
 
       const blob = await response.blob();
-      downloadExcelBlob(blob, filename);
+      downloadBlob(blob, excelFilename);
       toast.success('Excel descargado correctamente');
+    } catch (err) {
+      toast.error(
+        `Error al exportar: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      const response = await fetch(
+        `${getApiBaseUrl()}/api/activities/export/pdf`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filters: {
+              areaId: areaFilter || undefined,
+              machineId: machineFilter || undefined,
+              status: statusFilter !== 'all' ? statusFilter : undefined,
+              priority: priorityFilter || undefined,
+              search: searchTerm || undefined,
+            },
+            sort: { field: sortField, order: sortOrder },
+            filename: pdfFilename,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      downloadBlob(blob, pdfFilename);
+      toast.success('PDF descargado correctamente');
     } catch (err) {
       toast.error(
         `Error al exportar: ${err instanceof Error ? err.message : String(err)}`,
@@ -218,14 +262,22 @@ export default function ActivitiesPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-foreground">Actividades</h1>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleExportExcel}
-            disabled={exporting}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            {exporting ? 'Exportando...' : 'Exportar Excel'}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={exporting}>
+                <Download className="h-4 w-4 mr-2" />
+                {exporting ? 'Exportando...' : 'Exportar'}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportExcel}>
+                Exportar Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPdf}>
+                Exportar PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => navigate('/admin/actividades/nueva')}>
             <Plus className="h-4 w-4 mr-2" /> Nueva Actividad
           </Button>

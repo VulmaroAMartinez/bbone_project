@@ -196,6 +196,26 @@ export class ActivitiesService {
     });
   }
 
+  async *streamActivitiesForPdf(
+    filters: ActivityFiltersInput,
+    sort: ActivitySortInput,
+    batchSize = 500,
+  ): AsyncGenerator<Activity> {
+    let page = 1;
+    while (true) {
+      const batch = await this.activitiesRepository.findAllWithFiltersBatch(
+        filters,
+        sort,
+        { page, limit: batchSize },
+      );
+      if (!batch.length) return;
+      for (const row of batch) {
+        yield row;
+      }
+      page += 1;
+    }
+  }
+
   private async *createExcelRowStream(
     filters: ActivityFiltersInput,
     sort: ActivitySortInput,

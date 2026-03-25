@@ -1,4 +1,5 @@
 import type { ExcelColumnDefinition, ExcelReportDefinition } from 'src/infrastructure/excel';
+import type { PdfTableDefinition } from 'src/infrastructure/pdf';
 import { Activity } from '../../domain/entities';
 import { ActivityStatus } from 'src/common/enums';
 
@@ -89,5 +90,43 @@ export const ACTIVITY_EXCEL_REPORT: ExcelReportDefinition<Activity> = {
     enableAutoFilter: true,
     enableAutoFit: true,
     maxColumnWidth: 50,
+  },
+};
+
+export const ACTIVITY_PDF_REPORT: PdfTableDefinition<Activity> = {
+  columns: [
+    { header: 'Área', key: 'area.name', width: 70 },
+    { header: 'Equipo', key: 'machine.name', width: 70 },
+    { header: 'Actividad', key: 'activity', width: '*' },
+    {
+      header: 'Responsables',
+      key: 'activityTechnicians',
+      width: 110,
+      transform: (_value, row) => {
+        const techs = row.activityTechnicians;
+        if (!techs || !Array.isArray(techs) || techs.length === 0) return '-';
+        const names = techs
+          .filter((at) => at.isActive && at.technician)
+          .map((at) => {
+            const t = at.technician;
+            return t.fullName || `${t.firstName} ${t.lastName}`;
+          });
+        return names.length > 0 ? names.join(', ') : '-';
+      },
+    },
+    { header: 'F. Inicio', key: 'startDate', width: 55, transform: (v) => formatDate(v) },
+    { header: 'F. Fin', key: 'endDate', width: 55, transform: (v) => formatDate(v) },
+    { header: 'Estatus', key: 'status', width: 60, transform: (v) => STATUS_LABELS[v as ActivityStatus] ?? v ?? '' },
+    { header: 'Avance', key: 'progress', width: 40, transform: (v) => (v == null ? '-' : `${v}%`) },
+    { header: 'Comentarios', key: 'comments', width: 110, transform: (v) => v || '-' },
+    { header: 'Prioridad', key: 'priority', width: 55, transform: (v) => (v ? 'Sí' : 'No') },
+  ],
+  renderOptions: {
+    title: 'Actividades',
+    // Evitar saturación visual en PDF
+    rowsPerBlock: 35,
+    headerFontSize: 9,
+    bodyFontSize: 8,
+    rowPadding: 2,
   },
 };

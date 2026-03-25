@@ -12,6 +12,10 @@ export function downloadExcelFromBase64(base64: string, filename: string): void 
 }
 
 export function downloadExcelBlob(blob: Blob, filename: string): void {
+  downloadBlob(blob, filename);
+}
+
+export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
