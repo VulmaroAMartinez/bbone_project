@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
-import { GetMachineSparePartsDocument } from '@/lib/graphql/generated/graphql';
+import { GetMachineSparePartsDocument, type MachineBasicFragment } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,12 +25,12 @@ export default function SparePartsMachinePage() {
         fetchPolicy: 'cache-and-network',
     });
 
-    const machine: any = null;
-    const spareParts = (data as any)?.sparePartsByMachine ?? [];
+    const machine = (data as unknown as { machine?: MachineBasicFragment })?.machine ?? null;
+    const spareParts = (data as unknown as { sparePartsByMachine?: Array<SparePartData> })?.sparePartsByMachine ?? [];
 
     // Separar activas / inactivas
-    const activeParts = spareParts.filter((sp: any) => sp.isActive);
-    const inactiveParts = spareParts.filter((sp: any) => !sp.isActive);
+    const activeParts = spareParts.filter((sp) => sp.isActive);
+    const inactiveParts = spareParts.filter((sp) => !sp.isActive);
 
     const formatDate = (dateStr?: string | null) => {
         if (!dateStr) return '—';
@@ -59,7 +59,7 @@ export default function SparePartsMachinePage() {
                     {machine && (
                         <p className="text-sm text-muted-foreground">
                             <Badge variant="outline" className="font-mono text-xs mr-1.5">
-                                {machine.code}
+                                {machine?.code}
                             </Badge>
                             {machine.name}
                             <span className="mx-1.5">·</span>
@@ -108,7 +108,7 @@ export default function SparePartsMachinePage() {
                     {activeParts.length > 0 && (
                         <div className="space-y-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {activeParts.map((sp: any) => (
+                {activeParts.map((sp) => (
                                     <SparePartCard key={sp.id} sparePart={sp} formatDate={formatDate} />
                                 ))}
                             </div>
@@ -122,7 +122,7 @@ export default function SparePartsMachinePage() {
                                 Inactivas ({inactiveParts.length})
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {inactiveParts.map((sp: any) => (
+                {inactiveParts.map((sp) => (
                                     <SparePartCard
                                         key={sp.id}
                                         sparePart={sp}

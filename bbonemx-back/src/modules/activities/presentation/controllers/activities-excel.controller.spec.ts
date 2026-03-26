@@ -14,7 +14,10 @@ import { RolesGuard } from '../../../../common/guards/roles.guard';
 describe('ActivitiesExcelController', () => {
   it('devuelve headers correctos y un Excel descargable', async () => {
     const excelGeneratorService = new ExcelGeneratorService();
-    const buffer = await excelGeneratorService.generateExcelBuffer([], ACTIVITY_EXCEL_REPORT);
+    const buffer = await excelGeneratorService.generateExcelBuffer(
+      [],
+      ACTIVITY_EXCEL_REPORT,
+    );
 
     const mockActivitiesService = {
       countForExcelExport: jest.fn().mockResolvedValue(0),
@@ -37,7 +40,10 @@ describe('ActivitiesExcelController', () => {
       .useValue({ canActivate: () => true })
       .compile();
 
-    const app = moduleRef.createNestApplication();
+    const app =
+      moduleRef.createNestApplication<
+        import('@nestjs/common').INestApplication
+      >();
     app.setGlobalPrefix('api', { exclude: ['graphql'] });
     app.useGlobalPipes(
       new ValidationPipe({
@@ -49,11 +55,11 @@ describe('ActivitiesExcelController', () => {
     await app.init();
 
     const filename = 'test-actividades.xlsx';
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as import('http').Server)
       .post('/api/activities/export/excel')
       .parse((response, callback) => {
         const chunks: Buffer[] = [];
-        response.on('data', (chunk) => {
+        response.on('data', (chunk: Buffer) => {
           chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         });
         response.on('end', () => callback(null, Buffer.concat(chunks)));
@@ -70,7 +76,7 @@ describe('ActivitiesExcelController', () => {
     );
     expect(res.headers['content-disposition']).toContain('attachment');
     expect(res.headers['content-disposition']).toContain(filename);
-    const bytes: Buffer = res.body;
+    const bytes = res.body as Buffer;
     expect(bytes.length).toBeGreaterThan(0);
 
     const workbook = new ExcelJS.Workbook();
@@ -83,4 +89,3 @@ describe('ActivitiesExcelController', () => {
     await app.close();
   });
 });
-

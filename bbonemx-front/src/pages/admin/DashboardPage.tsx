@@ -114,7 +114,7 @@ export default function DashboardPage() {
   const refWorkOrdersArea = useRef<HTMLDivElement>(null);
 
   const currentRange = useMemo(() => {
-    return getDateRange(rangePreset as any);
+    return getDateRange(rangePreset as Parameters<typeof getDateRange>[0]);
   }, [rangePreset]);
 
   const { data: shiftsData } = useQuery(GetShiftsDocument);
@@ -494,7 +494,10 @@ export default function DashboardPage() {
                 <Tooltip contentStyle={tooltipStyle} />
                 <Bar dataKey="value" name="Hallazgos" radius={[4, 4, 0, 0]}>
                   {findingsByAreaColored.map((entry, index) => (
-                    <Cell key={`finding-area-cell-${index}`} fill={(entry as any).__color} />
+                    <Cell
+                      key={`finding-area-cell-${index}`}
+                      fill={String((entry as unknown as { __color?: string }).__color ?? '#888')}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -519,7 +522,10 @@ export default function DashboardPage() {
                 <Tooltip contentStyle={tooltipStyle} />
                 <Bar dataKey="value" name="OTs" radius={[4, 4, 0, 0]}>
                   {workOrdersByAreaColored.map((entry, index) => (
-                    <Cell key={`wo-area-cell-${index}`} fill={(entry as any).__color} />
+                    <Cell
+                      key={`wo-area-cell-${index}`}
+                      fill={String((entry as unknown as { __color?: string }).__color ?? '#888')}
+                    />
                   ))}
                 </Bar>
               </BarChart>

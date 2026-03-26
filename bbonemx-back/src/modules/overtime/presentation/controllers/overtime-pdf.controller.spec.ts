@@ -12,7 +12,7 @@ describe('OvertimePdfController', () => {
   it('devuelve headers correctos y un PDF (%PDF)', async () => {
     const mockOvertimeService = {
       streamOvertimeForPdf: async function* () {
-        yield { activity: 'Mantenimiento' };
+        yield await Promise.resolve({ activity: 'Mantenimiento' } as Overtime);
       },
       buildPdfReportWithHeader: jest.fn().mockReturnValue({
         columns: [{ header: 'A', key: 'activity' }],
@@ -21,12 +21,13 @@ describe('OvertimePdfController', () => {
 
     const mockPdfGeneratorService = {
       streamTablePdfToWritable: async (
-        _data: any,
-        _def: any,
+        _data: unknown,
+        _def: unknown,
         writable: NodeJS.WritableStream,
       ) => {
         writable.write(Buffer.from('%PDF-1.4\n'));
         writable.end();
+        return Promise.resolve();
       },
     } satisfies Partial<PdfGeneratorService>;
 
@@ -43,7 +44,10 @@ describe('OvertimePdfController', () => {
       .useValue({ canActivate: () => true })
       .compile();
 
-    const app = moduleRef.createNestApplication();
+    const app =
+      moduleRef.createNestApplication<
+        import('@nestjs/common').INestApplication
+      >();
     app.setGlobalPrefix('api', { exclude: ['graphql'] });
     app.useGlobalPipes(
       new ValidationPipe({
@@ -55,11 +59,11 @@ describe('OvertimePdfController', () => {
     await app.init();
 
     const filename = 'test-horas-extra.pdf';
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as import('http').Server)
       .post('/api/overtime/export/pdf')
       .parse((response, callback) => {
         const chunks: Buffer[] = [];
-        response.on('data', (chunk) => {
+        response.on('data', (chunk: Buffer) => {
           chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         });
         response.on('end', () => callback(null, Buffer.concat(chunks)));
@@ -78,10 +82,12 @@ describe('OvertimePdfController', () => {
     expect((res.body as Buffer).subarray(0, 4).toString('utf8')).toBe('%PDF');
 
     expect(mockOvertimeService.buildPdfReportWithHeader).toHaveBeenCalledWith(
-      expect.objectContaining({ periodFrom: '2026-03-01', periodTo: '2026-03-15' }),
+      expect.objectContaining({
+        periodFrom: '2026-03-01',
+        periodTo: '2026-03-15',
+      }),
     );
 
     await app.close();
   });
 });
-

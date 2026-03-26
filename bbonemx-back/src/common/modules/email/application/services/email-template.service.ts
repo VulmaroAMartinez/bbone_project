@@ -94,7 +94,9 @@ export class EmailTemplateService {
 </html>`;
   }
 
-  renderMaterialRequestTemplate(data: MaterialRequestEmailTemplateData): string {
+  renderMaterialRequestTemplate(
+    data: MaterialRequestEmailTemplateData,
+  ): string {
     const appName = 'Bumble Bee Maintenance';
 
     return `
@@ -145,7 +147,9 @@ export class EmailTemplateService {
     <td style="padding:0 24px;">
       ${this.renderSectionHeader('Datos del equipo/estructura al que se solicita refacción o servicio')}
       ${data.derivedAreaName ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">${this.renderInfoRow('Área', data.derivedAreaName)}</table>` : ''}
-      ${data.machines.map((m) => `
+      ${data.machines
+        .map(
+          (m) => `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
         <tr><td style="padding:8px 12px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -155,7 +159,9 @@ export class EmailTemplateService {
             ${m.manufacturer ? this.renderInfoRow('Fabricante', m.manufacturer) : ''}
           </table>
         </td></tr>
-      </table>`).join('')}
+      </table>`,
+        )
+        .join('')}
     </td>
   </tr>
 
@@ -237,9 +243,14 @@ export class EmailTemplateService {
               ${this.renderInfoRow('Modelo', item.model ?? 'N/A')}
               ${item.partNumber ? this.renderInfoRow('Núm. Parte del fabricante', item.partNumber) : ''}
               ${item.sku ? this.renderInfoRow('SKU', item.sku) : ''}
-              ${item.proposedMinStock != null || item.proposedMaxStock != null
-                ? this.renderInfoRow('Max-Min', `${item.proposedMaxStock ?? 'N/A'} / ${item.proposedMinStock ?? 'N/A'}`)
-                : ''}
+              ${
+                item.proposedMinStock != null || item.proposedMaxStock != null
+                  ? this.renderInfoRow(
+                      'Max-Min',
+                      `${item.proposedMaxStock ?? 'N/A'} / ${item.proposedMinStock ?? 'N/A'}`,
+                    )
+                  : ''
+              }
             </table>
           </td>
         </tr>
@@ -260,7 +271,8 @@ export class EmailTemplateService {
   private renderItemsTable(items: MaterialRequestEmailItemData[]): string {
     if (items.length === 0) return '';
 
-    const hd = 'background-color:#8b1a1a;padding:8px 10px;font-size:11px;font-weight:700;color:#ffffff;text-transform:uppercase;border-right:1px solid #a03030;';
+    const hd =
+      'background-color:#8b1a1a;padding:8px 10px;font-size:11px;font-weight:700;color:#ffffff;text-transform:uppercase;border-right:1px solid #a03030;';
 
     const rows = items.map((item, i) => {
       const bg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
@@ -304,11 +316,20 @@ export class EmailTemplateService {
   }
 
   private renderObservations(data: MaterialRequestEmailTemplateData): string {
-    if (!data.description && !data.justification && !data.comments && !data.suggestedSupplier) return '';
+    if (
+      !data.description &&
+      !data.justification &&
+      !data.comments &&
+      !data.suggestedSupplier
+    )
+      return '';
 
     let rows = '';
     if (data.description) {
-      rows += this.renderInfoRow('Descripción/Especificaciones', data.description);
+      rows += this.renderInfoRow(
+        'Descripción/Especificaciones',
+        data.description,
+      );
     }
     if (data.justification) {
       rows += this.renderInfoRow('Justificante', data.justification);

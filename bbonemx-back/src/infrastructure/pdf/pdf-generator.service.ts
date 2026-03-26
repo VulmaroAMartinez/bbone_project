@@ -1,9 +1,17 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import { dirname, join } from 'path';
 import * as fs from 'fs';
 
-import type { PdfTableDefinition, PdfTableRenderOptions } from './pdf-table-definition';
+import type {
+  PdfTableDefinition,
+  PdfTableRenderOptions,
+} from './pdf-table-definition';
 import type {
   DashboardChartPdfItem,
   DashboardChartsPdfOptions,
@@ -13,7 +21,7 @@ import type {
 export class PdfGeneratorService {
   private readonly logger = new Logger(PdfGeneratorService.name);
 
-  private async createPrinter(): Promise<any> {
+  private async createPrinter(): Promise<unknown> {
     const pdfmakeRoot = dirname(require.resolve('pdfmake/package.json'));
     // En `pdfmake@0.3.x` las fuentes Roboto vienen en `fonts/Roboto` (y también en `build/fonts/Roboto`).
     const fontsDir = join(pdfmakeRoot, 'fonts', 'Roboto');
@@ -29,37 +37,59 @@ export class PdfGeneratorService {
 
     // En runtime backend, usar build CommonJS (`js/Printer.js`) para evitar problemas
     // de resolución ESM/NodeNext dentro de `src/`.
-    const mod: any = await import('pdfmake/js/Printer.js');
+    const mod = (await import('pdfmake/js/Printer.js')) as Record<
+      string,
+      unknown
+    >;
     // Con NodeNext, el import puede venir envuelto (default o incluso default.default).
-    let Printer = mod?.default ?? mod;
-    if (Printer?.default) {
-      Printer = Printer.default;
+    let Printer = (mod?.default ?? mod) as
+      | { default?: unknown }
+      | (new (...args: unknown[]) => unknown);
+    if (Printer && typeof Printer === 'object' && 'default' in Printer) {
+      Printer = Printer.default as new (...args: unknown[]) => unknown;
     }
     if (typeof Printer !== 'function') {
       this.logger.error('Pdfmake Printer no es un constructor', {
         keys: mod ? Object.keys(mod) : [],
         typeofPrinter: typeof Printer,
       });
-      throw new InternalServerErrorException('No se pudo inicializar el generador de PDF');
+      throw new InternalServerErrorException(
+        'No se pudo inicializar el generador de PDF',
+      );
     }
     // URLResolver es requerido por pdfmake para resolver recursos (fonts/images).
-    const urlResolverMod: any = await import('pdfmake/js/URLResolver.js');
-    let URLResolver = urlResolverMod?.default ?? urlResolverMod;
+    const urlResolverMod =
+      (await import('pdfmake/js/URLResolver.js')) as Record<string, unknown>;
+    let URLResolver = (urlResolverMod?.default ?? urlResolverMod) as
+      | { default?: unknown }
+      | (new (...args: unknown[]) => unknown);
     // NodeNext puede envolver doble (default.default)
-    if (URLResolver?.default) {
-      URLResolver = URLResolver.default;
+    if (
+      URLResolver &&
+      typeof URLResolver === 'object' &&
+      'default' in URLResolver
+    ) {
+      URLResolver = URLResolver.default as new (...args: unknown[]) => unknown;
     }
     if (typeof URLResolver !== 'function') {
       this.logger.error('Pdfmake URLResolver no es un constructor', {
         keys: urlResolverMod ? Object.keys(urlResolverMod) : [],
         typeofURLResolver: typeof URLResolver,
       });
-      throw new InternalServerErrorException('No se pudo inicializar el resolvedor de URLs para PDF');
+      throw new InternalServerErrorException(
+        'No se pudo inicializar el resolvedor de URLs para PDF',
+      );
     }
-    const urlResolver = new URLResolver(fs);
+    const urlResolver = new (URLResolver as new (
+      ...args: unknown[]
+    ) => unknown)(fs);
 
     // Constructor: new PdfPrinter(fontDescriptors, virtualfs, urlResolver)
-    return new Printer(fonts, undefined, urlResolver);
+    return new (Printer as new (...args: unknown[]) => unknown)(
+      fonts,
+      undefined,
+      urlResolver,
+    );
   }
 
   private getDefaultOptions(): PdfTableRenderOptions {
@@ -74,14 +104,20 @@ export class PdfGeneratorService {
     };
   }
 
-  private getNestedValue(key: string, obj: any): any {
-    return key.split('.').reduce((o, k) => (o != null ? o[k] : undefined), obj);
+  private getNestedValue(key: string, obj: unknown): unknown {
+    return key
+      .split('.')
+      .reduce(
+        (o, k) => (o != null ? (o as Record<string, unknown>)[k] : undefined),
+        obj,
+      );
   }
 
   private toText(value: unknown): string {
     if (value == null) return '';
     if (typeof value === 'string') return value;
-    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (typeof value === 'number' || typeof value === 'boolean')
+      return String(value);
     return '';
   }
 
@@ -120,11 +156,14 @@ export class PdfGeneratorService {
     if (!definition?.columns?.length) {
       throw new BadRequestException('columns es requerido para generar PDF');
     }
-    if (!writable || typeof (writable as any).write !== 'function') {
+    if (!writable || typeof writable.write !== 'function') {
       throw new BadRequestException('writable debe ser un stream válido');
     }
 
-    const opts = { ...this.getDefaultOptions(), ...(definition.renderOptions ?? {}) };
+    const opts = {
+      ...this.getDefaultOptions(),
+      ...(definition.renderOptions ?? {}),
+    };
     const rowsPerBlock = opts.rowsPerBlock ?? 35;
     const rowPadding = opts.rowPadding ?? 3;
     const bodyFontSize = opts.bodyFontSize ?? 9;
@@ -138,12 +177,14 @@ export class PdfGeneratorService {
       // con `pageBreak` después de cada bloque.
       const rows: T[] = [];
 
-      const isAsync = (input: any): input is AsyncIterable<T> =>
-        input && typeof input[Symbol.asyncIterator] === 'function';
+      const isAsync = (input: unknown): input is AsyncIterable<T> =>
+        !!input &&
+        typeof (input as Record<symbol, unknown>)[Symbol.asyncIterator] ===
+          'function';
       if (isAsync(data)) {
         for await (const row of data) rows.push(row);
       } else {
-        for (const row of data as Iterable<T>) rows.push(row);
+        for (const row of data) rows.push(row);
       }
 
       const header = definition.columns.map((c) => ({
@@ -210,15 +251,27 @@ export class PdfGeneratorService {
         });
       } else {
         if (opts.title) {
-          content.push({ text: opts.title, fontSize: 14, bold: true, margin: [0, 0, 0, 6] });
+          content.push({
+            text: opts.title,
+            fontSize: 14,
+            bold: true,
+            margin: [0, 0, 0, 6],
+          });
         }
         if (opts.subtitle) {
-          content.push({ text: opts.subtitle, fontSize: 10, margin: [0, 0, 0, 10] });
+          content.push({
+            text: opts.subtitle,
+            fontSize: 10,
+            margin: [0, 0, 0, 10],
+          });
         }
       }
 
       blocks.forEach((block, idx) => {
-        const body = [header, ...block.map((row) => this.buildRow(row, definition))];
+        const body = [
+          header,
+          ...block.map((row) => this.buildRow(row, definition)),
+        ];
 
         content.push({
           table: {
@@ -228,7 +281,7 @@ export class PdfGeneratorService {
           },
           layout: {
             fillColor: (rowIndex: number) =>
-              (rowIndex === 0 ? tableHeaderFillColor : null),
+              rowIndex === 0 ? tableHeaderFillColor : null,
             hLineWidth: () => 0.5,
             vLineWidth: () => 0.5,
             paddingLeft: () => rowPadding,
@@ -263,15 +316,20 @@ export class PdfGeneratorService {
       // Aplicar style a fila header via layout no aplica textStyle; set explícito:
       // Reescribimos headers como objetos para style.
       // (Se hace aquí para evitar duplicar transform)
-      const contentFirstTable = content.find((c) => c?.table?.body) as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+      const contentFirstTable = content.find((c: any) => c?.table?.body);
       if (contentFirstTable) {
         // no-op: estilo se controla por layout fillColor; mantendremos texto normal.
       }
 
-      const printer = await this.createPrinter();
-      const doc = await (printer as any).createPdfKitDocument(docDefinition);
+      const printer = (await this.createPrinter()) as {
+        createPdfKitDocument: (docDef: unknown) => Promise<unknown>;
+      };
+      const doc = (await printer.createPdfKitDocument(
+        docDefinition,
+      )) as NodeJS.ReadableStream & NodeJS.EventEmitter & { end: () => void };
 
-      doc.on('error', (err: any) => {
+      doc.on('error', (err: unknown) => {
         this.logger.error('Error en stream PDFKit', {
           err: err instanceof Error ? err.message : String(err),
         });
@@ -292,7 +350,10 @@ export class PdfGeneratorService {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.error('Error generando PDF', { err: message, elapsedMs: Date.now() - startedAt });
+      this.logger.error('Error generando PDF', {
+        err: message,
+        elapsedMs: Date.now() - startedAt,
+      });
       throw new InternalServerErrorException('Error al generar el PDF');
     }
   }
@@ -354,7 +415,7 @@ export class PdfGeneratorService {
     options: DashboardChartsPdfOptions,
     writable: NodeJS.WritableStream,
   ): Promise<void> {
-    if (!writable || typeof (writable as any).write !== 'function') {
+    if (!writable || typeof writable.write !== 'function') {
       throw new BadRequestException('writable debe ser un stream válido');
     }
     const items = options?.items;
@@ -365,7 +426,10 @@ export class PdfGeneratorService {
     const pageInnerWidth = 595 - pageMargins[0] - pageMargins[2];
     const columnGap = 8;
     const colW = Math.floor((pageInnerWidth - columnGap) / 2);
-    const fullW = Math.min(options.imageMaxWidth ?? pageInnerWidth, pageInnerWidth);
+    const fullW = Math.min(
+      options.imageMaxWidth ?? pageInnerWidth,
+      pageInnerWidth,
+    );
     /** Alto máximo por miniatura para intentar caber todas en una hoja. */
     const imageFitH = 168;
     const startedAt = Date.now();
@@ -467,9 +531,13 @@ export class PdfGeneratorService {
     };
 
     try {
-      const printer = await this.createPrinter();
-      const doc = await (printer as any).createPdfKitDocument(docDefinition);
-      doc.on('error', (err: any) => {
+      const printer = (await this.createPrinter()) as {
+        createPdfKitDocument: (docDef: unknown) => Promise<unknown>;
+      };
+      const doc = (await printer.createPdfKitDocument(
+        docDefinition,
+      )) as NodeJS.ReadableStream & NodeJS.EventEmitter & { end: () => void };
+      doc.on('error', (err: unknown) => {
         this.logger.error('Error en stream PDFKit (charts)', {
           err: err instanceof Error ? err.message : String(err),
         });
@@ -494,8 +562,9 @@ export class PdfGeneratorService {
         err: message,
         elapsedMs: Date.now() - startedAt,
       });
-      throw new InternalServerErrorException('Error al generar el PDF del dashboard');
+      throw new InternalServerErrorException(
+        'Error al generar el PDF del dashboard',
+      );
     }
   }
 }
-

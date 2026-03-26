@@ -19,7 +19,8 @@ export class MaterialRequestType {
   @Field({ nullable: true }) customMachineBrand?: string;
   @Field({ nullable: true }) customMachineModel?: string;
   @Field({ nullable: true }) customMachineManufacturer?: string;
-  @Field(() => [MaterialRequestMachineType]) machines: MaterialRequestMachineType[];
+  @Field(() => [MaterialRequestMachineType])
+  machines: MaterialRequestMachineType[];
   @Field(() => ID) requesterId: string;
   @Field(() => UserType) requester: UserType;
   @Field(() => RequestPriority) priority: RequestPriority;
@@ -30,7 +31,8 @@ export class MaterialRequestType {
   @Field({ nullable: true }) comments?: string;
   @Field({ nullable: true }) suggestedSupplier?: string;
   @Field(() => [MaterialRequestItemType]) items: MaterialRequestItemType[];
-  @Field(() => [MaterialRequestHistoryType], { nullable: true }) histories?: MaterialRequestHistoryType[];
+  @Field(() => [MaterialRequestHistoryType], { nullable: true })
+  histories?: MaterialRequestHistoryType[];
   @Field(() => Date, { nullable: true }) emailSentAt?: Date | null;
   @Field() isActive: boolean;
   @Field() createdAt: Date;

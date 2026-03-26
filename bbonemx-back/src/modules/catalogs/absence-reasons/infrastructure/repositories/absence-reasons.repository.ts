@@ -68,7 +68,7 @@ export class AbsenceReasonsRepository {
     });
     if (!absenceReason) return;
     absenceReason.isActive = true;
-    absenceReason.deletedAt = null as any;
+    absenceReason.deletedAt = null;
     await this.repository.save(absenceReason);
   }
 }

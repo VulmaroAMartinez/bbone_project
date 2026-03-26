@@ -66,7 +66,10 @@ export class CreateActivityInput {
   @Field(() => [ID], { description: 'IDs de técnicos a asignar' })
   @IsNotEmpty({ message: 'Debe asignar al menos un técnico' })
   @ArrayMinSize(1, { message: 'Debe asignar al menos un técnico' })
-  @IsUUID('4', { each: true, message: 'Cada ID de técnico debe ser un UUID válido' })
+  @IsUUID('4', {
+    each: true,
+    message: 'Cada ID de técnico debe ser un UUID válido',
+  })
   technicianIds: string[];
 }
 
@@ -119,9 +122,15 @@ export class UpdateActivityInput {
   @IsBoolean()
   priority?: boolean;
 
-  @Field(() => [ID], { nullable: true, description: 'IDs de técnicos (reemplaza todos los existentes)' })
+  @Field(() => [ID], {
+    nullable: true,
+    description: 'IDs de técnicos (reemplaza todos los existentes)',
+  })
   @IsOptional()
   @ArrayMinSize(1, { message: 'Debe asignar al menos un técnico' })
-  @IsUUID('4', { each: true, message: 'Cada ID de técnico debe ser un UUID válido' })
+  @IsUUID('4', {
+    each: true,
+    message: 'Cada ID de técnico debe ser un UUID válido',
+  })
   technicianIds?: string[];
 }

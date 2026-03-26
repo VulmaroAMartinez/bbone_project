@@ -25,7 +25,7 @@ import {
   GenerateWorkOrdersResult,
 } from '../types';
 import { PreventiveTask } from '../../domain/entities';
-import { JwtAuthGuard, RolesGuard, Role, Roles, CurrentUser } from 'src/common';
+import { JwtAuthGuard, RolesGuard, Role, Roles } from 'src/common';
 
 @Resolver(() => PreventiveTaskType)
 @UseGuards(JwtAuthGuard, RolesGuard)

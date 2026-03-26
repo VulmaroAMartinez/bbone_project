@@ -1,24 +1,17 @@
-import {
-  Body,
-  Controller,
-  Logger,
-  Post,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Logger, Post, Res, UseGuards } from '@nestjs/common';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { Role } from '../../../../common/enums/role.enum';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
 import type { Response } from 'express';
 import { Type } from 'class-transformer';
-import {
-  IsOptional,
-  IsString,
-  ValidateNested,
-} from 'class-validator';
+import { IsOptional, IsString, ValidateNested } from 'class-validator';
 
-import { ActivityFiltersInput, ActivitySortInput, ActivitySortField } from '../../application/dto/activity-filters.dto';
+import {
+  ActivityFiltersInput,
+  ActivitySortInput,
+  ActivitySortField,
+} from '../../application/dto/activity-filters.dto';
 import { SortOrder } from '../../../work-orders/application/dto/work-order-filters.dto';
 import { ActivitiesService } from '../../application/services/activities.service';
 
@@ -70,7 +63,7 @@ export class ActivitiesExcelController {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-store');
 
-    const rowCount = await this.activitiesService.countForExcelExport(filters, sort);
+    const rowCount = await this.activitiesService.countForExcelExport(filters);
 
     try {
       if (rowCount > this.STREAMING_ROW_THRESHOLD) {
@@ -87,7 +80,10 @@ export class ActivitiesExcelController {
         return;
       }
 
-      const buffer = await this.activitiesService.exportToExcelBuffer(filters, sort);
+      const buffer = await this.activitiesService.exportToExcelBuffer(
+        filters,
+        sort,
+      );
       res.status(200).end(buffer);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -108,4 +104,3 @@ export class ActivitiesExcelController {
     }
   }
 }
-

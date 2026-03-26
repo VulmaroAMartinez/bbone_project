@@ -23,7 +23,7 @@ export class BaseEntitySubscriber implements EntitySubscriberInterface {
   /**
    * Antes de insertar, asigna createdBy si la entidad tiene ese campo.
    */
-  beforeInsert(event: InsertEvent<any>): void {
+  beforeInsert(event: InsertEvent<unknown>): void {
     if (!event.entity) return;
 
     const userId = UserContext.getCurrentUserId();
@@ -31,20 +31,21 @@ export class BaseEntitySubscriber implements EntitySubscriberInterface {
 
     // Verificar si la entidad tiene el campo createdBy
     const columns = event.metadata.columns.map((col) => col.propertyName);
+    const entity = event.entity as Record<string, unknown>;
 
-    if (columns.includes('createdBy') && !event.entity.createdBy) {
-      event.entity.createdBy = userId;
+    if (columns.includes('createdBy') && !entity.createdBy) {
+      entity.createdBy = userId;
     }
 
-    if (columns.includes('updatedBy') && !event.entity.updatedBy) {
-      event.entity.updatedBy = userId;
+    if (columns.includes('updatedBy') && !entity.updatedBy) {
+      entity.updatedBy = userId;
     }
   }
 
   /**
    * Antes de actualizar, asigna updatedBy si la entidad tiene ese campo.
    */
-  beforeUpdate(event: UpdateEvent<any>): void {
+  beforeUpdate(event: UpdateEvent<unknown>): void {
     if (!event.entity) return;
 
     const userId = UserContext.getCurrentUserId();
@@ -52,9 +53,10 @@ export class BaseEntitySubscriber implements EntitySubscriberInterface {
 
     // Verificar si la entidad tiene el campo updatedBy
     const columns = event.metadata.columns.map((col) => col.propertyName);
+    const entity = event.entity as Record<string, unknown>;
 
     if (columns.includes('updatedBy')) {
-      event.entity.updatedBy = userId;
+      entity.updatedBy = userId;
     }
   }
 }

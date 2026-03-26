@@ -6,7 +6,7 @@ import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 import {
   CreateWorkOrderDocument,
   UploadWorkOrderPhotoDocument,

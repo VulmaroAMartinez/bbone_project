@@ -22,7 +22,7 @@ export class MaterialRequestHistoryRepository {
     materialRequestId: string,
     data: Partial<MaterialRequestHistory>,
   ): Promise<MaterialRequestHistory> {
-    let existing = await this.repository.findOne({
+    const existing = await this.repository.findOne({
       where: { materialRequestId },
       withDeleted: true,
     });

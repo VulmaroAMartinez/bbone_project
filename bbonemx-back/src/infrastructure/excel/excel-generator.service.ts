@@ -6,14 +6,22 @@ import {
 } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { ExcelColumnDefinition } from './excel-column.interface';
-import type { ExcelReportDefinition, ExcelRenderOptions } from './excel-report-definition';
+import type {
+  ExcelReportDefinition,
+  ExcelRenderOptions,
+} from './excel-report-definition';
 
 @Injectable()
 export class ExcelGeneratorService {
   private readonly logger = new Logger(ExcelGeneratorService.name);
 
-  private getNestedValue(key: string, obj: any): any {
-    return key.split('.').reduce((o, k) => (o != null ? o[k] : undefined), obj);
+  private getNestedValue(key: string, obj: unknown): unknown {
+    return key
+      .split('.')
+      .reduce(
+        (o, k) => (o != null ? (o as Record<string, unknown>)[k] : undefined),
+        obj,
+      );
   }
 
   private getDefaultRenderOptions(): Required<ExcelRenderOptions> {
@@ -26,7 +34,9 @@ export class ExcelGeneratorService {
     };
   }
 
-  private resolveRenderOptions(report?: ExcelReportDefinition<any>): Required<ExcelRenderOptions> {
+  private resolveRenderOptions(
+    report?: ExcelReportDefinition<unknown>,
+  ): Required<ExcelRenderOptions> {
     const defaults = this.getDefaultRenderOptions();
     return {
       ...defaults,
@@ -34,20 +44,26 @@ export class ExcelGeneratorService {
     };
   }
 
-  private validateReportDefinition(report: ExcelReportDefinition<any>): void {
+  private validateReportDefinition(
+    report: ExcelReportDefinition<unknown>,
+  ): void {
     if (!report?.sheetName) {
-      throw new BadRequestException('sheetName es requerido para el reporte Excel');
+      throw new BadRequestException(
+        'sheetName es requerido para el reporte Excel',
+      );
     }
     if (!Array.isArray(report.columns) || report.columns.length === 0) {
-      throw new BadRequestException('columns debe ser un arreglo no vacío para el reporte Excel');
+      throw new BadRequestException(
+        'columns debe ser un arreglo no vacío para el reporte Excel',
+      );
     }
   }
 
   private buildRowData<T>(
     row: T,
     columns: ExcelColumnDefinition<T>[],
-  ): Record<string, any> {
-    const rowData: Record<string, any> = {};
+  ): Record<string, unknown> {
+    const rowData: Record<string, unknown> = {};
 
     for (const col of columns) {
       const raw = this.getNestedValue(col.key, row);
@@ -71,7 +87,7 @@ export class ExcelGeneratorService {
 
   private styleHeaderRowBuffer(
     worksheet: ExcelJS.Worksheet,
-    report: ExcelReportDefinition<any>,
+    report: ExcelReportDefinition<unknown>,
     headerRowIndex: number,
   ): void {
     const render = this.resolveRenderOptions(report);
@@ -97,7 +113,7 @@ export class ExcelGeneratorService {
 
   private styleDataRowsBuffer(
     worksheet: ExcelJS.Worksheet,
-    report: ExcelReportDefinition<any>,
+    report: ExcelReportDefinition<unknown>,
     headerRowIndex: number,
   ): void {
     const render = this.resolveRenderOptions(report);
@@ -117,7 +133,7 @@ export class ExcelGeneratorService {
 
   private stylePreRowsBuffer(
     worksheet: ExcelJS.Worksheet,
-    report: ExcelReportDefinition<any>,
+    report: ExcelReportDefinition<unknown>,
     preRowsCount: number,
   ): void {
     const style = report.preRowsRenderOptions;
@@ -157,8 +173,11 @@ export class ExcelGeneratorService {
   ): Promise<Buffer> {
     this.validateReportDefinition(report);
     const render = this.resolveRenderOptions(report);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (!data || typeof (data as any)[Symbol.iterator] !== 'function') {
-      throw new BadRequestException('data debe ser un iterable para generar el Excel');
+      throw new BadRequestException(
+        'data debe ser un iterable para generar el Excel',
+      );
     }
 
     const startedAt = Date.now();
@@ -200,7 +219,7 @@ export class ExcelGeneratorService {
         for (const col of worksheet.columns) {
           let maxLength = col.header ? String(col.header).length : 10;
           col.eachCell?.({ includeEmpty: false }, (cell) => {
-            const len = cell.value ? String(cell.value).length : 0;
+            const len = cell.value ? String(cell.value as unknown).length : 0;
             if (len > maxLength) maxLength = len;
           });
           col.width = Math.min(maxLength + 2, render.maxColumnWidth);
@@ -221,7 +240,9 @@ export class ExcelGeneratorService {
         elapsedMs: Date.now() - startedAt,
         err: message,
       });
-      throw new InternalServerErrorException('Error al generar el archivo Excel');
+      throw new InternalServerErrorException(
+        'Error al generar el archivo Excel',
+      );
     }
   }
 
@@ -234,43 +255,67 @@ export class ExcelGeneratorService {
     const render = this.resolveRenderOptions(report);
     const startedAt = Date.now();
 
-    if (!writable || typeof (writable as any).write !== 'function') {
-      throw new BadRequestException('writable debe ser un stream de escritura válido');
+    if (!writable || typeof writable.write !== 'function') {
+      throw new BadRequestException(
+        'writable debe ser un stream de escritura válido',
+      );
     }
 
-    const hasSyncIterator = typeof (data as any)?.[Symbol.iterator] === 'function';
-    const hasAsyncIterator = typeof (data as any)?.[Symbol.asyncIterator] === 'function';
+    const dataObj = data as unknown as Record<symbol, unknown>;
+    const hasSyncIterator = typeof dataObj?.[Symbol.iterator] === 'function';
+    const hasAsyncIterator =
+      typeof dataObj?.[Symbol.asyncIterator] === 'function';
     if (!data || (!hasSyncIterator && !hasAsyncIterator)) {
-      throw new BadRequestException('data debe ser un iterable o async iterable para streamExcelToWritable');
+      throw new BadRequestException(
+        'data debe ser un iterable o async iterable para streamExcelToWritable',
+      );
     }
 
-    const isAsyncIterable = (input: any): input is AsyncIterable<T> =>
-      input && typeof input[Symbol.asyncIterator] === 'function';
+    const isAsyncIterable = (input: unknown): input is AsyncIterable<T> =>
+      !!input &&
+      typeof (input as Record<symbol, unknown>)[Symbol.asyncIterator] ===
+        'function';
 
     const toAsync = async function* (input: Iterable<T> | AsyncIterable<T>) {
       if (isAsyncIterable(input)) {
         yield* input;
         return;
       }
-      for (const item of input as Iterable<T>) yield item;
+      for (const item of input) yield item;
     };
 
     // Nota: exceljs streaming no soporta “auto-fit” de manera eficiente
     // (requiere conocer longitudes globales). Lo dejamos deshabilitado por defecto.
     if (render.enableAutoFit) {
-      this.logger.warn('enableAutoFit ignorado en modo stream (ExcelJS streaming).', {
-        sheetName: report.sheetName,
-      });
+      this.logger.warn(
+        'enableAutoFit ignorado en modo stream (ExcelJS streaming).',
+        {
+          sheetName: report.sheetName,
+        },
+      );
     }
 
     if (render.enableAutoFilter) {
-      this.logger.warn('enableAutoFilter no garantizado en modo stream (ExcelJS streaming).', {
-        sheetName: report.sheetName,
-      });
+      this.logger.warn(
+        'enableAutoFilter no garantizado en modo stream (ExcelJS streaming).',
+        {
+          sheetName: report.sheetName,
+        },
+      );
     }
 
     try {
-      const workbook = new (ExcelJS as any).stream.xlsx.WorkbookWriter({
+      const workbook = new (
+        ExcelJS as unknown as {
+          stream: {
+            xlsx: {
+              WorkbookWriter: new (
+                options: unknown,
+              ) => ExcelJS.Workbook & { commit: () => Promise<void> };
+            };
+          };
+        }
+      ).stream.xlsx.WorkbookWriter({
         stream: writable,
         useStyles: true,
         useSharedStrings: true,
@@ -284,8 +329,8 @@ export class ExcelGeneratorService {
       }));
 
       // Estilo del header (row 1) si ExcelJS lo materializa al definir columns.
-      const headerRow = worksheet.getRow(1) as any;
-      headerRow.eachCell((cell: any) => {
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell: ExcelJS.Cell) => {
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
@@ -302,8 +347,11 @@ export class ExcelGeneratorService {
           };
         }
       });
-      if (typeof headerRow.commit === 'function') {
-        headerRow.commit();
+      if (
+        typeof (headerRow as unknown as { commit?: () => void }).commit ===
+        'function'
+      ) {
+        (headerRow as unknown as { commit: () => void }).commit();
       }
 
       for await (const row of toAsync(data)) {
@@ -311,7 +359,11 @@ export class ExcelGeneratorService {
         const excelRow = worksheet.addRow(rowData);
 
         if (render.enableBorders) {
-          for (let colIndex = 1; colIndex <= report.columns.length; colIndex++) {
+          for (
+            let colIndex = 1;
+            colIndex <= report.columns.length;
+            colIndex++
+          ) {
             const cell = excelRow.getCell(colIndex);
             cell.border = {
               top: { style: 'thin' },
@@ -322,7 +374,7 @@ export class ExcelGeneratorService {
           }
         }
 
-        excelRow.commit();
+        (excelRow as unknown as { commit: () => void }).commit();
       }
 
       await workbook.commit();
@@ -337,7 +389,9 @@ export class ExcelGeneratorService {
         elapsedMs: Date.now() - startedAt,
         err: message,
       });
-      throw new InternalServerErrorException('Error al generar el archivo Excel');
+      throw new InternalServerErrorException(
+        'Error al generar el archivo Excel',
+      );
     }
   }
 

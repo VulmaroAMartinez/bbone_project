@@ -6,10 +6,12 @@ export default registerAs('app', () => ({
   name: process.env.APP_NAME ?? 'CMMS-Backend',
 
   get isDevelopment(): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return this.nodeEnv === 'development';
   },
 
   get isProduction(): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return this.nodeEnv === 'production';
   },
 

@@ -10,10 +10,12 @@ import { CreateOvertimeInput, UpdateOvertimeInput } from '../dto';
 import { Overtime } from '../../domain/entities';
 import { User } from 'src/modules/users/domain/entities';
 import { ReasonForPayment } from 'src/common/enums/reason-for-payment.enum';
-import { ExcelGeneratorService, ExcelReportDefinition } from 'src/infrastructure/excel';
+import {
+  ExcelGeneratorService,
+  ExcelReportDefinition,
+} from 'src/infrastructure/excel';
 import { PdfTableDefinition } from 'src/infrastructure/pdf';
 import {
-  buildOvertimeReportHeader,
   AREA_NAME,
   COMPANY_NAME,
   formatOvertimePeriodLabel,
@@ -56,7 +58,10 @@ export class OvertimeService {
     header?: OvertimeReportHeaderInput,
   ): ExcelReportDefinition<Overtime> {
     const elaborationDate = new Date();
-    const periodLabel = formatOvertimePeriodLabel(header?.periodFrom, header?.periodTo);
+    const periodLabel = formatOvertimePeriodLabel(
+      header?.periodFrom,
+      header?.periodTo,
+    );
 
     // Por compatibilidad con ExcelGeneratorService, definimos una “pre-tabla” en 3 filas,
     // colocando izquierda “Empresa/Área” y derecha “Fechas”. El estilo visual completo
@@ -101,7 +106,10 @@ export class OvertimeService {
     header?: OvertimeReportHeaderInput,
   ): PdfTableDefinition<Overtime> {
     const elaborationDate = this.formatDateForExcel(new Date());
-    const periodLabel = formatOvertimePeriodLabel(header?.periodFrom, header?.periodTo);
+    const periodLabel = formatOvertimePeriodLabel(
+      header?.periodFrom,
+      header?.periodTo,
+    );
 
     return {
       ...OVERTIME_PDF_REPORT,
@@ -135,7 +143,10 @@ export class OvertimeService {
     const startedAt = Date.now();
     const data = await this.overtimeRepository.findAll(filters);
     const report = this.buildExcelReportWithHeader(header);
-    const buffer = await this.excelGeneratorService.generateExcelBuffer(data, report);
+    const buffer = await this.excelGeneratorService.generateExcelBuffer(
+      data,
+      report,
+    );
 
     this.logger.log('Exportación Overtime Excel completada', {
       rows: data.length,

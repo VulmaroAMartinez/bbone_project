@@ -4,9 +4,8 @@ import {
     GetSparePartsDocument,
     ActivateSparePartDocument,
     DeactivateSparePartDocument,
-    MachineBasicFragmentDoc
+    type GetSparePartsQuery
 } from '@/lib/graphql/generated/graphql';
-import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,25 +13,26 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, Wrench } from 'lucide-react';
 
 import SparePartFormModal from './modals/SparePartFormModal';
+import { toast } from 'sonner';
 
 export default function SparePartsPage() {
-    const { data, loading, refetch } = useQuery(GetSparePartsDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useQuery<GetSparePartsQuery>(GetSparePartsDocument, { fetchPolicy: 'cache-and-network' });
 
     const [activateSparePart] = useMutation(ActivateSparePartDocument);
     const [deactivateSparePart] = useMutation(DeactivateSparePartDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingSparePart, setEditingSparePart] = useState<any | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [editingSparePart, setEditingSparePart] = useState<any>(null);
 
-    const rawSpareParts = data?.sparePartsWithDeleted || [];
-    const unmask = useFragment;
+    const rawSpareParts = useMemo(() => data?.sparePartsWithDeleted || [], [data?.sparePartsWithDeleted]);
     const spareParts = useMemo(() =>
         rawSpareParts.map(p => ({
             ...p,
-            machine: unmask(MachineBasicFragmentDoc, p.machine),
+            machine: p.machine as unknown as { name: string },
         })),
-        [rawSpareParts, unmask]
+        [rawSpareParts]
     );
 
     const filteredParts = spareParts.filter(p =>
@@ -41,6 +41,7 @@ export default function SparePartsPage() {
         p.brand?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const openModal = (part: any = null) => {
         setEditingSparePart(part);
         setIsModalOpen(true);
@@ -54,8 +55,8 @@ export default function SparePartsPage() {
                 await activateSparePart({ variables: { id } });
             }
             refetch();
-        } catch (error: any) {
-            alert(error.message);
+        } catch {
+            toast.error('Error al actualizar el estado');
         }
     };
 

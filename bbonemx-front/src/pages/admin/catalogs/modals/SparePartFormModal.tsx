@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -8,6 +8,8 @@ import {
     CreateSparePartDocument,
     UpdateSparePartDocument,
     MachineBasicFragmentDoc,
+    type MachineBasicFragment,
+    type GetMachinesPageDataQuery,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
@@ -17,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const schema = yup.object({
     partNumber: yup.string().trim().required('El número de parte es obligatorio'),
@@ -32,12 +35,20 @@ type FormValues = yup.InferType<typeof schema>;
 interface SparePartFormModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    sparePart: any | null;
+    sparePart: {
+        id?: string;
+        partNumber?: string | null;
+        machine?: { id?: string | null } | null;
+        brand?: string | null;
+        model?: string | null;
+        supplier?: string | null;
+        unitOfMeasure?: string | null;
+    } | null;
     onSuccess: () => void;
 }
 
 export default function SparePartFormModal({ open, onOpenChange, sparePart, onSuccess }: SparePartFormModalProps) {
-    const { data: machinesData, loading: loadingMachines } = useQuery(GetMachinesPageDataDocument);
+    const { data: machinesData, loading: loadingMachines } = useQuery<GetMachinesPageDataQuery>(GetMachinesPageDataDocument);
 
     const [createSparePart, { loading: creating }] = useMutation(CreateSparePartDocument);
     const [updateSparePart, { loading: updating }] = useMutation(UpdateSparePartDocument);
@@ -47,10 +58,8 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
         defaultValues: { partNumber: '', machineId: '', brand: '', model: '', supplier: '', unitOfMeasure: '' },
     });
 
-    const machines = useMemo(
-        () => (machinesData?.machinesWithDeleted ?? []).map((ref) => useFragment(MachineBasicFragmentDoc, ref)),
-        [machinesData],
-    );
+    const machineRefs = machinesData?.machinesWithDeleted ?? [];
+    const machines = useFragment(MachineBasicFragmentDoc, machineRefs) as MachineBasicFragment[];
 
     useEffect(() => {
         if (open) {
@@ -78,8 +87,8 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
             }
             onOpenChange(false);
             onSuccess();
-        } catch (error: any) {
-            alert(error.message);
+        } catch {
+            toast.error('Error al guardar la refacción');
         }
     };
 
@@ -102,7 +111,7 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
                                 control={control}
                                 render={({ field }) => (
                                     <Combobox
-                                        options={machines.map((m: any) => ({ value: m.id, label: `${m.name} [${m.code}]` }))}
+                                        options={machines.map((m) => ({ value: m.id, label: `${m.name} [${m.code}]` }))}
                                         value={field.value}
                                         onValueChange={field.onChange}
                                         placeholder={loadingMachines ? 'Cargando...' : 'Seleccionar máquina...'}

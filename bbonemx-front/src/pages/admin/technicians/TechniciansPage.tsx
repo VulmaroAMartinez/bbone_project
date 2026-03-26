@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { Link } from 'react-router-dom';
 import {
     GetTechniciansDataDocument,
+    type GetTechniciansDataQuery,
     ActivateTechnicianDocument,
     DeactivateTechnicianDocument
 } from '@/lib/graphql/generated/graphql';
@@ -13,16 +14,18 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, Eye, Wrench, Mail, Phone } from 'lucide-react';
 
 import TechnicianFormModal from './modals/TechnicianFormModal';
+import { toast } from 'sonner';
 
 export default function TecnicosPage() {
-    const { data, loading, refetch } = useQuery(GetTechniciansDataDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useQuery<GetTechniciansDataQuery>(GetTechniciansDataDocument, { fetchPolicy: 'cache-and-network' });
 
     const [activateTechnician] = useMutation(ActivateTechnicianDocument);
     const [deactivateTechnician] = useMutation(DeactivateTechnicianDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTech, setEditingTech] = useState<any | null>(null);
+    type TechnicianItem = GetTechniciansDataQuery['techniciansWithDeleted'][number];
+    const [editingTech, setEditingTech] = useState<TechnicianItem | null>(null);
 
     const technicians = data?.techniciansWithDeleted || [];
     const departments = (data?.departmentsWithDeleted || []) as Array<{ id: string; name: string }>;
@@ -34,7 +37,7 @@ export default function TecnicosPage() {
         t.user.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const openModal = (tech: any = null) => {
+    const openModal = (tech: TechnicianItem | null = null) => {
         setEditingTech(tech || null);
         setIsModalOpen(true);
     };
@@ -44,8 +47,8 @@ export default function TecnicosPage() {
             if (currentStatus) await deactivateTechnician({ variables: { id } });
             else await activateTechnician({ variables: { id } });
             refetch();
-        } catch (error: any) {
-            alert(error.message);
+        } catch {
+            toast.error('Error al actualizar el estado');
         }
     };
 

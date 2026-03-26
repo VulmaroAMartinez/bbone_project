@@ -10,7 +10,9 @@ export class ActivityMaterialRequestsRepository {
     private readonly repository: Repository<ActivityMaterialRequest>,
   ) {}
 
-  async findByActivityId(activityId: string): Promise<ActivityMaterialRequest[]> {
+  async findByActivityId(
+    activityId: string,
+  ): Promise<ActivityMaterialRequest[]> {
     return this.repository.find({
       where: { activityId, isActive: true },
       relations: ['materialRequest'],
@@ -27,7 +29,9 @@ export class ActivityMaterialRequestsRepository {
     });
   }
 
-  async create(data: Partial<ActivityMaterialRequest>): Promise<ActivityMaterialRequest> {
+  async create(
+    data: Partial<ActivityMaterialRequest>,
+  ): Promise<ActivityMaterialRequest> {
     const entity = this.repository.create(data);
     return this.repository.save(entity);
   }

@@ -1,4 +1,4 @@
-import { Injectable, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { Query, Mutation, Args, ID, Resolver } from '@nestjs/graphql';
 import { Role, Roles } from 'src/common';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';

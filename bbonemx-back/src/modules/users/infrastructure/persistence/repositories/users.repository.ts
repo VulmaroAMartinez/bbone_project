@@ -100,8 +100,7 @@ export class UsersRepository {
   }
 
   async create(userData: Partial<User>): Promise<User> {
-    const roles: Role[] | undefined = userData.roles;
-    const { roles: _roles, ...userDataWithoutRoles } = userData;
+    const { roles, ...userDataWithoutRoles } = userData;
     const user = this.repository.create(userDataWithoutRoles);
     const savedUser = await this.repository.save(user);
 
@@ -119,11 +118,11 @@ export class UsersRepository {
     });
     if (!user) return null;
 
-    const roles: Role[] | undefined = userData.roles;
-    const { roles: _roles, ...patchWithoutRoles } = userData as any;
+    const { roles, ...patchWithoutRoles } = userData;
 
     if (patchWithoutRoles.departmentId !== undefined) {
-      user.department = undefined as any;
+      user.department =
+        undefined as unknown as import('src/modules/catalogs/departments/domain/entities').Department;
     }
 
     const mergedUser = this.repository.merge(user, patchWithoutRoles);

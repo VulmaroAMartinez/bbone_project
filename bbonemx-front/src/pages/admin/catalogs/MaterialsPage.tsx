@@ -3,7 +3,8 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import {
     GetMaterialsDocument,
     ActivateMaterialDocument,
-    DeactivateMaterialDocument
+    DeactivateMaterialDocument,
+    type GetMaterialsQuery,
 } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,16 +12,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2 } from 'lucide-react';
 import MaterialFormModal from './modals/MaterialFormModal';
+import { toast } from 'sonner';
 
 export default function MaterialsPage() {
-    const { data, loading, refetch } = useQuery(GetMaterialsDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useQuery<GetMaterialsQuery>(GetMaterialsDocument, { fetchPolicy: 'cache-and-network' });
 
     const [activateMaterial] = useMutation(ActivateMaterialDocument);
     const [deactivateMaterial] = useMutation(DeactivateMaterialDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingMaterial, setEditingMaterial] = useState<any | null>(null);
+    type MaterialItem = GetMaterialsQuery['materialsWithDeleted'][number];
+    const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
 
     const materials = data?.materialsWithDeleted || [];
 
@@ -30,7 +33,7 @@ export default function MaterialsPage() {
         m.partNumber?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const openModal = (material: any = null) => {
+    const openModal = (material: MaterialItem | null = null) => {
         setEditingMaterial(material);
         setIsModalOpen(true);
     };
@@ -43,8 +46,8 @@ export default function MaterialsPage() {
                 await activateMaterial({ variables: { id } });
             }
             refetch();
-        } catch (error: any) {
-            alert(error.message);
+        } catch {
+            toast.error('Error al actualizar el estado');
         }
     };
 

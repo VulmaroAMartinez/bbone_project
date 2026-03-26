@@ -56,9 +56,6 @@ import { ActivitiesPdfController } from './presentation/controllers/activities-p
     ActivitiesResolver,
   ],
   controllers: [ActivitiesExcelController, ActivitiesPdfController],
-  exports: [
-    ActivitiesService,
-    TypeOrmModule,
-  ],
+  exports: [ActivitiesService, TypeOrmModule],
 })
 export class ActivitiesModule {}

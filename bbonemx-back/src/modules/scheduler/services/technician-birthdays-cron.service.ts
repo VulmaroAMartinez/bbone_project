@@ -57,7 +57,9 @@ export class TechnicianBirthdaysCronService implements OnModuleInit {
   }
 
   async handleCron() {
-    this.logger.log('Ejecutando notificación semanal de cumpleaños de técnicos...');
+    this.logger.log(
+      'Ejecutando notificación semanal de cumpleaños de técnicos...',
+    );
     try {
       await this.notificationService.sendWeeklyDigestIfAny(this.timeZone);
     } catch (error) {
@@ -100,7 +102,7 @@ export class TechnicianBirthdaysCronService implements OnModuleInit {
   pause(): void {
     try {
       const job = this.schedulerRegistry.getCronJob(this.jobName);
-      job.stop();
+      void job.stop();
       this.logger.log('Technician birthdays cron pausado');
     } catch (error) {
       this.logger.error(

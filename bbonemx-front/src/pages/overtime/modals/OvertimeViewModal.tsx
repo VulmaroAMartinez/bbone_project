@@ -9,8 +9,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-import type { OvertimeRecord } from '../OvertimePage';
-import { getReasonLabel, getReasonBadgeVariant, formatDate } from '../OvertimePage';
+import type { OvertimeRecord } from '../overtime.constants';
+import { getReasonLabel, getReasonBadgeVariant, formatDate } from '../overtime.constants';
 
 // ── Props ─────────────────────────────────────────────
 interface OvertimeViewModalProps {

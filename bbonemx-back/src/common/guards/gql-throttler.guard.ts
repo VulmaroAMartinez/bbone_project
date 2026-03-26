@@ -4,29 +4,35 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 
 @Injectable()
 export class GqlThrottlerGuard extends ThrottlerGuard {
-  getRequestResponse(context: ExecutionContext) {
+  override getRequestResponse(context: ExecutionContext) {
     if (context.getType<GqlContextType>() === 'graphql') {
       const gqlCtx = GqlExecutionContext.create(context);
-      const ctx = gqlCtx.getContext();
+      const ctx = gqlCtx.getContext<{
+        req: Record<string, any>;
+        res: Record<string, any>;
+      }>();
       return { req: ctx.req, res: ctx.res };
     }
     return super.getRequestResponse(context);
   }
 
-  protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+  protected shouldSkip(context: ExecutionContext): Promise<boolean> {
     if (context.getType<GqlContextType>() === 'graphql') {
       const gqlCtx = GqlExecutionContext.create(context);
-      const info = gqlCtx.getInfo();
+      const info = gqlCtx.getInfo<import('graphql').GraphQLResolveInfo>();
       // Skip throttling for subscriptions (no HTTP request available)
-      if (info?.operation?.operation === 'subscription') {
-        return true;
+      if (
+        info?.operation?.operation ===
+        ('subscription' as import('graphql').OperationTypeNode)
+      ) {
+        return Promise.resolve(true);
       }
       // Skip if req is somehow missing (e.g. WebSocket context)
-      const ctx = gqlCtx.getContext();
+      const ctx = gqlCtx.getContext<{ req: unknown; res: unknown }>();
       if (!ctx.req) {
-        return true;
+        return Promise.resolve(true);
       }
     }
-    return false;
+    return Promise.resolve(false);
   }
 }

@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
 
 const HOME_BY_ROLE: Record<string, string> = {
@@ -30,6 +30,9 @@ export default function HomePage() {
   }
 
   if (!activeRole) {
+    if (isBoss) {
+      return <Navigate to="/solicitud-material/nueva" replace />;
+    }
     return <Navigate to="/login" replace />;
   }
 

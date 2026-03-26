@@ -13,14 +13,19 @@ describe('ActivitiesPdfController', () => {
   it('devuelve headers correctos y un PDF (%PDF)', async () => {
     const mockActivitiesService = {
       streamActivitiesForPdf: async function* () {
-        yield { activity: 'A' };
+        yield await Promise.resolve({ activity: 'A' } as Activity);
       },
     } satisfies Partial<ActivitiesService>;
 
     const mockPdfGeneratorService = {
-      streamTablePdfToWritable: async (_data: any, _def: any, writable: NodeJS.WritableStream) => {
+      streamTablePdfToWritable: async (
+        _data: unknown,
+        _def: unknown,
+        writable: NodeJS.WritableStream,
+      ) => {
         writable.write(Buffer.from('%PDF-1.4\n'));
         writable.end();
+        return Promise.resolve();
       },
     } satisfies Partial<PdfGeneratorService>;
 
@@ -37,7 +42,10 @@ describe('ActivitiesPdfController', () => {
       .useValue({ canActivate: () => true })
       .compile();
 
-    const app = moduleRef.createNestApplication();
+    const app =
+      moduleRef.createNestApplication<
+        import('@nestjs/common').INestApplication
+      >();
     app.setGlobalPrefix('api', { exclude: ['graphql'] });
     app.useGlobalPipes(
       new ValidationPipe({
@@ -49,11 +57,11 @@ describe('ActivitiesPdfController', () => {
     await app.init();
 
     const filename = 'test-actividades.pdf';
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as import('http').Server)
       .post('/api/activities/export/pdf')
       .parse((response, callback) => {
         const chunks: Buffer[] = [];
-        response.on('data', (chunk) => {
+        response.on('data', (chunk: Buffer) => {
           chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         });
         response.on('end', () => callback(null, Buffer.concat(chunks)));
@@ -73,4 +81,3 @@ describe('ActivitiesPdfController', () => {
     await app.close();
   });
 });
-

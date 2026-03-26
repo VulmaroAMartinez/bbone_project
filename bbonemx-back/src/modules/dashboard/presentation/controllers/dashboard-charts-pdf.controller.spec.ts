@@ -20,6 +20,7 @@ describe('DashboardChartsPdfController', () => {
       ) => {
         writable.write(Buffer.from('%PDF-1.4\n'));
         writable.end();
+        return Promise.resolve();
       },
     } satisfies Partial<PdfGeneratorService>;
 
@@ -33,7 +34,10 @@ describe('DashboardChartsPdfController', () => {
       .useValue({ canActivate: () => true })
       .compile();
 
-    const app = moduleRef.createNestApplication();
+    const app =
+      moduleRef.createNestApplication<
+        import('@nestjs/common').INestApplication
+      >();
     app.setGlobalPrefix('api', { exclude: ['graphql'] });
     app.useGlobalPipes(
       new ValidationPipe({
@@ -44,11 +48,11 @@ describe('DashboardChartsPdfController', () => {
     );
     await app.init();
 
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as import('http').Server)
       .post('/api/dashboard/export/charts-pdf')
       .parse((response, callback) => {
         const chunks: Buffer[] = [];
-        response.on('data', (chunk) => {
+        response.on('data', (chunk: Buffer) => {
           chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         });
         response.on('end', () => callback(null, Buffer.concat(chunks)));

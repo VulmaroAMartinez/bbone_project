@@ -3,7 +3,8 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import {
     GetPositionsDocument,
     ActivatePositionDocument,
-    DeactivatePositionDocument
+    DeactivatePositionDocument,
+    type GetPositionsQuery,
 } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -14,14 +15,15 @@ import { toast } from 'sonner';
 import PositionFormModal from './modals/PositionFormModal';
 
 export default function PositionsPage() {
-    const { data, loading, refetch } = useQuery(GetPositionsDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useQuery<GetPositionsQuery>(GetPositionsDocument, { fetchPolicy: 'cache-and-network' });
 
     const [activatePosition] = useMutation(ActivatePositionDocument);
     const [deactivatePosition] = useMutation(DeactivatePositionDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<any | null>(null);
+    type PositionItem = GetPositionsQuery['positionsWithDeleted'][number];
+    const [editingItem, setEditingItem] = useState<PositionItem | null>(null);
 
     const positions = data?.positionsWithDeleted || [];
     const filteredPositions = positions.filter(p =>
@@ -29,7 +31,7 @@ export default function PositionsPage() {
         (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const openModal = (position: any = null) => {
+    const openModal = (position: PositionItem | null = null) => {
         setEditingItem(position);
         setIsModalOpen(true);
     };
@@ -39,8 +41,8 @@ export default function PositionsPage() {
             if (currentStatus) await deactivatePosition({ variables: { id } });
             else await activatePosition({ variables: { id } });
             refetch();
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al actualizar el estado');
         }
     };
 

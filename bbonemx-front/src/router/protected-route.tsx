@@ -1,7 +1,7 @@
 'use client';
 
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { AllowedRole } from '@/lib/types';
 import { resolveProtectedRouteAccess } from '@/lib/auth/auth-flow';

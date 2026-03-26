@@ -9,7 +9,7 @@ import {
     ActivateMachineDocument,
 } from '@/lib/graphql/generated/graphql';
 import type { MachineBasicFragment } from '@/lib/graphql/generated/graphql';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -164,8 +164,8 @@ export default function MachinesPage() {
             await activateMachine({ variables: { id: machine.id } });
             toast.success(`"${machine.name}" activada`);
             refetch();
-        } catch (err: any) {
-            toast.error(err.message || 'Error al activar');
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Error al activar');
         }
     };
 
@@ -176,8 +176,8 @@ export default function MachinesPage() {
             toast.success(`"${deactivatingMachine.name}" desactivada`);
             setDeactivatingMachine(null);
             refetch();
-        } catch (err: any) {
-            toast.error(err.message || 'Error al desactivar');
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Error al desactivar');
         }
     };
 

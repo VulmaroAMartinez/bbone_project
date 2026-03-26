@@ -22,7 +22,7 @@ type FormValues = yup.InferType<typeof schema>;
 interface ShiftFormModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    shift: any | null;
+    shift: { id: string; name: string; startTime: string; endTime: string } | null;
     onSuccess: () => void;
 }
 
@@ -64,8 +64,8 @@ export default function ShiftFormModal({ open, onOpenChange, shift, onSuccess }:
             }
             onOpenChange(false);
             onSuccess();
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al guardar el turno');
         }
     };
 

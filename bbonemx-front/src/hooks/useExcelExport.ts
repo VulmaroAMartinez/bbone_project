@@ -10,7 +10,7 @@ interface UseExcelExportOptions<TData> {
 }
 
 export function useExcelExport<
-  TData = any,
+  TData = unknown,
   TVariables extends OperationVariables = OperationVariables,
 >(
   document: DocumentNode | TypedDocumentNode<TData, TVariables>,
@@ -29,7 +29,7 @@ export function useExcelExport<
     } catch {
       toast.error('Error al procesar el archivo Excel');
     }
-  }, [data, options.extractBase64, options.filename]);
+  }, [data, options]);
 
   useEffect(() => {
     if (!error) return;

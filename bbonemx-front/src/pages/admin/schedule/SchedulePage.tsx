@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Select as UISelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScheduleSkeleton } from '@/components/ui/skeleton-loaders';
 import { Calendar, Save, Copy, ChevronLeft, ChevronRight, Loader2, Filter } from 'lucide-react';
+import { toast } from 'sonner';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -198,10 +199,10 @@ export default function SchedulePage() {
             await Promise.all(promises);
             setModifiedTechs(new Set());
             await refetchWeek();
-            alert("Horarios guardados exitosamente.");
+            toast.success("Horarios guardados exitosamente.");
 
-        } catch (error: any) {
-            alert(error.message);
+        } catch {
+            toast.error("Error al guardar");
         } finally {
             setIsSaving(false);
         }
@@ -227,16 +228,16 @@ export default function SchedulePage() {
                 }
             });
             await refetchWeek();
-            alert("Semana copiada exitosamente.");
-        } catch (err: any) {
-            alert(err.message || "Error al copiar la semana.");
+            toast.success("Semana copiada exitosamente.");
+        } catch {
+            toast.error("Error al copiar la semana.");
         }
     };
 
     // --- Preparar datos para render ---
     const isLoading = weekLoading || techLoading;
     // Solo técnicos activos pueden recibir horarios
-    const technicians = (techData?.techniciansWithDeleted || []).filter((t: any) => t.isActive);
+    const technicians = (techData?.techniciansWithDeleted || []).filter((t: { isActive?: boolean }) => t.isActive);
     const shifts = shiftData?.shiftsActive || [];
     const absences = absData?.absenceReasonsActive || [];
 

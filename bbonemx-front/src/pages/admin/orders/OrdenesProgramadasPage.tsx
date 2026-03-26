@@ -31,8 +31,8 @@ function OrdenesProgramadasPage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  const orders = (((data as any)?.workOrdersFiltered?.data || []) as any[]).map((ref) =>
-    unmaskFragment(WorkOrderItemFragmentDoc, ref),
+  const orders = (((data as unknown as { workOrdersFiltered?: { data?: Array<unknown> } })?.workOrdersFiltered?.data || [])).map((ref) =>
+    unmaskFragment(WorkOrderItemFragmentDoc, ref as never),
   );
 
   const sortedOrders = useMemo(
@@ -57,7 +57,7 @@ function OrdenesProgramadasPage() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Órdenes de Trabajo Programadas</h1>
-          <p className="text-muted-foreground">{(data as any)?.workOrdersFiltered?.total || 0} órdenes programadas</p>
+          <p className="text-muted-foreground">{(data as unknown as { workOrdersFiltered?: { total?: number } })?.workOrdersFiltered?.total || 0} órdenes programadas</p>
         </div>
         <Button variant="outline" onClick={() => navigate('/admin/ordenes')}>Ver todas las órdenes</Button>
       </div>
@@ -78,7 +78,7 @@ function OrdenesProgramadasPage() {
               <SelectTrigger id="scheduled-shift"><SelectValue placeholder="Todos los turnos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los turnos</SelectItem>
-                {(shiftsData?.shiftsActive || []).map((s: any) => (
+                {(shiftsData?.shiftsActive || []).map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
               </SelectContent>

@@ -63,7 +63,8 @@ export class AuthService {
     this.accessTokenTtl = (this.configService.get<string>(
       'jwt.accessTokenTtl',
     ) || '15m') as StringValue;
-    this.refreshTokenTtl = this.configService.get<string>('jwt.refreshTokenTtl') || '7d';
+    this.refreshTokenTtl =
+      this.configService.get<string>('jwt.refreshTokenTtl') || '7d';
   }
 
   private getLockKey(employeeNumber: string, source?: string): string {
@@ -142,7 +143,7 @@ export class AuthService {
     return user;
   }
 
-  async login(user: User): Promise<LoginResponse> {
+  login(user: User): LoginResponse {
     const accessToken = this.issueAccessToken(user);
     this.logger.log('Usuario logueado');
 
@@ -251,7 +252,6 @@ export class AuthService {
     });
 
     if (!storedToken) throw new UnauthorizedException('Refresh token inválido');
-    
 
     if (storedToken.expiresAt.getTime() <= Date.now()) {
       storedToken.revokedAt = new Date();

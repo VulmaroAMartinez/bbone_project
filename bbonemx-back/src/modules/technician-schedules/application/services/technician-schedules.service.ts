@@ -113,7 +113,7 @@ export class TechnicianSchedulesService {
    *  - Regla de maxPerWeek si el motivo de ausencia lo tiene configurado.
    */
   async create(input: CreateScheduleInput): Promise<TechnicianSchedule> {
-    await this.validateScheduleInput(input.shiftId, input.absenceReasonId);
+    this.validateScheduleInput(input.shiftId, input.absenceReasonId);
 
     const existing = await this.schedulesRepository.findByTechnicianAndDate(
       input.technicianId,
@@ -142,7 +142,7 @@ export class TechnicianSchedulesService {
     // FIX: pasar scheduleDate como string "YYYY-MM-DD" directo a PostgreSQL tipo date
     return this.schedulesRepository.create({
       technicianId: input.technicianId,
-      scheduleDate: input.scheduleDate as any,
+      scheduleDate: input.scheduleDate as unknown as Date,
       weekNumber,
       year,
       shiftId: input.shiftId || undefined,
@@ -168,7 +168,7 @@ export class TechnicianSchedulesService {
     input: AssignWeekScheduleInput,
   ): Promise<TechnicianSchedule[]> {
     for (const day of input.days) {
-      await this.validateScheduleInput(day.shiftId, day.absenceReasonId);
+      this.validateScheduleInput(day.shiftId, day.absenceReasonId);
     }
 
     const absenceCountMap = new Map<string, number>();
@@ -222,7 +222,7 @@ export class TechnicianSchedulesService {
         ? input.absenceReasonId
         : schedule.absenceReasonId;
 
-    await this.validateScheduleInput(shiftId, absenceReasonId);
+    this.validateScheduleInput(shiftId, absenceReasonId);
 
     if (absenceReasonId) {
       await this.validateAbsenceReasonLimit(
@@ -352,10 +352,10 @@ export class TechnicianSchedulesService {
   /**
    * Valida que se envíe shiftId O absenceReasonId (mutuamente excluyentes, al menos uno requerido).
    */
-  private async validateScheduleInput(
+  private validateScheduleInput(
     shiftId?: string,
     absenceReasonId?: string,
-  ): Promise<void> {
+  ): void {
     if (shiftId && absenceReasonId) {
       throw new BadRequestException(
         'No se puede asignar un turno y un motivo de ausencia al mismo tiempo. Envíe solo uno.',

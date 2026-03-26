@@ -39,6 +39,7 @@ export default function ActivityMaterialRequestsPage() {
 
   const activity = data?.activity;
   const materialRequests = activity?.materialRequests || [];
+  type ActivityMaterialRequestRow = (typeof materialRequests)[number];
 
   const handleAdd = async () => {
     if (!folio.trim()) return;
@@ -50,8 +51,8 @@ export default function ActivityMaterialRequestsPage() {
       setFolio('');
       setIsAddOpen(false);
       refetch();
-    } catch (err: any) {
-      toast.error(err?.message || 'Error al vincular solicitud');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al vincular solicitud');
     }
   };
 
@@ -121,7 +122,7 @@ export default function ActivityMaterialRequestsPage() {
                     </td>
                   </tr>
                 )}
-                {materialRequests.map((amr: any) => (
+                {materialRequests.map((amr: ActivityMaterialRequestRow) => (
                   <tr key={amr.id} className="hover:bg-muted/10">
                     <td className="px-4 py-3 font-medium">{amr.materialRequest?.folio}</td>
                     <td className="px-4 py-3 hidden sm:table-cell">

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ShiftsRepository } from '../../infrastructure/repositories';
 import { Shift } from '../../domain/entities';
 import { CreateShiftInput, UpdateShiftInput } from '../dto';

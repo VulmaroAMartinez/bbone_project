@@ -31,7 +31,7 @@ export default function OrdersMachinePage() {
     });
 
     // Query actual no devuelve machine; solo usamos workOrdersFiltered.
-    const workOrders = (data as any)?.workOrdersFiltered?.data ?? [];
+    const workOrders = (data as unknown as { workOrdersFiltered?: { data?: Array<unknown> } })?.workOrdersFiltered?.data ?? [];
 
     const formatDate = (dateStr?: string | null) => {
         if (!dateStr) return '—';
@@ -93,7 +93,19 @@ export default function OrdersMachinePage() {
                 </Empty>
             ) : (
                 <div className="space-y-3">
-                    {workOrders.map((wo: any) => (
+                    {workOrders.map((woRaw: unknown) => {
+                        const wo = woRaw as {
+                            id: string;
+                            folio: string;
+                            status: string;
+                            description?: string | null;
+                            priority?: string | null;
+                            maintenanceType?: string | null;
+                            area?: { name: string } | null;
+                            requester?: { fullName: string } | null;
+                            createdAt?: string | null;
+                        };
+                        return (
                         <Card key={wo.id} className="bg-card hover:shadow-md transition-shadow">
                             <CardContent className="p-4 space-y-3">
                                 {/* Fila: Folio + Status */}
@@ -135,7 +147,8 @@ export default function OrdersMachinePage() {
                                 </div>
                             </CardContent>
                         </Card>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

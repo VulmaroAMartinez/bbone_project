@@ -86,7 +86,7 @@ describe('ExcelGeneratorService', () => {
 
     // ExcelJS puede retornar `null` o `''` según el valor.
     const value = dataRow.getCell(2).value;
-    expect(value == null || String(value) === '').toBe(true);
+    expect(value == null || String(value as unknown) === '').toBe(true);
   });
 
   it('streaming: escribe un Excel sin almacenar archivos', async () => {
@@ -107,7 +107,9 @@ describe('ExcelGeneratorService', () => {
 
     const pass = new PassThrough();
     const chunks: Buffer[] = [];
-    pass.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+    pass.on('data', (c: Buffer) =>
+      chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)),
+    );
 
     await service.streamExcelToWritable(
       [{ area: { name: 'A-1' }, status: true }],
@@ -120,4 +122,3 @@ describe('ExcelGeneratorService', () => {
     expect(buffer.length).toBeGreaterThan(0);
   });
 });
-

@@ -1,4 +1,4 @@
-import { FindingStatus, FolioGenerator } from 'src/common';
+import { FindingStatus } from 'src/common';
 import { BaseEntity } from 'src/infrastructure/database/base.entity';
 import { Area } from 'src/modules/catalogs/areas/domain/entities';
 import { Machine } from 'src/modules/catalogs/machines/domain/entities';

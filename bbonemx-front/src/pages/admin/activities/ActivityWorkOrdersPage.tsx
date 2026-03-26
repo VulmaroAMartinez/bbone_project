@@ -47,6 +47,7 @@ export default function ActivityWorkOrdersPage() {
 
   const activity = data?.activity;
   const workOrders = activity?.workOrders || [];
+  type ActivityWorkOrderRow = (typeof workOrders)[number];
 
   const handleAdd = async () => {
     if (!folio.trim()) return;
@@ -58,8 +59,8 @@ export default function ActivityWorkOrdersPage() {
       setFolio('');
       setIsAddOpen(false);
       refetch();
-    } catch (err: any) {
-      toast.error(err?.message || 'Error al vincular orden');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al vincular orden');
     }
   };
 
@@ -129,7 +130,7 @@ export default function ActivityWorkOrdersPage() {
                     </td>
                   </tr>
                 )}
-                {workOrders.map((awo: any) => (
+                {workOrders.map((awo: ActivityWorkOrderRow) => (
                   <tr key={awo.id} className="hover:bg-muted/10">
                     <td className="px-4 py-3 font-medium">{awo.workOrder?.folio}</td>
                     <td className="px-4 py-3 hidden sm:table-cell max-w-[200px] truncate">

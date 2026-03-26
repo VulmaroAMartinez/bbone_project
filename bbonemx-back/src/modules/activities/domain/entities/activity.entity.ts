@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from 'src/infrastructure/database/base.entity';
 import { Area } from 'src/modules/catalogs/areas/domain/entities';
 import { Machine } from 'src/modules/catalogs/machines/domain/entities';
@@ -32,10 +26,18 @@ export class Activity extends BaseEntity {
   @Column({ type: 'varchar', length: 500 })
   activity: string;
 
-  @Column({ name: 'start_date', type: 'date', transformer: dateColumnTransformer })
+  @Column({
+    name: 'start_date',
+    type: 'date',
+    transformer: dateColumnTransformer,
+  })
   startDate: Date;
 
-  @Column({ name: 'end_date', type: 'date', transformer: dateColumnTransformer })
+  @Column({
+    name: 'end_date',
+    type: 'date',
+    transformer: dateColumnTransformer,
+  })
   endDate: Date;
 
   @Column({ type: 'integer', default: 0 })

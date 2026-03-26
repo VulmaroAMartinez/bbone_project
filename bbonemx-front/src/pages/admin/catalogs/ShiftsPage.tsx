@@ -3,7 +3,8 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import {
     GetShiftsAllDocument,
     ActivateShiftDocument,
-    DeactivateShiftDocument
+    DeactivateShiftDocument,
+    type GetShiftsAllQuery,
 } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -14,19 +15,20 @@ import { toast } from 'sonner';
 import ShiftFormModal from './modals/ShiftFormModal';
 
 export default function ShiftsPage() {
-    const { data, loading, refetch } = useQuery(GetShiftsAllDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useQuery<GetShiftsAllQuery>(GetShiftsAllDocument, { fetchPolicy: 'cache-and-network' });
 
     const [activateShift] = useMutation(ActivateShiftDocument);
     const [deactivateShift] = useMutation(DeactivateShiftDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<any | null>(null);
+    type ShiftItem = GetShiftsAllQuery['shiftsWithDeleted'][number];
+    const [editingItem, setEditingItem] = useState<ShiftItem | null>(null);
 
     const shifts = data?.shiftsWithDeleted || [];
     const filteredShifts = shifts.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const openModal = (shift: any = null) => {
+    const openModal = (shift: ShiftItem | null = null) => {
         setEditingItem(shift);
         setIsModalOpen(true);
     };
@@ -36,8 +38,8 @@ export default function ShiftsPage() {
             if (currentStatus) await deactivateShift({ variables: { id } });
             else await activateShift({ variables: { id } });
             refetch();
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al actualizar el estado');
         }
     };
 

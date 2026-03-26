@@ -77,7 +77,11 @@ export class ActivitiesPdfController {
 
     try {
       // Stream por lotes para evitar cargar todo en memoria.
-      const data = this.activitiesService.streamActivitiesForPdf(filters, sort, this.BATCH_SIZE);
+      const data = this.activitiesService.streamActivitiesForPdf(
+        filters,
+        sort,
+        this.BATCH_SIZE,
+      );
       await this.pdfGeneratorService.streamTablePdfToWritable(
         data,
         ACTIVITY_PDF_REPORT,
@@ -95,11 +99,12 @@ export class ActivitiesPdfController {
       });
 
       if (!res.headersSent) {
-        res.status(500).json({ message: 'Error al exportar actividades a PDF' });
+        res
+          .status(500)
+          .json({ message: 'Error al exportar actividades a PDF' });
         return;
       }
       res.end();
     }
   }
 }
-

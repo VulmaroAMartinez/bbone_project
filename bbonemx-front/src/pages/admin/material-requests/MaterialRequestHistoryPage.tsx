@@ -16,7 +16,7 @@ import {
   PRIORITY_LABELS,
   PRIORITY_COLORS,
   formatDate,
-} from '@/pages/material-requests/MaterialRequestsPage';
+} from '@/pages/material-requests/material-requests.constants';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -174,7 +174,7 @@ export default function MaterialRequestHistoryPage() {
   const [editingMrId, setEditingMrId] = useState<string | null>(null);
   const [viewingItemsMrId, setViewingItemsMrId] = useState<string | null>(null);
 
-  const requests = data?.materialRequestsWithDeleted ?? [];
+  const requests = useMemo(() => data?.materialRequestsWithDeleted ?? [], [data?.materialRequestsWithDeleted]);
 
   // Derive unique areas for filter
   const uniqueAreas = useMemo(() => {
@@ -230,6 +230,7 @@ export default function MaterialRequestHistoryPage() {
     resolver: yupResolver(editSchema),
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const watchedStatus = watch('status');
 
   const openEditModal = (mrId: string) => {
@@ -263,8 +264,8 @@ export default function MaterialRequestHistoryPage() {
       toast.success('Seguimiento actualizado correctamente');
       setEditingMrId(null);
       refetch();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Error al actualizar el seguimiento');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar el seguimiento');
     }
   };
 
@@ -322,7 +323,7 @@ export default function MaterialRequestHistoryPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las categorías</SelectItem>
-              {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
+              {Object.entries(CATEGORY_LABELS).map(([val, label]: [string, string]) => (
                 <SelectItem key={val} value={val}>
                   {label}
                 </SelectItem>

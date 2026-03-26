@@ -1,7 +1,7 @@
 import { Resolver, Query, Args, ID, Mutation } from '@nestjs/graphql';
 import { RoleType } from '../types';
 import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard, Role, Roles, RolesGuard, CurrentUser } from 'src/common';
+import { JwtAuthGuard, Role, Roles, RolesGuard } from 'src/common';
 import { RolesService } from '../../application/services';
 import { CreateRoleInput, UpdateRoleInput } from '../../application/dto';
 

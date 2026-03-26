@@ -9,7 +9,7 @@ import {
   UpdateMachineDocument,
   SubAreaBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
-import type { MachineBasicFragment } from '@/lib/graphql/generated/graphql';
+import type { CreateMachineInput, MachineBasicFragment } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 import { useAreaMachineSelector } from '@/hooks/useAreaMachineSelector';
 import { uploadFileToBackend } from '@/lib/utils/uploads';
@@ -147,8 +147,8 @@ export function MachineFormModal({ open, onOpenChange, machine, areas, onSuccess
       setValue('machinePhotoUrl', uploadedFile.absoluteUrl);
       setPhotoPreview(uploadedFile.absoluteUrl);
       toast.success('Imagen subida correctamente');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al subir la imagen');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al subir la imagen');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -170,7 +170,7 @@ export function MachineFormModal({ open, onOpenChange, machine, areas, onSuccess
   const onSubmit = async (values: MachineFormValues) => {
     setIsSaving(true);
     try {
-      const payload: any = {
+      const payload: CreateMachineInput = {
         code: values.code,
         name: values.name,
         description: values.description || undefined,
@@ -199,8 +199,8 @@ export function MachineFormModal({ open, onOpenChange, machine, areas, onSuccess
       }
       onOpenChange(false);
       onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al guardar la máquina');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar la máquina');
     } finally {
       setIsSaving(false);
     }
@@ -278,7 +278,7 @@ export function MachineFormModal({ open, onOpenChange, machine, areas, onSuccess
                     control={control}
                     render={({ field }) => (
                       <Combobox
-                        options={subAreas.map((sa: any) => ({ value: sa.id, label: sa.name }))}
+                        options={subAreas.map((sa) => ({ value: sa.id, label: sa.name }))}
                         value={field.value}
                         onValueChange={(val) => {
                           field.onChange(val);

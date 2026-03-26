@@ -7,4 +7,3 @@ import { PdfGeneratorService } from './pdf-generator.service';
   exports: [PdfGeneratorService],
 })
 export class PdfModule {}
-

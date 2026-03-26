@@ -99,7 +99,7 @@ export function CompleteModal({
     reset,
     formState: { errors },
   } = useForm<CloseFormValues>({
-    resolver: yupResolver<CloseFormValues, any, any>(closeSchema),
+    resolver: yupResolver(closeSchema) as unknown as import('react-hook-form').Resolver<CloseFormValues>,
     context: { isAveria },
     defaultValues: {
       finalStatus: 'COMPLETED',
@@ -116,6 +116,7 @@ export function CompleteModal({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const watchedSparePartId = watch('sparePartId');
   const watchedMaterialId = watch('materialId');
 
@@ -145,8 +146,8 @@ export function CompleteModal({
     }
   }, [open, reset]);
 
-  const spareParts = (sparePartsData as any)?.sparePartsByMachine ?? [];
-  const materials = (materialsData as any)?.materialsActive ?? [];
+  const spareParts = (sparePartsData as unknown as { sparePartsByMachine?: Array<{ id: string; brand?: string; model?: string; partNumber?: string }> })?.sparePartsByMachine ?? [];
+  const materials = (materialsData as unknown as { materialsActive?: Array<{ id: string; description?: string; brand?: string; partNumber?: string }> })?.materialsActive ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -328,13 +329,13 @@ export function CompleteModal({
                         name="sparePartId"
                         control={control}
                         render={({ field }) => (
-                          <Combobox
-                            options={[
-                              { value: '', label: 'Sin refacción' },
-                              ...spareParts.map((sp: any) => ({
-                                value: sp.id,
-                                label: `${sp.brand} ${sp.model} — ${sp.partNumber}`,
-                              })),
+                            <Combobox
+                              options={[
+                                { value: '', label: 'Sin refacción' },
+                                ...spareParts.map((sp) => ({
+                                  value: sp.id,
+                                  label: `${sp.brand} ${sp.model} — ${sp.partNumber}`,
+                                })),
                               { value: 'OTHER', label: 'Otra (especificar)' },
                             ]}
                             value={field.value ?? ''}
@@ -373,7 +374,7 @@ export function CompleteModal({
                       <Combobox
                         options={[
                           { value: '', label: 'Sin material' },
-                          ...materials.map((m: any) => ({
+                          ...materials.map((m) => ({
                             value: m.id,
                             label: `${m.description}${m.brand ? ` — ${m.brand}` : ''}${m.partNumber ? ` (${m.partNumber})` : ''}`,
                           })),

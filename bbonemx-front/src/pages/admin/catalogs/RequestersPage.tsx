@@ -3,7 +3,8 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import {
     GetRequestersDataDocument,
     ActivateUserDocument,
-    DeactivateUserDocument
+    DeactivateUserDocument,
+    type GetRequestersDataQuery,
 } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,16 +12,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, UserRound, Mail, Phone } from 'lucide-react';
 import RequesterFormModal from './modals/RequesterFormModal';
+import { toast } from 'sonner';
 
 export default function RequestersPage() {
-    const { data, loading, refetch } = useQuery(GetRequestersDataDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useQuery<GetRequestersDataQuery>(GetRequestersDataDocument, { fetchPolicy: 'cache-and-network' });
 
     const [activateUser] = useMutation(ActivateUserDocument);
     const [deactivateUser] = useMutation(DeactivateUserDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingRequester, setEditingRequester] = useState<any | null>(null);
+    type RequesterItem = GetRequestersDataQuery['usersWithDeleted'][number];
+    const [editingRequester, setEditingRequester] = useState<RequesterItem | null>(null);
 
     const allUsers = data?.usersWithDeleted || [];
     const departments = data?.departmentsWithDeleted || [];
@@ -37,7 +40,7 @@ export default function RequestersPage() {
         (r.department && r.department.name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const openModal = (user: any = null) => {
+    const openModal = (user: RequesterItem | null = null) => {
         setEditingRequester(user);
         setIsModalOpen(true);
     };
@@ -47,8 +50,8 @@ export default function RequestersPage() {
             if (currentStatus) await deactivateUser({ variables: { id } });
             else await activateUser({ variables: { id } });
             refetch();
-        } catch (error: any) {
-            alert(error.message);
+        } catch {
+            toast.error('Error al actualizar el estado');
         }
     };
 

@@ -42,9 +42,7 @@ export async function seedAdmin(dataSource: DataSource): Promise<void> {
     process.env.ADMIN_SEED_PASSWORD ?? process.env.SEED_ADMIN_PASSWORD;
 
   if (!seedPassword) {
-    throw new Error(
-      'Contraseña requerida para crear administrador',
-    );
+    throw new Error('Contraseña requerida para crear administrador');
   }
 
   const saltRounds = 10;

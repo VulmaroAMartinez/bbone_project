@@ -16,14 +16,20 @@ export class ActivityMaterialRequestsService {
     private readonly materialRequestsService: MaterialRequestsService,
   ) {}
 
-  async findByActivityId(activityId: string): Promise<ActivityMaterialRequest[]> {
+  async findByActivityId(
+    activityId: string,
+  ): Promise<ActivityMaterialRequest[]> {
     return this.activityMaterialRequestsRepository.findByActivityId(activityId);
   }
 
-  async addByFolio(activityId: string, folio: string): Promise<ActivityMaterialRequest> {
+  async addByFolio(
+    activityId: string,
+    folio: string,
+  ): Promise<ActivityMaterialRequest> {
     await this.activitiesService.findByIdOrFail(activityId);
 
-    const materialRequest = await this.materialRequestsService.findByFolio(folio);
+    const materialRequest =
+      await this.materialRequestsService.findByFolio(folio);
     if (!materialRequest) {
       throw new NotFoundException(
         `Solicitud de material con folio "${folio}" no encontrada`,
@@ -49,6 +55,9 @@ export class ActivityMaterialRequestsService {
 
   async remove(activityId: string, materialRequestId: string): Promise<void> {
     await this.activitiesService.findByIdOrFail(activityId);
-    await this.activityMaterialRequestsRepository.delete(activityId, materialRequestId);
+    await this.activityMaterialRequestsRepository.delete(
+      activityId,
+      materialRequestId,
+    );
   }
 }

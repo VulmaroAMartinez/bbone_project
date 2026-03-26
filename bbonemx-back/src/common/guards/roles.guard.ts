@@ -29,12 +29,16 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    let user: any;
+    let user: { roles?: Array<{ name: string }> } | undefined;
     if (context.getType<string>() === 'http') {
-      user = context.switchToHttp().getRequest().user;
+      user = context
+        .switchToHttp()
+        .getRequest<{ user?: { roles?: Array<{ name: string }> } }>().user;
     } else {
       const ctx = GqlExecutionContext.create(context);
-      user = ctx.getContext().req.user;
+      user = ctx.getContext<{
+        req: { user?: { roles?: Array<{ name: string }> } };
+      }>().req.user;
     }
 
     if (!user) return false;

@@ -24,7 +24,7 @@ export class TechnicianSchedulesResolver {
     description: 'Obtiene todos los horarios de técnicos',
   })
   async findAll(): Promise<TechnicianScheduleType[]> {
-    return this.schedulesService.findAll() as unknown as TechnicianScheduleType[];
+    return (await this.schedulesService.findAll()) as unknown as TechnicianScheduleType[];
   }
 
   @Query(() => [TechnicianScheduleType], {
@@ -32,7 +32,7 @@ export class TechnicianSchedulesResolver {
     description: 'Obtiene todos los horarios de técnicos incluyendo eliminados',
   })
   async findAllWithDeleted(): Promise<TechnicianScheduleType[]> {
-    return this.schedulesService.findAllWithDeleted() as unknown as TechnicianScheduleType[];
+    return (await this.schedulesService.findAllWithDeleted()) as unknown as TechnicianScheduleType[];
   }
 
   @Query(() => TechnicianScheduleType, {
@@ -43,9 +43,9 @@ export class TechnicianSchedulesResolver {
   async findById(
     @Args('id', { type: () => ID }) id: string,
   ): Promise<TechnicianScheduleType | null> {
-    return this.schedulesService.findById(
+    return (await this.schedulesService.findById(
       id,
-    ) as unknown as TechnicianScheduleType | null;
+    )) as unknown as TechnicianScheduleType | null;
   }
 
   @Query(() => WeekScheduleSummaryType, {
@@ -77,11 +77,11 @@ export class TechnicianSchedulesResolver {
     @Args('weekNumber', { type: () => Int }) weekNumber: number,
     @Args('year', { type: () => Int }) year: number,
   ): Promise<TechnicianScheduleType[]> {
-    return this.schedulesService.findByTechnicianAndWeek(
+    return (await this.schedulesService.findByTechnicianAndWeek(
       technicianId,
       weekNumber,
       year,
-    ) as unknown as TechnicianScheduleType[];
+    )) as unknown as TechnicianScheduleType[];
   }
 
   @Query(() => [TechnicianScheduleType], {
@@ -92,9 +92,9 @@ export class TechnicianSchedulesResolver {
   async findFiltered(
     @Args('filters') filters: ScheduleFiltersInput,
   ): Promise<TechnicianScheduleType[]> {
-    return this.schedulesService.findWithFilters(
+    return (await this.schedulesService.findWithFilters(
       filters,
-    ) as unknown as TechnicianScheduleType[];
+    )) as unknown as TechnicianScheduleType[];
   }
 
   // =============================== MUTATIONS ===============================
@@ -107,9 +107,9 @@ export class TechnicianSchedulesResolver {
   async create(
     @Args('input') input: CreateScheduleInput,
   ): Promise<TechnicianScheduleType> {
-    return this.schedulesService.create(
+    return (await this.schedulesService.create(
       input,
-    ) as unknown as TechnicianScheduleType;
+    )) as unknown as TechnicianScheduleType;
   }
 
   @Mutation(() => [TechnicianScheduleType], {
@@ -120,9 +120,9 @@ export class TechnicianSchedulesResolver {
   async assignWeek(
     @Args('input') input: AssignWeekScheduleInput,
   ): Promise<TechnicianScheduleType[]> {
-    return this.schedulesService.assignWeek(
+    return (await this.schedulesService.assignWeek(
       input,
-    ) as unknown as TechnicianScheduleType[];
+    )) as unknown as TechnicianScheduleType[];
   }
 
   @Mutation(() => TechnicianScheduleType, {
@@ -133,10 +133,10 @@ export class TechnicianSchedulesResolver {
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: UpdateScheduleInput,
   ): Promise<TechnicianScheduleType> {
-    return this.schedulesService.update(
+    return (await this.schedulesService.update(
       id,
       input,
-    ) as unknown as TechnicianScheduleType;
+    )) as unknown as TechnicianScheduleType;
   }
 
   @Mutation(() => [TechnicianScheduleType], {
@@ -146,9 +146,9 @@ export class TechnicianSchedulesResolver {
   async copyWeek(
     @Args('input') input: CopyWeekSchedulesInput,
   ): Promise<TechnicianScheduleType[]> {
-    return this.schedulesService.copyWeek(
+    return (await this.schedulesService.copyWeek(
       input,
-    ) as unknown as TechnicianScheduleType[];
+    )) as unknown as TechnicianScheduleType[];
   }
 
   @Mutation(() => Boolean, {

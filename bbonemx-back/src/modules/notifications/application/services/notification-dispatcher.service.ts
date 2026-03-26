@@ -25,6 +25,8 @@ import { User } from 'src/modules/users';
 @Injectable()
 export class NotificationDispatcherService {
   private readonly logger = new Logger(NotificationDispatcherService.name);
+  private static readonly PUBLISH_BATCH_SIZE = 50;
+  private static readonly UPDATE_BATCH_SIZE = 100;
 
   constructor(
     private readonly notificationsService: NotificationsService,
@@ -159,29 +161,41 @@ export class NotificationDispatcherService {
         `Creadas ${notifications.length} notificaciones in-app`,
       );
 
-      for (const notification of notifications) {
-        await this.pubSub.publish(SUBSCRIPTION_TRIGGERS.NEW_NOTIFICATION, {
-          [SUBSCRIPTION_TRIGGERS.NEW_NOTIFICATION]: notification,
-        });
-      }
+      await this.runInBatches(
+        notifications,
+        NotificationDispatcherService.PUBLISH_BATCH_SIZE,
+        async (notification) => {
+          await this.pubSub.publish(SUBSCRIPTION_TRIGGERS.NEW_NOTIFICATION, {
+            [SUBSCRIPTION_TRIGGERS.NEW_NOTIFICATION]: notification,
+          });
+        },
+      );
 
       // 3. Preparar push por usuario
       const tokensMap =
         await this.deviceTokensService.getTokensForUsers(userIds);
       const tokensToSend: string[] = [];
-      const notificationIdByToken = new Map<string, string>();
+      const notificationIdsByToken = new Map<string, Set<string>>();
+      const preferencesByUserId =
+        await this.preferencesService.getPreferencesForUsers(userIds, type);
 
       for (const notification of notifications) {
-        const pref = await this.preferencesService.getPreference(
-          notification.recipientId,
-          type,
-        );
+        const pref = preferencesByUserId.get(notification.recipientId);
+        if (!pref) continue;
 
         if (pref.pushEnabled && !pref.isInQuietHours()) {
           const userTokens = tokensMap.get(notification.recipientId) || [];
           for (const deviceToken of userTokens) {
             tokensToSend.push(deviceToken.fcmToken);
-            notificationIdByToken.set(deviceToken.fcmToken, notification.id);
+            const notifIds = notificationIdsByToken.get(deviceToken.fcmToken);
+            if (notifIds) {
+              notifIds.add(notification.id);
+            } else {
+              notificationIdsByToken.set(
+                deviceToken.fcmToken,
+                new Set([notification.id]),
+              );
+            }
           }
         }
       }
@@ -194,11 +208,16 @@ export class NotificationDispatcherService {
         );
 
         // 5. Procesar resultados
-        for (const result of results) {
-          const notifId = notificationIdByToken.get(result.token);
+        const notificationIdsToMarkSent = new Set<string>();
+        const invalidTokens = new Set<string>();
 
-          if (result.success && notifId) {
-            await this.notificationsService.updatePushSent(notifId, true);
+        for (const result of results) {
+          const notifIds = notificationIdsByToken.get(result.token);
+
+          if (result.success && notifIds) {
+            for (const notificationId of notifIds) {
+              notificationIdsToMarkSent.add(notificationId);
+            }
           }
 
           if (
@@ -206,15 +225,55 @@ export class NotificationDispatcherService {
             result.error &&
             this.fcmProvider.isTokenInvalid(result.error)
           ) {
-            await this.deviceTokensService.markExpired(result.token);
-            this.logger.warn(
-              `Token expirado eliminado: ${result.token.substring(0, 20)}...`,
-            );
+            invalidTokens.add(result.token);
           }
         }
+
+        await this.runInBatches(
+          Array.from(notificationIdsToMarkSent),
+          NotificationDispatcherService.UPDATE_BATCH_SIZE,
+          async (notificationId) => {
+            await this.notificationsService.updatePushSent(
+              notificationId,
+              true,
+            );
+          },
+        );
+
+        await this.runInBatches(
+          Array.from(invalidTokens),
+          NotificationDispatcherService.UPDATE_BATCH_SIZE,
+          async (token) => {
+            await this.deviceTokensService.markExpired(token);
+            this.logger.warn(
+              `Token expirado eliminado: ${token.substring(0, 20)}...`,
+            );
+          },
+        );
       }
     } catch (error) {
       this.logger.error(`Error despachando notificación tipo ${type}`, error);
+    }
+  }
+
+  private async runInBatches<T>(
+    items: T[],
+    batchSize: number,
+    worker: (item: T) => Promise<void>,
+  ): Promise<void> {
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map((item) => worker(item)),
+      );
+
+      for (const result of results) {
+        if (result.status === 'rejected') {
+          this.logger.warn(
+            `Error procesando elemento de lote de notificaciones: ${String(result.reason)}`,
+          );
+        }
+      }
     }
   }
 

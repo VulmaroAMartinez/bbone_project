@@ -3,6 +3,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog'
 import { Button } from './button';
 import { Loader2, Eraser, Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SignatureDialogProps {
     isOpen: boolean;
@@ -21,7 +22,7 @@ export function SignatureDialog({ isOpen, onClose, onSave, title = 'Firmar Orden
 
     const handleSave = async () => {
         if (sigCanvas.current?.isEmpty()) {
-            alert('Por favor, firme en el área de la pantalla.');
+            toast('Por favor, firme en el área de la pantalla.');
             return;
         }
 

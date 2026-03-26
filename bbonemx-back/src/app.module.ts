@@ -17,10 +17,7 @@ import { CustomGraphqlModule } from './infrastructure/graphql/graphql.module';
 
 import { GraphqlExceptionFilter } from './common/filters';
 import { CsrfGuard, GqlThrottlerGuard, JwtAuthGuard } from './common/guards';
-import {
-  LoggingInterceptor,
-  UserContextInterceptor,
-} from './common/interceptors';
+import { UserContextInterceptor } from './common/interceptors';
 import { PasswordModule, EmailModule } from './common/modules';
 import { ExcelModule } from './infrastructure/excel';
 import { PdfModule } from './infrastructure/pdf';

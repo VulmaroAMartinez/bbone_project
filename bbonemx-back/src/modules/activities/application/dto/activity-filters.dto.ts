@@ -1,5 +1,13 @@
 import { InputType, Field, ID, Int, registerEnumType } from '@nestjs/graphql';
-import { IsOptional, IsUUID, IsEnum, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsUUID,
+  IsEnum,
+  IsBoolean,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 import { ActivityStatus } from '../../../../common/enums';
 import { SortOrder } from '../../../work-orders/application/dto/work-order-filters.dto';
 
@@ -36,7 +44,10 @@ export class ActivityFiltersInput {
   @IsEnum(ActivityStatus)
   status?: ActivityStatus;
 
-  @Field({ nullable: true, description: 'Filtrar solo actividades prioritarias' })
+  @Field({
+    nullable: true,
+    description: 'Filtrar solo actividades prioritarias',
+  })
   @IsOptional()
   @IsBoolean()
   priority?: boolean;
@@ -64,7 +75,9 @@ export class ActivityPaginationInput {
 
 @InputType()
 export class ActivitySortInput {
-  @Field(() => ActivitySortField, { defaultValue: ActivitySortField.CREATED_AT })
+  @Field(() => ActivitySortField, {
+    defaultValue: ActivitySortField.CREATED_AT,
+  })
   @IsOptional()
   @IsEnum(ActivitySortField)
   field?: ActivitySortField;

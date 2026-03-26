@@ -2,6 +2,7 @@ import { Entity, Column, ManyToOne, JoinColumn, Check } from 'typeorm';
 import { BaseEntity } from 'src/infrastructure/database/base.entity';
 import { SubArea } from 'src/modules/catalogs/sub-areas/domain/entities';
 import { Area } from 'src/modules/catalogs/areas/domain/entities';
+import { dateColumnTransformer } from 'src/common';
 
 @Entity({ name: 'machines' })
 @Check(
@@ -49,10 +50,12 @@ export class Machine extends BaseEntity {
   })
   serialNumber?: string;
 
-  @Column({ 
-    name: 'installation_date', 
-    type: 'date', 
-    nullable: true })
+  @Column({
+    name: 'installation_date',
+    type: 'date',
+    nullable: true,
+    transformer: dateColumnTransformer,
+  })
   installationDate?: Date;
 
   @Column({

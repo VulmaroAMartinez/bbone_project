@@ -93,7 +93,7 @@ export default function AreasPage() {
     const [deactivatingArea, setDeactivatingArea] = useState<AreaDetailFragment | null>(null);
 
     // ─── Derived data
-    const areas = data?.areasWithDeleted ? unmaskFragment(AreaDetailFragmentDoc, data.areasWithDeleted) : [];
+    const areas = useMemo(() => data?.areasWithDeleted ? unmaskFragment(AreaDetailFragmentDoc, data.areasWithDeleted) : [], [data?.areasWithDeleted]);
 
     const filtered = useMemo(() => {
         return areas.filter((a) => {

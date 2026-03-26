@@ -24,7 +24,8 @@ export class OvertimeExcelController {
     const periodFrom = body?.periodFrom ?? filters.startDate;
     const periodTo = body?.periodTo ?? filters.endDate;
     const filename =
-      body?.filename ?? `horas-extra-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      body?.filename ??
+      `horas-extra-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     res.setHeader(
       'Content-Type',
@@ -47,7 +48,9 @@ export class OvertimeExcelController {
       });
 
       if (!res.headersSent) {
-        res.status(500).json({ message: 'Error al exportar horas extra a Excel' });
+        res
+          .status(500)
+          .json({ message: 'Error al exportar horas extra a Excel' });
         return;
       }
 
@@ -55,4 +58,3 @@ export class OvertimeExcelController {
     }
   }
 }
-

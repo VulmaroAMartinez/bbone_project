@@ -37,7 +37,10 @@ export function toMonthDayKey(ymd: CalendarYmd): string {
 }
 
 /** Fecha civil (Y-M-D) en la zona horaria para un instante UTC. */
-export function formatYmdInTimeZone(instant: Date, timeZone: string): CalendarYmd {
+export function formatYmdInTimeZone(
+  instant: Date,
+  timeZone: string,
+): CalendarYmd {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
@@ -59,7 +62,10 @@ function weekdayShortInTimeZone(instant: Date, timeZone: string): string {
 }
 
 /** Suma días al calendario civil (evita desfases de TZ del servidor). */
-export function addCalendarDays(ymd: CalendarYmd, deltaDays: number): CalendarYmd {
+export function addCalendarDays(
+  ymd: CalendarYmd,
+  deltaDays: number,
+): CalendarYmd {
   const dt = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d + deltaDays));
   return {
     y: dt.getUTCFullYear(),

@@ -10,6 +10,7 @@ import {
   ActivityItemFragmentDoc,
   GetActivityByIdDocument,
   GetMachinesByAreaDocument,
+  MachineBasicFragmentDoc,
   CreateActivityDocument,
   UpdateActivityDocument,
 } from '@/lib/graphql/generated/graphql';
@@ -127,6 +128,7 @@ export default function ActivityFormPage() {
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const selectedAreaId = watch('areaId');
   const { data: machinesData } = useQuery(GetMachinesByAreaDocument, {
     variables: { areaId: selectedAreaId || undefined },
@@ -136,9 +138,10 @@ export default function ActivityFormPage() {
   const [createActivity, { loading: creating }] = useMutation(CreateActivityDocument);
   const [updateActivity, { loading: updating }] = useMutation(UpdateActivityDocument);
   const isSaving = creating || updating;
-  const activity = activityData?.activity
-    ? useFragment(ActivityItemFragmentDoc, activityData.activity)
-    : undefined;
+  const activity = useFragment(
+    ActivityItemFragmentDoc,
+    activityData?.activity ?? null,
+  );
 
   // Populate form on edit
   useEffect(() => {
@@ -154,24 +157,25 @@ export default function ActivityFormPage() {
         status: a.status,
         comments: a.comments || '',
         priority: a.priority,
-        technicianIds: a.technicians?.map((t: any) => t.technicianId) || [],
+        technicianIds: a.technicians?.map((t) => t.technicianId) || [],
       });
     }
   }, [activity, isEditing, reset]);
 
   const areaOptions = useMemo(
-    () => (formData?.areasActive || []).map((a: any) => ({ value: a.id, label: a.name })),
+    () => (formData?.areasActive || []).map((a) => ({ value: a.id, label: a.name })),
     [formData],
   );
 
+  const machines = useFragment(MachineBasicFragmentDoc, machinesData?.machinesByArea ?? []);
   const machineOptions = useMemo(
-    () => (machinesData?.machinesByArea || []).map((m: any) => ({ value: m.id, label: m.name })),
-    [machinesData],
+    () => machines.map((m) => ({ value: m.id, label: m.name })),
+    [machines],
   );
 
   const technicianOptions = useMemo(
     () =>
-      (formData?.techniciansActive || []).map((t: any) => ({
+      (formData?.techniciansActive || []).map((t) => ({
         value: t.user.id,
         label: `${t.user.fullName} (${t.user.employeeNumber})`,
       })),
@@ -201,8 +205,8 @@ export default function ActivityFormPage() {
         toast.success('Actividad creada');
       }
       navigate('/admin/actividades');
-    } catch (err: any) {
-      toast.error(err?.message || 'Error al guardar actividad');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar actividad');
     }
   };
 
@@ -356,7 +360,7 @@ export default function ActivityFormPage() {
                   <div className="space-y-2">
                     <Combobox
                       options={technicianOptions.filter(
-                        (t: any) => !(field.value || []).includes(t.value),
+                        (t) => !(field.value || []).includes(t.value),
                       )}
                       value=""
                       onValueChange={(v) => {
@@ -370,7 +374,7 @@ export default function ActivityFormPage() {
                     {(field.value || []).length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {(field.value || []).map((techId: string) => {
-                          const tech = technicianOptions.find((t: any) => t.value === techId);
+                          const tech = technicianOptions.find((t) => t.value === techId);
                           return (
                             <span
                               key={techId}

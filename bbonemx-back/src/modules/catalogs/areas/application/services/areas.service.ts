@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AreasRepository } from '../../infrastructure/repositories';
 import { Area } from '../../domain/entities';
 import { CreateAreaInput, UpdateAreaInput } from '../dto';

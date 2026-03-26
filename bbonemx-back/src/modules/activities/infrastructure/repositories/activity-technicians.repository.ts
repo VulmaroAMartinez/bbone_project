@@ -28,7 +28,9 @@ export class ActivityTechniciansRepository {
     return this.repository.save(entity);
   }
 
-  async saveMany(entities: Partial<ActivityTechnician>[]): Promise<ActivityTechnician[]> {
+  async saveMany(
+    entities: Partial<ActivityTechnician>[],
+  ): Promise<ActivityTechnician[]> {
     const created = entities.map((e) => this.repository.create(e));
     return this.repository.save(created);
   }

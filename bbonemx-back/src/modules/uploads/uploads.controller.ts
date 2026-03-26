@@ -15,12 +15,7 @@ import { existsSync, mkdirSync } from 'fs';
 import type { Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
 
-let uuid: () => string;
-try {
-  uuid = require('uuid').v4;
-} catch {
-  uuid = () => Math.random().toString(36).substring(2, 18);
-}
+import { v4 as uuidv4 } from 'uuid';
 
 const UPLOADS_DIR = join(process.cwd(), 'uploads');
 
@@ -46,7 +41,7 @@ export class UploadsController {
         destination: UPLOADS_DIR,
         filename: (_req, file, cb) => {
           const ext = extname(file.originalname).toLowerCase();
-          cb(null, `${uuid()}${ext}`);
+          cb(null, `${uuidv4()}${ext}`);
         },
       }),
       limits: { fileSize: MAX_FILE_SIZE },

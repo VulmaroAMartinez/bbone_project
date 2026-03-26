@@ -1,6 +1,9 @@
-jest.mock('src/modules/work-orders/application/services/work-orders.service', () => ({
-  WorkOrdersService: class WorkOrdersService {},
-}));
+jest.mock(
+  'src/modules/work-orders/application/services/work-orders.service',
+  () => ({
+    WorkOrdersService: class WorkOrdersService {},
+  }),
+);
 
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ActivityWorkOrdersService } from './activity-work-orders.service';
@@ -19,9 +22,9 @@ describe('ActivityWorkOrdersService', () => {
   };
 
   const service = new ActivityWorkOrdersService(
-    repository as any,
-    activitiesService as any,
-    workOrdersService as any,
+    repository as unknown as import('../../infrastructure/repositories/activity-work-orders.repository').ActivityWorkOrdersRepository,
+    activitiesService as unknown as import('./activities.service').ActivitiesService,
+    workOrdersService as unknown as import('../../../work-orders/application/services/work-orders.service').WorkOrdersService,
   );
 
   beforeEach(() => {
@@ -53,7 +56,9 @@ describe('ActivityWorkOrdersService', () => {
 
   it('falla si la OT ya estaba vinculada', async () => {
     workOrdersService.findByFolio.mockResolvedValue({ id: 'wo-1' });
-    repository.findByActivityAndWorkOrder.mockResolvedValue({ id: 'awo-existing' });
+    repository.findByActivityAndWorkOrder.mockResolvedValue({
+      id: 'awo-existing',
+    });
 
     await expect(service.addByFolio('act-1', 'OT-001')).rejects.toBeInstanceOf(
       BadRequestException,

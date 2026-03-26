@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 import {
   GetWorkOrderByIdDocument,
   SignWorkOrderDocument,
@@ -52,15 +52,18 @@ export default function OrdenDetallePage() {
 
   const handleBack = () => navigate(-1);
 
-  const handleSaveSignature = async (_dataURL: string) => {
+  const handleSaveSignature = async (dataURL: string) => {
+    void dataURL;
     try {
       const mockPath = `signatures/${order?.id}/${user?.id}_sig.png`;
+
+      if (!order?.id) throw new Error("Order ID is missing");
 
       await signWorkOrder({
         variables: {
           input: {
             signatureImagePath: mockPath,
-            workOrderId: order?.id!,
+            workOrderId: order.id,
           }
         }
       });
@@ -87,7 +90,7 @@ export default function OrdenDetallePage() {
 
 
 
-  const signatures = workOrderRaw.signatures || [];
+  const signatures = (workOrderRaw as { signatures?: Array<{ signer: { role?: { name?: string } }; signatureImagePath: string }> })?.signatures || [];
   const requesterSignature = signatures.find((s) => s.signer.role?.name === 'REQUESTER');
   const adminSignature = signatures.find((s) => s.signer.role?.name === 'ADMIN');
   const techSignature = signatures.find((s) => s.signer.role?.name === 'TECHNICIAN');
@@ -98,8 +101,8 @@ export default function OrdenDetallePage() {
     user?.role?.name === 'REQUESTER';
   const needsMySignature = isCompleted && isRequester && !requesterSignature;
 
-  const photoBefore = workOrderRaw.photos.find(p => p.photoType === 'BEFORE');
-  const photoAfter = workOrderRaw.photos.find(p => p.photoType === 'AFTER');
+  const photoBefore = (workOrderRaw as { photos?: Array<{ photoType: string; filePath: string }> })?.photos?.find(p => p.photoType === 'BEFORE');
+  const photoAfter = (workOrderRaw as { photos?: Array<{ photoType: string; filePath: string }> })?.photos?.find(p => p.photoType === 'AFTER');
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
@@ -136,7 +139,7 @@ export default function OrdenDetallePage() {
       )}
 
       {/* Pause info */}
-      {order.status === 'PAUSED' && workOrderRaw.pauseReason && (
+      {order.status === 'PAUSED' && (workOrderRaw as { pauseReason?: string })?.pauseReason && (
         <Card className="bg-amber-500/10 border-amber-500/30">
           <CardContent >
             <div className="flex items-center gap-3">
@@ -209,7 +212,7 @@ export default function OrdenDetallePage() {
               </div>
             </div>
 
-            {workOrderRaw.startDate && (
+            {(workOrderRaw as { startDate?: string })?.startDate && (
               <div className="flex gap-4 relative z-10">
                 <div className="h-8 w-8 rounded-full bg-chart-3/20 flex items-center justify-center shrink-0 border-2 border-background">
                   <Wrench className="h-4 w-4 text-chart-3" />
@@ -217,13 +220,13 @@ export default function OrdenDetallePage() {
                 <div className="pt-1.5">
                   <p className="font-medium leading-none">Trabajo Iniciado</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(workOrderRaw.startDate).toLocaleString('es-MX')}
+                    {new Date((workOrderRaw as { startDate: string }).startDate).toLocaleString('es-MX')}
                   </p>
                 </div>
               </div>
             )}
 
-            {workOrderRaw.endDate && (
+            {(workOrderRaw as { endDate?: string })?.endDate && (
               <div className="flex gap-4 relative z-10">
                 <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 border-2 border-background">
                   <CheckCircle className="h-4 w-4 text-primary" />
@@ -231,11 +234,11 @@ export default function OrdenDetallePage() {
                 <div className="pt-1.5">
                   <p className="font-medium leading-none">Trabajo Finalizado</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(workOrderRaw.endDate).toLocaleString('es-MX')}
+                    {new Date((workOrderRaw as { endDate: string }).endDate).toLocaleString('es-MX')}
                   </p>
-                  {workOrderRaw.downtimeMinutes && (
+                  {(workOrderRaw as { downtimeMinutes?: number })?.downtimeMinutes && (
                     <p className="text-xs font-semibold text-destructive mt-1">
-                      Tiempo muerto: {workOrderRaw.downtimeMinutes} min
+                      Tiempo muerto: {(workOrderRaw as { downtimeMinutes: number }).downtimeMinutes} min
                     </p>
                   )}
                 </div>

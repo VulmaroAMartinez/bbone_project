@@ -1,7 +1,6 @@
 import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
 import { FindingStatus } from 'src/common';
 import { AreaType, MachineType, ShiftType } from 'src/modules/catalogs';
-import { UserType } from 'src/modules/users/presentation/types';
 import { WorkOrderType } from 'src/modules/work-orders';
 
 @ObjectType('Finding')

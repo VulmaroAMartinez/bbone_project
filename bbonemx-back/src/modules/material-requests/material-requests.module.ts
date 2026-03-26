@@ -18,7 +18,12 @@ import { MaterialsModule } from '../catalogs/materials/materials.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([MaterialRequest, MaterialRequestItem, MaterialRequestMachine, MaterialRequestHistory]),
+    TypeOrmModule.forFeature([
+      MaterialRequest,
+      MaterialRequestItem,
+      MaterialRequestMachine,
+      MaterialRequestHistory,
+    ]),
     MaterialsModule,
     SparePartsModule,
   ],

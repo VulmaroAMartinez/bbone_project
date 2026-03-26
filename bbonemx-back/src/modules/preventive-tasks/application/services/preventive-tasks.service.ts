@@ -150,7 +150,7 @@ export class PreventiveTasksService {
     });
 
     if (input.createContinuation && input.continuationTask) {
-      const continuationTask = await this.preventiveTasksRepository.create({
+      await this.preventiveTasksRepository.create({
         ...input.continuationTask,
         startDate: new Date(input.continuationTask.startDate),
         nextExecutionDate: new Date(input.continuationTask.startDate),
@@ -180,9 +180,10 @@ export class PreventiveTasksService {
       try {
         await this.generateWorkOrderForTask(task);
         generatedTasks.push(task.id);
-      } catch (error) {
+      } catch (error: unknown) {
+        const err = error as Error;
         this.logger.error(
-          `Error generating work order for task ${task.id}: ${error.message}`,
+          `Error generating work order for task ${task.id}: ${err.message}`,
         );
       }
     }

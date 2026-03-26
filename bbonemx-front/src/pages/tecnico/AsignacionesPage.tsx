@@ -6,8 +6,6 @@ import {
   MyAssignedWorkOrdersDocument,
   type WorkOrderStatus,
   WorkOrderItemFragmentDoc,
-  AreaBasicFragmentDoc,
-  MachineBasicFragmentDoc
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
@@ -47,7 +45,7 @@ export default function AsignacionesPage() {
 
   // Filtrado local super rápido
   const filteredOrders = orders.filter((order) => {
-    const machine = useFragment(MachineBasicFragmentDoc, order.machine);
+    const machine = order.machine as unknown as { code?: string; name?: string } | null;
 
     const matchesStatus = statusTab === 'all' || order.status === statusTab;
     const matchesSearch = !searchTerm ||
@@ -142,8 +140,8 @@ export default function AsignacionesPage() {
           </Card>
         ) : (
           filteredOrders.map((order) => {
-            const area = useFragment(AreaBasicFragmentDoc, order.area);
-            const machine = useFragment(MachineBasicFragmentDoc, order.machine);
+            const area = order.area as unknown as { name?: string } | null;
+            const machine = order.machine as unknown as { name?: string; code?: string } | null;
 
             return (
               <Card
@@ -162,13 +160,13 @@ export default function AsignacionesPage() {
                       </div>
                       <p className="text-sm text-foreground line-clamp-2">{order.description}</p>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-muted-foreground">
-                        {area && (
+                        {area?.name && (
                           <span className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             {area.name}
                           </span>
                         )}
-                        {machine && (
+                        {machine?.name && machine?.code && (
                           <span className="flex items-center gap-1 font-medium text-foreground/70">
                             <Wrench className="h-3 w-3" />
                             {machine.name} [{machine.code}]

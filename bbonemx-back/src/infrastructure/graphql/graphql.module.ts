@@ -5,12 +5,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import { verify } from 'jsonwebtoken';
 import { IGqlContext } from '../../common/types';
+import type { Context } from 'graphql-ws';
 import {
   FragmentDefinitionNode,
   GraphQLError,
   OperationDefinitionNode,
   SelectionNode,
   ValidationRule,
+  Kind,
 } from 'graphql';
 
 const MAX_QUERY_DEPTH = 12;
@@ -24,7 +26,7 @@ function calculateDepth(
   let maxDepth = currentDepth;
 
   for (const selection of selectionSet) {
-    if (selection.kind === 'Field') {
+    if (selection.kind === Kind.FIELD) {
       const field = selection;
       if (!field.selectionSet) continue;
       maxDepth = Math.max(
@@ -38,7 +40,7 @@ function calculateDepth(
       continue;
     }
 
-    if (selection.kind === 'FragmentSpread') {
+    if (selection.kind === Kind.FRAGMENT_SPREAD) {
       const fragment = fragments[selection.name.value];
       if (!fragment) continue;
       maxDepth = Math.max(
@@ -52,7 +54,7 @@ function calculateDepth(
       continue;
     }
 
-    if (selection.kind === 'InlineFragment') {
+    if (selection.kind === Kind.INLINE_FRAGMENT) {
       maxDepth = Math.max(
         maxDepth,
         calculateDepth(
@@ -74,7 +76,7 @@ function countFields(
   let count = 0;
 
   for (const selection of selectionSet) {
-    if (selection.kind === 'Field') {
+    if (selection.kind === Kind.FIELD) {
       count += 1;
       if (selection.selectionSet) {
         count += countFields(selection.selectionSet.selections, fragments);
@@ -82,7 +84,7 @@ function countFields(
       continue;
     }
 
-    if (selection.kind === 'FragmentSpread') {
+    if (selection.kind === Kind.FRAGMENT_SPREAD) {
       const fragment = fragments[selection.name.value];
       if (fragment) {
         count += countFields(fragment.selectionSet.selections, fragments);
@@ -90,7 +92,7 @@ function countFields(
       continue;
     }
 
-    if (selection.kind === 'InlineFragment') {
+    if (selection.kind === Kind.INLINE_FRAGMENT) {
       count += countFields(selection.selectionSet.selections, fragments);
     }
   }
@@ -103,7 +105,7 @@ const queryLimitsRule: ValidationRule = (context) => {
     .getDocument()
     .definitions.filter(
       (definition): definition is FragmentDefinitionNode =>
-        definition.kind === 'FragmentDefinition',
+        definition.kind === Kind.FRAGMENT_DEFINITION,
     )
     .reduce<Record<string, FragmentDefinitionNode>>((acc, fragment) => {
       acc[fragment.name.value] = fragment;
@@ -156,23 +158,26 @@ const queryLimitsRule: ValidationRule = (context) => {
         playground: configService.get<boolean>('graphql.playground'),
         introspection: configService.get<boolean>('graphql.introspection'),
         debug: configService.get<boolean>('graphql.debug'),
-        context: ({ req, res }): IGqlContext => ({ req, res }),
+        context: ({ req, res }: { req: unknown; res: unknown }): IGqlContext =>
+          ({ req, res }) as unknown as IGqlContext,
 
         subscriptions: {
           'graphql-ws': {
-            onConnect: (context: any) => {
+            onConnect: (context: Context) => {
               const secret = configService.getOrThrow<string>('jwt.secret');
 
+              const connParams = context.connectionParams as
+                | { authorization?: string }
+                | undefined;
               const paramToken =
-                typeof context.connectionParams?.authorization === 'string'
-                  ? context.connectionParams.authorization.replace(
-                      /^Bearer\s+/i,
-                      '',
-                    )
+                typeof connParams?.authorization === 'string'
+                  ? connParams.authorization.replace(/^Bearer\s+/i, '')
                   : null;
 
-              const cookieHeader =
-                (context.extra?.request?.headers?.cookie as string) ?? '';
+              const extra = context.extra as
+                | { request?: { headers?: Record<string, string> } }
+                | undefined;
+              const cookieHeader = extra?.request?.headers?.cookie ?? '';
               const cookieToken = cookieHeader
                 .split('; ')
                 .find((c: string) => c.startsWith('access_token='))
@@ -201,8 +206,7 @@ const queryLimitsRule: ValidationRule = (context) => {
             return {
               message: error.message,
               extensions: {
-                code: error.extensions?.code 
-                ?? 'INTERNAL_SERVER_ERROR',
+                code: error.extensions?.code ?? 'INTERNAL_SERVER_ERROR',
               },
             };
           }

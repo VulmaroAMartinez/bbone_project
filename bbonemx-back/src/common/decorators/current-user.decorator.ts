@@ -21,12 +21,14 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 export const CurrentUser = createParamDecorator(
   (data: string | undefined, context: ExecutionContext) => {
     const ctx = GqlExecutionContext.create(context);
-    const request = ctx.getContext().req;
+    const request = ctx.getContext<{
+      req: { user?: Record<string, unknown> };
+    }>().req;
     const user = request.user;
 
     // Si se especifica una propiedad, retornar solo esa propiedad
-    if (data) {
-      return user?.[data];
+    if (data && user) {
+      return user[data];
     }
 
     return user;

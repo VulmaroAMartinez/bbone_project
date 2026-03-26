@@ -3,7 +3,8 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import {
     GetDepartmentsDocument,
     ActivateDepartmentDocument,
-    DeactivateDepartmentDocument
+    DeactivateDepartmentDocument,
+    type GetDepartmentsQuery,
 } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -14,14 +15,15 @@ import { toast } from 'sonner';
 import DepartmentFormModal from './modals/DepartmentFormModal';
 
 export default function DepartmentsPage() {
-    const { data, loading, refetch } = useQuery(GetDepartmentsDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useQuery<GetDepartmentsQuery>(GetDepartmentsDocument, { fetchPolicy: 'cache-and-network' });
 
     const [activateDepartment] = useMutation(ActivateDepartmentDocument);
     const [deactivateDepartment] = useMutation(DeactivateDepartmentDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<any | null>(null);
+    type DepartmentItem = GetDepartmentsQuery['departmentsWithDeleted'][number];
+    const [editingItem, setEditingItem] = useState<DepartmentItem | null>(null);
 
     const departments = data?.departmentsWithDeleted || [];
     const filteredDepartments = departments.filter(d =>
@@ -29,7 +31,7 @@ export default function DepartmentsPage() {
         (d.description && d.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const openModal = (dept: any = null) => {
+    const openModal = (dept: DepartmentItem | null = null) => {
         setEditingItem(dept);
         setIsModalOpen(true);
     };
@@ -39,8 +41,8 @@ export default function DepartmentsPage() {
             if (currentStatus) await deactivateDepartment({ variables: { id } });
             else await activateDepartment({ variables: { id } });
             refetch();
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al actualizar el estado');
         }
     };
 

@@ -21,7 +21,7 @@ type FormValues = yup.InferType<typeof schema>;
 interface DepartmentFormModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    department: any | null;
+    department: { id: string; name: string; description?: string | null } | null;
     onSuccess: () => void;
 }
 
@@ -53,8 +53,8 @@ export default function DepartmentFormModal({ open, onOpenChange, department, on
             }
             onOpenChange(false);
             onSuccess();
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al guardar el departamento');
         }
     };
 

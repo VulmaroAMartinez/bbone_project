@@ -7,8 +7,6 @@ import {
     ConvertToWorkOrderDocument,
     type FindingStatus,
     FindingBasicFragmentDoc,
-    AreaBasicFragmentDoc,
-    MachineBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
@@ -19,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
 import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function FindingPage() {
     const navigate = useNavigate();
@@ -49,8 +48,8 @@ export default function FindingPage() {
         try {
             await convertToWo({ variables: { id: findingId } });
             refetch();
-        } catch (err: any) {
-            alert(err.message || 'Error al convertir el hallazgo a orden de trabajo');
+        } catch {
+            toast.error('Error al convertir el hallazgo a orden de trabajo');
         }
     };
 
@@ -62,7 +61,6 @@ export default function FindingPage() {
                 <div className="text-center">
                     <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
                     <h3 className="mt-4 text-lg font-semibold text-foreground">Error al cargar hallazgos</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
                 </div>
             </div>
         );
@@ -117,8 +115,8 @@ export default function FindingPage() {
                 ) : (
                     filteredFindings.map((finding) => {
                         const isOpen = finding.status === 'OPEN';
-                        const area = useFragment(AreaBasicFragmentDoc, finding.area);
-                        const machine = useFragment(MachineBasicFragmentDoc, finding.machine);
+                        const area = finding.area as unknown as { name?: string } | null;
+                        const machine = finding.machine as unknown as { name?: string; code?: string } | null;
 
                         return (
                             <Card

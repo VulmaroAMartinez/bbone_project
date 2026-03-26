@@ -42,4 +42,3 @@ export class ExportOvertimeBodyDto {
   @IsString()
   periodTo?: string;
 }
-

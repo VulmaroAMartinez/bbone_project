@@ -18,7 +18,12 @@ describe('overtime-export.constants', () => {
       endTime: '12:00:00',
     };
 
-    expect(quantity!.transform?.(undefined, row as any)).toBe('1');
+    expect(
+      quantity!.transform?.(
+        undefined,
+        row as unknown as import('../../domain/entities').Overtime,
+      ),
+    ).toBe('1');
   });
 
   it('aplica regla de cantidad para tiempo extra con horas calculadas', () => {
@@ -31,7 +36,12 @@ describe('overtime-export.constants', () => {
       endTime: '11:00:00',
     };
 
-    expect(quantity!.transform?.(undefined, row as any)).toBe('2.5');
+    expect(
+      quantity!.transform?.(
+        undefined,
+        row as unknown as import('../../domain/entities').Overtime,
+      ),
+    ).toBe('2.5');
   });
 
   it('construye observaciones para tiempo extra con fecha + rango + actividad', () => {
@@ -53,9 +63,12 @@ describe('overtime-export.constants', () => {
       activity: 'Mantenimiento preventivo',
     };
 
-    expect(observations!.transform?.(undefined, row as any)).toBe(
-      `${dateLabel} 06:00 - 08:00 Mantenimiento preventivo`,
-    );
+    expect(
+      observations!.transform?.(
+        undefined,
+        row as unknown as import('../../domain/entities').Overtime,
+      ),
+    ).toBe(`${dateLabel} 06:00 - 08:00 Mantenimiento preventivo`);
   });
 
   it('incluye periodo en encabezado del reporte', () => {
@@ -66,4 +79,3 @@ describe('overtime-export.constants', () => {
     expect(header).toContain('al');
   });
 });
-

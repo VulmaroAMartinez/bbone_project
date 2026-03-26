@@ -25,20 +25,27 @@ describe('auth-cookies.util', () => {
     const config = buildConfig({ 'app.nodeEnv': 'production' });
     const res = {
       cookie: jest.fn(),
-    } as any;
+    } as unknown as import('express').Response;
 
     setAuthCookies(res, config, payload);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(res.cookie).toHaveBeenCalledWith(
       ACCESS_TOKEN_COOKIE,
       payload.accessToken,
       expect.objectContaining({ httpOnly: true, secure: true, path: '/' }),
     );
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(res.cookie).toHaveBeenCalledWith(
       REFRESH_TOKEN_COOKIE,
       payload.refreshToken,
-      expect.objectContaining({ httpOnly: true, secure: true, path: '/graphql' }),
+      expect.objectContaining({
+        httpOnly: true,
+        secure: true,
+        path: '/graphql',
+      }),
     );
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(res.cookie).toHaveBeenCalledWith(
       CSRF_TOKEN_COOKIE,
       payload.csrfToken,
@@ -54,11 +61,15 @@ describe('auth-cookies.util', () => {
     });
     const res = {
       cookie: jest.fn(),
-    } as any;
+    } as unknown as import('express').Response;
 
     setAuthCookies(res, config, payload);
 
-    const [, , options] = res.cookie.mock.calls[0];
+    const [, , options] = (res.cookie as jest.Mock).mock.calls[0] as [
+      string,
+      string,
+      { secure: boolean; domain: string },
+    ];
     expect(options.secure).toBe(false);
     expect(options.domain).toBe('.example.com');
   });
@@ -67,18 +78,21 @@ describe('auth-cookies.util', () => {
     const config = buildConfig({ 'jwt.cookieSecure': 'true' });
     const res = {
       clearCookie: jest.fn(),
-    } as any;
+    } as unknown as import('express').Response;
 
     clearAuthCookies(res, config);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(res.clearCookie).toHaveBeenCalledWith(
       ACCESS_TOKEN_COOKIE,
       expect.objectContaining({ path: '/' }),
     );
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(res.clearCookie).toHaveBeenCalledWith(
       REFRESH_TOKEN_COOKIE,
       expect.objectContaining({ path: '/graphql' }),
     );
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(res.clearCookie).toHaveBeenCalledWith(
       CSRF_TOKEN_COOKIE,
       expect.objectContaining({ path: '/' }),

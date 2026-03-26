@@ -33,7 +33,10 @@ describe('OvertimeExcelController', () => {
       .useValue({ canActivate: () => true })
       .compile();
 
-    const app = moduleRef.createNestApplication();
+    const app =
+      moduleRef.createNestApplication<
+        import('@nestjs/common').INestApplication
+      >();
     app.setGlobalPrefix('api', { exclude: ['graphql'] });
     app.useGlobalPipes(
       new ValidationPipe({
@@ -45,11 +48,11 @@ describe('OvertimeExcelController', () => {
     await app.init();
 
     const filename = 'test-horas-extra.xlsx';
-    const res = await request(app.getHttpServer())
+    const res = await request(app.getHttpServer() as import('http').Server)
       .post('/api/overtime/export/excel')
       .parse((response, callback) => {
         const chunks: Buffer[] = [];
-        response.on('data', (chunk) => {
+        response.on('data', (chunk: Buffer) => {
           chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         });
         response.on('end', () => callback(null, Buffer.concat(chunks)));
@@ -75,11 +78,16 @@ describe('OvertimeExcelController', () => {
     expect(sheet).toBeDefined();
 
     expect(mockOvertimeService.exportToExcelBuffer).toHaveBeenCalledWith(
-      expect.objectContaining({ startDate: '2026-03-01', endDate: '2026-03-15' }),
-      expect.objectContaining({ periodFrom: '2026-03-01', periodTo: '2026-03-15' }),
+      expect.objectContaining({
+        startDate: '2026-03-01',
+        endDate: '2026-03-15',
+      }),
+      expect.objectContaining({
+        periodFrom: '2026-03-01',
+        periodTo: '2026-03-15',
+      }),
     );
 
     await app.close();
   });
 });
-

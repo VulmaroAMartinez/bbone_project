@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Repository,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Overtime } from '../../domain/entities';
 import { ReasonForPayment } from 'src/common/enums/reason-for-payment.enum';
 
@@ -65,7 +62,10 @@ export class OvertimeRepository {
   }
 
   private applyDefaultOrder(qb: SelectQueryBuilder<Overtime>): void {
-    qb.orderBy('overtime.workDate', 'DESC').addOrderBy('overtime.startTime', 'DESC');
+    qb.orderBy('overtime.workDate', 'DESC').addOrderBy(
+      'overtime.startTime',
+      'DESC',
+    );
   }
 
   async findAll(filters?: {
@@ -131,13 +131,15 @@ export class OvertimeRepository {
   }
 
   async findForExportBatch(
-    filters: {
-      startDate?: string;
-      endDate?: string;
-      technicianId?: string;
-      positionId?: string;
-      reasonForPayment?: ReasonForPayment;
-    } | undefined,
+    filters:
+      | {
+          startDate?: string;
+          endDate?: string;
+          technicianId?: string;
+          positionId?: string;
+          reasonForPayment?: ReasonForPayment;
+        }
+      | undefined,
     pagination: { page?: number; limit?: number },
   ): Promise<Overtime[]> {
     const qb = this.createBaseQuery();

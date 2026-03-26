@@ -14,7 +14,9 @@ import {
   setAuthCookies,
 } from '../../application/utils/auth-cookies.util';
 
-function readUserAgent(value: string | string[] | undefined): string | undefined {
+function readUserAgent(
+  value: string | string[] | undefined,
+): string | undefined {
   if (Array.isArray(value)) {
     return value[0];
   }
@@ -59,7 +61,9 @@ export class AuthResolver {
   })
   async refreshAuth(@Context() context: unknown): Promise<boolean> {
     const gqlContext = context as IGqlContext | undefined;
-    const refreshToken = gqlContext?.req?.cookies?.[REFRESH_TOKEN_COOKIE];
+    const refreshToken = (gqlContext?.req?.cookies as Record<string, string>)?.[
+      REFRESH_TOKEN_COOKIE
+    ];
     if (!refreshToken) {
       return false;
     }
@@ -81,7 +85,9 @@ export class AuthResolver {
   })
   async logout(@Context() context: unknown): Promise<boolean> {
     const gqlContext = context as IGqlContext | undefined;
-    const refreshToken = gqlContext?.req?.cookies?.[REFRESH_TOKEN_COOKIE];
+    const refreshToken = (gqlContext?.req?.cookies as Record<string, string>)?.[
+      REFRESH_TOKEN_COOKIE
+    ];
     await this.authService.revokeRefreshToken(refreshToken);
     if (gqlContext?.res) {
       clearAuthCookies(gqlContext.res, this.configService);
@@ -93,7 +99,7 @@ export class AuthResolver {
   @Query(() => UserType, {
     description: 'Obtiene el usuario actualmente autenticado',
   })
-  async me(@CurrentUser() user: User): Promise<UserType> {
+  me(@CurrentUser() user: User): UserType {
     return user;
   }
 }

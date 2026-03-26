@@ -38,7 +38,8 @@ export class OvertimePdfController {
     const periodFrom = body?.periodFrom ?? filters.startDate;
     const periodTo = body?.periodTo ?? filters.endDate;
     const filename =
-      body?.filename ?? `horas-extra-${new Date().toISOString().slice(0, 10)}.pdf`;
+      body?.filename ??
+      `horas-extra-${new Date().toISOString().slice(0, 10)}.pdf`;
 
     res.status(200);
     res.setHeader('Content-Type', 'application/pdf');
@@ -55,7 +56,11 @@ export class OvertimePdfController {
         periodTo,
       });
 
-      await this.pdfGeneratorService.streamTablePdfToWritable(data, report, res);
+      await this.pdfGeneratorService.streamTablePdfToWritable(
+        data,
+        report,
+        res,
+      );
 
       if (!res.writableEnded) {
         res.end();
@@ -68,7 +73,9 @@ export class OvertimePdfController {
       });
 
       if (!res.headersSent) {
-        res.status(500).json({ message: 'Error al exportar horas extra a PDF' });
+        res
+          .status(500)
+          .json({ message: 'Error al exportar horas extra a PDF' });
         return;
       }
 
@@ -76,4 +83,3 @@ export class OvertimePdfController {
     }
   }
 }
-

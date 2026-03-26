@@ -28,7 +28,7 @@ async function bootstrap() {
   const corsOrigins = configService.get<string[]>('app.cors.origin');
 
   app.setGlobalPrefix('api', {
-    exclude: ['graphql'], 
+    exclude: ['graphql'],
   });
 
   // Seguridad con Helmet (ajustado para GraphQL Playground)
@@ -36,7 +36,7 @@ async function bootstrap() {
     helmet({
       crossOriginEmbedderPolicy: false,
       contentSecurityPolicy: isDevelopment
-        ? false 
+        ? false
         : {
             directives: {
               defaultSrc: ["'self'"],
@@ -87,4 +87,4 @@ async function bootstrap() {
   logger.log(`Environment: ${configService.get<string>('app.nodeEnv')}`);
 }
 
-bootstrap();
+void bootstrap();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useNotification } from '@/contexts/notification-context';
+import { useNotification } from '@/hooks/useNotification';
 import { Bell, Menu, Check, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

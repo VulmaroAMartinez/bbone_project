@@ -1,11 +1,11 @@
 export type PdfTableAlign = 'left' | 'center' | 'right';
 
-export interface PdfTableColumnDefinition<T = any> {
+export interface PdfTableColumnDefinition<T = unknown> {
   header: string;
   key: string;
-  width?: number | 'auto' | '*' | string;
+  width?: number | string;
   align?: PdfTableAlign;
-  transform?: (value: any, row: T) => string;
+  transform?: (value: unknown, row: T) => string;
 }
 
 export interface PdfTableRenderOptions {
@@ -47,8 +47,7 @@ export interface PdfTopHeaderDefinition {
   labelColor?: string;
 }
 
-export interface PdfTableDefinition<T = any> {
+export interface PdfTableDefinition<T = unknown> {
   columns: PdfTableColumnDefinition<T>[];
   renderOptions?: PdfTableRenderOptions;
 }
-

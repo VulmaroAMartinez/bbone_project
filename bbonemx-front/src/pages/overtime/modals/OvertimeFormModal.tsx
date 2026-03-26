@@ -31,8 +31,8 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 
-import type { OvertimeRecord, TechnicianOption } from '../OvertimePage';
-import { REASON_FOR_PAYMENT_OPTIONS, getReasonLabel } from '../OvertimePage';
+import type { OvertimeRecord, TechnicianOption } from '../overtime.constants';
+import { REASON_FOR_PAYMENT_OPTIONS, getReasonLabel } from '../overtime.constants';
 
 // ── Schema ────────────────────────────────────────────
 const createOvertimeSchema = yup.object({
@@ -83,7 +83,7 @@ export function OvertimeFormModal({
   const isEdit = record !== null;
 
   const form = useForm<OvertimeFormValues>({
-    resolver: yupResolver<OvertimeFormValues, any, any>(createOvertimeSchema),
+    resolver: yupResolver(createOvertimeSchema) as never,
     defaultValues: EMPTY_FORM,
   });
 
@@ -102,7 +102,7 @@ export function OvertimeFormModal({
     } else {
       form.reset(EMPTY_FORM);
     }
-  }, [open, record]);
+  }, [open, record, form]);
 
   // Mutations
   const [createOvertime, { loading: creating }] = useMutation(CREATE_OVERTIME_MUTATION);
@@ -140,8 +140,8 @@ export function OvertimeFormModal({
       onOpenChange(false);
       form.reset(EMPTY_FORM);
       onSuccess();
-    } catch (err: any) {
-      toast.error(err?.message ?? (isEdit ? 'Error al actualizar registro' : 'Error al crear registro'));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : (isEdit ? 'Error al actualizar registro' : 'Error al crear registro'));
     }
   };
 
@@ -157,7 +157,7 @@ export function OvertimeFormModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        <form onSubmit={form.handleSubmit(onSubmit as never)} className="space-y-5">
           {/* ── Tecnico section (admin only) ── */}
           {isAdmin && !isEdit && (
             <div className="space-y-4 p-4 rounded-lg border border-border">

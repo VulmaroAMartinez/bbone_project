@@ -30,14 +30,18 @@ export class CreatePreventiveTaskInput {
   frequencyType: FrequencyType;
 
   @Field(() => Int, { nullable: true })
-  @ValidateIf((o) => o.frequencyType === FrequencyType.CUSTOM)
+  @ValidateIf(
+    (o: CreatePreventiveTaskInput) => o.frequencyType === FrequencyType.CUSTOM,
+  )
   @IsNotEmpty({ message: 'valor de la frecuencia requerido' })
   @IsInt()
   @Min(1)
   frequencyValue?: number;
 
   @Field(() => FrequencyUnit, { nullable: true })
-  @ValidateIf((o) => o.frequencyType === FrequencyType.CUSTOM)
+  @ValidateIf(
+    (o: CreatePreventiveTaskInput) => o.frequencyType === FrequencyType.CUSTOM,
+  )
   @IsNotEmpty({ message: 'unidad de la frecuencia requerida' })
   @IsEnum(FrequencyUnit)
   frequencyUnit?: FrequencyUnit;

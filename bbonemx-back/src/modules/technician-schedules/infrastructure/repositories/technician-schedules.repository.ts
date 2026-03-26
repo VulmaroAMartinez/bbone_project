@@ -312,14 +312,14 @@ export class TechnicianSchedulesRepository {
         const existing = existingMap.get(day.scheduleDate);
 
         if (existing) {
-          existing.shiftId = day.shiftId || (null as any);
-          existing.absenceReasonId = day.absenceReasonId || (null as any);
+          existing.shiftId = day.shiftId || undefined;
+          existing.absenceReasonId = day.absenceReasonId || undefined;
           await repo.save(existing);
           resultIds.push(existing.id);
         } else {
           const newEntity = repo.create({
             technicianId,
-            scheduleDate: day.scheduleDate as any,
+            scheduleDate: day.scheduleDate as unknown as Date,
             weekNumber,
             year,
             shiftId: day.shiftId || undefined,

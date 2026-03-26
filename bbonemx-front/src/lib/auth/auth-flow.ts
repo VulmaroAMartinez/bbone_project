@@ -1,7 +1,10 @@
 import type { AllowedRole } from '@/lib/types';
 
 export function resolveLoginRedirectPath(fromPath?: string): string {
-  return fromPath || '/';
+  if (!fromPath || fromPath === '/login') {
+    return '/';
+  }
+  return fromPath;
 }
 
 interface RouteAccessArgs {

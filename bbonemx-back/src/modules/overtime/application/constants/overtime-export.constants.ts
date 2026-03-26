@@ -112,7 +112,10 @@ export function formatOvertimePeriodLabel(
   return `al ${toDay} de ${monthName} ${toYear}`;
 }
 
-export function buildOvertimeReportHeader(periodFrom?: string, periodTo?: string): string {
+export function buildOvertimeReportHeader(
+  periodFrom?: string,
+  periodTo?: string,
+): string {
   const elaborationDate = formatDate(new Date());
   const periodLabel = formatOvertimePeriodLabel(periodFrom, periodTo);
 
@@ -130,7 +133,7 @@ export const OVERTIME_EXCEL_COLUMNS: ExcelColumnDefinition<Overtime>[] = [
     header: 'NÓMINA',
     key: 'technician.user.employeeNumber',
     width: 14,
-    transform: (value) => value || '',
+    transform: (value) => String(value || ''),
   },
   {
     header: 'NOMBRE COMPLETO',
@@ -143,7 +146,7 @@ export const OVERTIME_EXCEL_COLUMNS: ExcelColumnDefinition<Overtime>[] = [
     header: 'PUESTO',
     key: 'technician.position.name',
     width: 18,
-    transform: (value) => value || '',
+    transform: (value) => String(value || ''),
   },
   {
     header: 'CONCEPTO DE PAGO',
@@ -205,7 +208,12 @@ export const OVERTIME_EXCEL_REPORT: ExcelReportDefinition<Overtime> = {
 
 export const OVERTIME_PDF_REPORT: PdfTableDefinition<Overtime> = {
   columns: [
-    { header: 'NÓMINA', key: 'technician.user.employeeNumber', width: 50, transform: (v) => v || '' },
+    {
+      header: 'NÓMINA',
+      key: 'technician.user.employeeNumber',
+      width: 50,
+      transform: (v: unknown) => String((v as string) || ''),
+    },
     {
       header: 'NOMBRE COMPLETO',
       key: 'technician.user',
@@ -213,17 +221,37 @@ export const OVERTIME_PDF_REPORT: PdfTableDefinition<Overtime> = {
       transform: (_v, row) =>
         `${row.technician?.user?.firstName ?? ''} ${row.technician?.user?.lastName ?? ''}`.trim(),
     },
-    { header: 'PUESTO', key: 'technician.position.name', width: 70, transform: (v) => v || '' },
+    {
+      header: 'PUESTO',
+      key: 'technician.position.name',
+      width: 70,
+      transform: (v: unknown) => String((v as string) || ''),
+    },
     {
       header: 'CONCEPTO DE PAGO',
       key: 'reasonForPayment',
       width: 85,
       transform: (v) => buildReasonLabel(v as ReasonForPayment),
     },
-    { header: 'CANTIDAD', key: 'quantity', width: 45, transform: (_v, row) => buildQuantity(row) },
+    {
+      header: 'CANTIDAD',
+      key: 'quantity',
+      width: 45,
+      transform: (_v, row) => buildQuantity(row),
+    },
     { header: 'IMPORTE', key: 'amount', width: 45, transform: () => '' },
-    { header: 'OBSERVACIONES', key: 'observations', width: '*', transform: (_v, row) => buildObservations(row) },
-    { header: 'FECHA', key: 'date', width: 55, transform: (_v, row) => formatDate(row.workDate) },
+    {
+      header: 'OBSERVACIONES',
+      key: 'observations',
+      width: '*',
+      transform: (_v, row) => buildObservations(row),
+    },
+    {
+      header: 'FECHA',
+      key: 'date',
+      width: 55,
+      transform: (_v, row) => formatDate(row.workDate),
+    },
   ],
   renderOptions: {
     rowsPerBlock: 32,
@@ -233,4 +261,3 @@ export const OVERTIME_PDF_REPORT: PdfTableDefinition<Overtime> = {
     tableHeaderFillColor: '#C00000',
   },
 };
-

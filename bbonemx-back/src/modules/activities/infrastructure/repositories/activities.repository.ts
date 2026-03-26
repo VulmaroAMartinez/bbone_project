@@ -37,7 +37,9 @@ export class ActivitiesRepository {
       qb.andWhere('a.area_id = :areaId', { areaId: filters.areaId });
     }
     if (filters.machineId) {
-      qb.andWhere('a.machine_id = :machineId', { machineId: filters.machineId });
+      qb.andWhere('a.machine_id = :machineId', {
+        machineId: filters.machineId,
+      });
     }
     if (filters.status) {
       qb.andWhere('a.status = :status', { status: filters.status });
@@ -59,8 +61,7 @@ export class ActivitiesRepository {
     const sortField =
       SORT_FIELD_MAP[sort?.field || ActivitySortField.CREATED_AT] ??
       SORT_FIELD_MAP[ActivitySortField.CREATED_AT];
-    const sortOrder =
-      SORT_ORDER_MAP[sort?.order || SortOrder.DESC] ?? 'DESC';
+    const sortOrder = SORT_ORDER_MAP[sort?.order || SortOrder.DESC] ?? 'DESC';
     qb.orderBy(sortField, sortOrder);
   }
 
@@ -123,10 +124,7 @@ export class ActivitiesRepository {
     return qb.getMany();
   }
 
-  async countForExcelExport(
-    filters: ActivityFiltersInput,
-    _sort: ActivitySortInput,
-  ): Promise<number> {
+  async countForExcelExport(filters: ActivityFiltersInput): Promise<number> {
     const qb = this.repository
       .createQueryBuilder('a')
       .where('a.is_active = true');

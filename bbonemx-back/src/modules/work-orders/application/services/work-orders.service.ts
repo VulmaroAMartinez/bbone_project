@@ -27,7 +27,6 @@ import {
   WorkOrderCompletedEvent,
 } from 'src/common';
 import { AreasService } from 'src/modules/catalogs/areas/application/services';
-import { AreaType } from 'src/common/enums/area-type.enum';
 import { SubAreasService } from 'src/modules/catalogs/sub-areas/application/services';
 import { TechnicianSchedulesService } from 'src/modules/technician-schedules/application/services';
 /** Allowed status transitions */
@@ -257,8 +256,10 @@ export class WorkOrdersService {
       id,
       technicianId,
     );
-    if (!isAssigned) throw new BadRequestException('El técnico no está asignado a la OT');
-    if (!wo.canPause()) throw new BadRequestException('No se puede pausar la OT en este estado');
+    if (!isAssigned)
+      throw new BadRequestException('El técnico no está asignado a la OT');
+    if (!wo.canPause())
+      throw new BadRequestException('No se puede pausar la OT en este estado');
 
     const now = new Date();
     const segmentMinutes = this.calculateSegmentMinutes(wo.lastResumedAt, now);

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const schema = yup.object({
     description: yup.string().trim().required('La descripcion es obligatoria'),
@@ -29,7 +30,16 @@ type FormValues = yup.InferType<typeof schema>;
 interface MaterialFormModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    material: any | null;
+    material: {
+        id?: string;
+        description?: string | null;
+        brand?: string | null;
+        manufacturer?: string | null;
+        model?: string | null;
+        partNumber?: string | null;
+        sku?: string | null;
+        unitOfMeasure?: string | null;
+    } | null;
     onSuccess: () => void;
 }
 
@@ -69,8 +79,8 @@ export default function MaterialFormModal({ open, onOpenChange, material, onSucc
             }
             onOpenChange(false);
             onSuccess();
-        } catch (error: any) {
-            alert(error.message);
+        } catch {
+            toast.error('Error al guardar el material');
         }
     };
 

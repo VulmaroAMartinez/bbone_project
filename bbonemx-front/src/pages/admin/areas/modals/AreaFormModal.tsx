@@ -448,8 +448,8 @@ export function AreaFormModal({ open, onOpenChange, area, onSuccess }: AreaFormM
 
       onOpenChange(false);
       onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || 'Error al guardar el área');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Error al guardar el área');
     } finally {
       setIsSaving(false);
     }

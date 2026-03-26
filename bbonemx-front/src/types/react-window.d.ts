@@ -50,7 +50,7 @@ declare module 'react-window' {
 
     export class List extends Component<ListProps> {}
 
-    export class Grid extends Component<any> {}
+    export class Grid extends Component<unknown> {}
 
     export function getScrollbarSize(): number;
 }

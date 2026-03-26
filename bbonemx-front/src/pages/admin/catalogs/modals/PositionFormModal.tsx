@@ -21,7 +21,7 @@ type FormValues = yup.InferType<typeof schema>;
 interface PositionFormModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    position: any | null;
+    position: { id: string; name: string; description?: string | null } | null;
     onSuccess: () => void;
 }
 
@@ -53,8 +53,8 @@ export default function PositionFormModal({ open, onOpenChange, position, onSucc
             }
             onOpenChange(false);
             onSuccess();
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al guardar el cargo');
         }
     };
 

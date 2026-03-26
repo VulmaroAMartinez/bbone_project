@@ -23,7 +23,9 @@ export interface WeeklyBirthdaysEmailOutcome {
 
 @Injectable()
 export class TechnicianBirthdaysNotificationService {
-  private readonly logger = new Logger(TechnicianBirthdaysNotificationService.name);
+  private readonly logger = new Logger(
+    TechnicianBirthdaysNotificationService.name,
+  );
 
   constructor(
     private readonly techniciansRepository: TechniciansRepository,
@@ -36,12 +38,12 @@ export class TechnicianBirthdaysNotificationService {
    * Envía un correo a administradores si hay cumpleaños de técnicos activos en la semana
    * (lunes–domingo) según la zona horaria indicada.
    */
-  async sendWeeklyDigestIfAny(timeZone: string): Promise<WeeklyBirthdaysEmailOutcome> {
+  async sendWeeklyDigestIfAny(
+    timeZone: string,
+  ): Promise<WeeklyBirthdaysEmailOutcome> {
     const now = new Date();
-    const { monthDayKeys, weekStart, weekEnd } = getMondayToSundayWeekInTimeZone(
-      now,
-      timeZone,
-    );
+    const { monthDayKeys, weekStart, weekEnd } =
+      getMondayToSundayWeekInTimeZone(now, timeZone);
 
     const technicians =
       await this.techniciansRepository.findActiveWithBirthdaysOnMonthDays(

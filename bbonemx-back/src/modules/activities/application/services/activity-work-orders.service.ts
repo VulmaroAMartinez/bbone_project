@@ -20,7 +20,10 @@ export class ActivityWorkOrdersService {
     return this.activityWorkOrdersRepository.findByActivityId(activityId);
   }
 
-  async addByFolio(activityId: string, folio: string): Promise<ActivityWorkOrder> {
+  async addByFolio(
+    activityId: string,
+    folio: string,
+  ): Promise<ActivityWorkOrder> {
     await this.activitiesService.findByIdOrFail(activityId);
 
     const workOrder = await this.workOrdersService.findByFolio(folio);
@@ -30,10 +33,11 @@ export class ActivityWorkOrdersService {
       );
     }
 
-    const existing = await this.activityWorkOrdersRepository.findByActivityAndWorkOrder(
-      activityId,
-      workOrder.id,
-    );
+    const existing =
+      await this.activityWorkOrdersRepository.findByActivityAndWorkOrder(
+        activityId,
+        workOrder.id,
+      );
     if (existing) {
       throw new BadRequestException(
         `La orden de trabajo "${folio}" ya está vinculada a esta actividad`,

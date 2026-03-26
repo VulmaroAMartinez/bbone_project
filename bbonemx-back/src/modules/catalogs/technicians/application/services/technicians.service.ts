@@ -95,9 +95,10 @@ export class TechniciansService {
   async update(id: string, input: UpdateTechnicianInput): Promise<Technician> {
     const technician = await this.findByIdOrFail(id);
 
-    const { id: _id, isBoss, ...rest } = input;
+    const { isBoss, ...rest } = input;
     const updateData: Partial<Technician> = {};
     for (const [key, value] of Object.entries(rest)) {
+      if (key === 'id') continue;
       if (value !== undefined) {
         (updateData as Record<string, unknown>)[key] = value;
       }

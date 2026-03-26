@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ActivitiesRepository } from '../../infrastructure/repositories/activities.repository';
 import { ActivityTechniciansRepository } from '../../infrastructure/repositories/activity-technicians.repository';
 import { AreasService } from 'src/modules/catalogs/areas/application/services/areas.service';
@@ -86,7 +82,7 @@ export class ActivitiesService {
     input: UpdateActivityInput,
     userId: string,
   ): Promise<Activity> {
-    const activity = await this.findByIdOrFail(id);
+    await this.findByIdOrFail(id);
 
     if (input.areaId) {
       await this.areasService.findByIdOrFail(input.areaId);
@@ -99,8 +95,10 @@ export class ActivitiesService {
     if (input.areaId !== undefined) updateData.areaId = input.areaId;
     if (input.machineId !== undefined) updateData.machineId = input.machineId;
     if (input.activity !== undefined) updateData.activity = input.activity;
-    if (input.startDate !== undefined) updateData.startDate = new Date(input.startDate);
-    if (input.endDate !== undefined) updateData.endDate = new Date(input.endDate);
+    if (input.startDate !== undefined)
+      updateData.startDate = new Date(input.startDate);
+    if (input.endDate !== undefined)
+      updateData.endDate = new Date(input.endDate);
     if (input.progress !== undefined) updateData.progress = input.progress;
     if (input.status !== undefined) updateData.status = input.status;
     if (input.comments !== undefined) updateData.comments = input.comments;
@@ -137,7 +135,10 @@ export class ActivitiesService {
     filters: ActivityFiltersInput,
     sort: ActivitySortInput,
   ): Promise<string> {
-    const data = await this.activitiesRepository.findAllWithFilters(filters, sort);
+    const data = await this.activitiesRepository.findAllWithFilters(
+      filters,
+      sort,
+    );
     const buffer = await this.excelGeneratorService.generateExcelBuffer(
       data,
       ACTIVITY_EXCEL_REPORT,
@@ -145,11 +146,8 @@ export class ActivitiesService {
     return buffer.toString('base64');
   }
 
-  async countForExcelExport(
-    filters: ActivityFiltersInput,
-    sort: ActivitySortInput,
-  ): Promise<number> {
-    return this.activitiesRepository.countForExcelExport(filters, sort);
+  async countForExcelExport(filters: ActivityFiltersInput): Promise<number> {
+    return this.activitiesRepository.countForExcelExport(filters);
   }
 
   async exportToExcelBuffer(
@@ -157,8 +155,14 @@ export class ActivitiesService {
     sort: ActivitySortInput,
   ): Promise<Buffer> {
     const startedAt = Date.now();
-    const data = await this.activitiesRepository.findAllWithFilters(filters, sort);
-    const buffer = await this.excelGeneratorService.generateExcelBuffer(data, ACTIVITY_EXCEL_REPORT);
+    const data = await this.activitiesRepository.findAllWithFilters(
+      filters,
+      sort,
+    );
+    const buffer = await this.excelGeneratorService.generateExcelBuffer(
+      data,
+      ACTIVITY_EXCEL_REPORT,
+    );
     this.logger.log('Excel buffer generado', {
       sheetName: ACTIVITY_EXCEL_REPORT.sheetName,
       rows: data.length,

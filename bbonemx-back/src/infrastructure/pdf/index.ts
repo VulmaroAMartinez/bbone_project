@@ -10,4 +10,3 @@ export type {
   DashboardChartPdfItem,
   DashboardChartsPdfOptions,
 } from './pdf-charts-definition';
-

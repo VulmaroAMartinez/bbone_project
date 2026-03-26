@@ -7,6 +7,7 @@ import {
   GetMachinesByAreaDocument,
   DeleteActivityDocument,
   UpdateActivityPriorityDocument,
+  type GetActivitiesFilteredQuery,
 } from '@/lib/graphql/generated/graphql';
 import type { ActivitySortField, ActivityStatus, SortOrder } from '@/lib/graphql/generated/graphql';
 import { gql } from '@apollo/client';
@@ -88,16 +89,38 @@ export default function ActivitiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<ActivitySortField>('CREATED_AT');
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
-  const [viewActivity, setViewActivity] = useState<any>(null);
+  type ActivityRow = {
+    id: string;
+    activity: string;
+    startDate?: string | null;
+    endDate?: string | null;
+    status: string;
+    progress: number;
+    comments?: string | null;
+    priority: boolean;
+    area?: { name: string } | null;
+    machine?: { name: string } | null;
+    technicians?: Array<{
+      technician?: {
+        fullName?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+      } | null;
+    }> | null;
+  };
+  const [viewActivity, setViewActivity] = useState<ActivityRow | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const { data: areasData } = useQuery<AreasForFilterQuery>(GET_AREAS_FOR_FILTER);
-  const { data: machinesData } = useQuery(GetMachinesByAreaDocument, {
-    variables: { areaId: areaFilter || undefined },
-    skip: !areaFilter,
-  });
+  const { data: machinesData } = useQuery<{ machinesByArea: Array<{ id: string; name: string }> }>(
+    GetMachinesByAreaDocument,
+    {
+      variables: { areaId: areaFilter || undefined },
+      skip: !areaFilter,
+    },
+  );
 
-  const { data, loading, refetch } = useQuery(GetActivitiesFilteredDocument, {
+  const { data, loading, refetch } = useQuery<GetActivitiesFilteredQuery>(GetActivitiesFilteredDocument, {
     variables: {
       filters: {
         areaId: areaFilter || undefined,
@@ -203,17 +226,17 @@ export default function ActivitiesPage() {
     }
   };
 
-  const activities = data?.activitiesFiltered?.data || [];
+  const activities = (data?.activitiesFiltered?.data || []) as unknown as ActivityRow[];
   const total = data?.activitiesFiltered?.total || 0;
   const totalPages = data?.activitiesFiltered?.totalPages || 1;
 
   const areaOptions = useMemo(
-    () => (areasData?.areasActive || []).map((a: any) => ({ value: a.id, label: a.name })),
+    () => (areasData?.areasActive || []).map((a) => ({ value: a.id, label: a.name })),
     [areasData],
   );
 
   const machineOptions = useMemo(
-    () => (machinesData?.machinesByArea || []).map((m: any) => ({ value: m.id, label: m.name })),
+    () => (machinesData?.machinesByArea || []).map((m) => ({ value: m.id, label: m.name })),
     [machinesData],
   );
 
@@ -251,7 +274,7 @@ export default function ActivitiesPage() {
     setPage(1);
   };
 
-  const formatDate = (d: string) => {
+  const formatDate = (d: string | null | undefined) => {
     if (!d) return '-';
     return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
@@ -382,13 +405,18 @@ export default function ActivitiesPage() {
                     </td>
                   </tr>
                 )}
-                {activities.map((act: any) => (
+                {activities.map((act) => (
                   <tr key={act.id} className="hover:bg-muted/10 transition-colors">
                     <td className="px-4 py-3">{act.area?.name}</td>
                     <td className="px-4 py-3 hidden sm:table-cell">{act.machine?.name}</td>
                     <td className="px-4 py-3 max-w-[200px] truncate">{act.activity}</td>
                     <td className="px-4 py-3 hidden md:table-cell max-w-[180px] truncate">
-                      {act.technicians?.map((t: any) => t.technician?.fullName || `${t.technician?.firstName} ${t.technician?.lastName}`).join(', ') || '-'}
+                      {act.technicians
+                        ?.map((t) =>
+                          t.technician?.fullName ||
+                          `${t.technician?.firstName ?? ''} ${t.technician?.lastName ?? ''}`.trim(),
+                        )
+                        .join(', ') || '-'}
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell whitespace-nowrap">{formatDate(act.startDate)}</td>
                     <td className="px-4 py-3 hidden lg:table-cell whitespace-nowrap">{formatDate(act.endDate)}</td>
@@ -549,7 +577,12 @@ export default function ActivitiesPage() {
                 <div className="col-span-2">
                   <p className="text-xs text-muted-foreground">Responsables</p>
                   <p className="font-medium">
-                    {viewActivity.technicians?.map((t: any) => t.technician?.fullName || `${t.technician?.firstName} ${t.technician?.lastName}`).join(', ') || '-'}
+                    {viewActivity.technicians
+                      ?.map((t) =>
+                        t.technician?.fullName ||
+                        `${t.technician?.firstName ?? ''} ${t.technician?.lastName ?? ''}`.trim(),
+                      )
+                      .join(', ') || '-'}
                   </p>
                 </div>
                 {viewActivity.comments && (

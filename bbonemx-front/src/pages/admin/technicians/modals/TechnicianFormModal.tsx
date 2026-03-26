@@ -9,6 +9,9 @@ import {
     UpdateUserDocument,
     CreateTechnicianProfileDocument,
     UpdateTechnicianProfileDocument,
+    type CreateUserInput,
+    type UpdateUserInput,
+    type GetTechniciansDataQuery,
 } from '@/lib/graphql/generated/graphql';
 
 import { Button } from '@/components/ui/button';
@@ -67,7 +70,7 @@ type FormValues = yup.InferType<ReturnType<typeof createSchema>>;
 export interface TechnicianFormModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    technician: any | null;
+    technician: GetTechniciansDataQuery['techniciansWithDeleted'][number] | null;
     departments: Array<{ id: string; name: string }>;
     positions: Array<{ id: string; name: string }>;
     techRoleId: string | undefined;
@@ -105,7 +108,7 @@ export default function TechnicianFormModal({
         if (!open) return;
 
         if (technician) {
-            const isBoss = technician.user.roles?.some((r: any) => r.name === 'BOSS') ?? false;
+            const isBoss = technician.user.roles?.some((r: { name: string }) => r.name === 'BOSS') ?? false;
             reset({
                 firstName: technician.user.firstName,
                 lastName: technician.user.lastName,
@@ -153,7 +156,7 @@ export default function TechnicianFormModal({
         setIsSaving(true);
 
         try {
-            const userPayload: any = {
+            const userPayload: UpdateUserInput = {
                 firstName: values.firstName,
                 lastName: values.lastName,
                 employeeNumber: values.employeeNumber,
@@ -191,10 +194,18 @@ export default function TechnicianFormModal({
                 toast.success('Técnico actualizado correctamente.');
             } else {
                 if (!values.password) throw new Error('La contraseña es requerida para nuevos técnicos.');
-                userPayload.password = values.password;
-                userPayload.roleIds = [techRoleId];
+                const createPayload: CreateUserInput = {
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    employeeNumber: values.employeeNumber,
+                    departmentId: values.departmentId ?? '',
+                    email: values.email || undefined,
+                    phone: values.phone || undefined,
+                    password: values.password,
+                    roleIds: [techRoleId],
+                };
 
-                const userRes = await createUser({ variables: { input: userPayload } });
+                const userRes = await createUser({ variables: { input: createPayload } });
                 const newUserId = userRes.data?.createUser.id;
                 if (!newUserId) throw new Error('Error al generar el usuario.');
 
@@ -204,8 +215,8 @@ export default function TechnicianFormModal({
 
             onOpenChange(false);
             onSuccess();
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al guardar el técnico.');
         } finally {
             setIsSaving(false);
         }

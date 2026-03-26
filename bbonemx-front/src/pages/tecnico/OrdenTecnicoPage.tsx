@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 
 import {
   GetWorkOrderByIdDocument,
@@ -14,6 +14,7 @@ import {
   MachineBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
+import type { GetWorkOrderByIdQuery } from '@/lib/graphql/generated/graphql';
 
 import {
   ADD_WORK_ORDER_SPARE_PART_MUTATION,
@@ -90,7 +91,7 @@ export default function TecnicoOrdenPage() {
   const photoAfterServer = workOrderRaw?.photos?.find((p) => p.photoType === 'AFTER');
   const signatures = workOrderRaw?.signatures ?? [];
   const techSignature = signatures.find(
-    (s) => s.signer?.role?.name === 'TECHNICIAN' || s.signer?.roles?.some((r: any) => r.name === 'TECHNICIAN'),
+    (s) => s.signer?.role?.name === 'TECHNICIAN' || s.signer?.roles?.some((r: { name: string }) => r.name === 'TECHNICIAN'),
   );
   const needsMySignature = isClosed && !techSignature;
 
@@ -104,8 +105,8 @@ export default function TecnicoOrdenPage() {
       await startOrder({ variables: { id: order.id, input: {} } });
       await refetch();
       toast.success('Trabajo iniciado');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al iniciar el trabajo');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al iniciar el trabajo');
     }
   };
 
@@ -118,8 +119,8 @@ export default function TecnicoOrdenPage() {
       setPauseOpen(false);
       await refetch();
       toast.success('Orden pausada');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al pausar la orden');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al pausar la orden');
     }
   };
 
@@ -189,8 +190,8 @@ export default function TecnicoOrdenPage() {
       setCompleteOpen(false);
       await refetch();
       toast.success('Orden cerrada correctamente');
-    } catch (err: any) {
-      toast.error(err.message || 'Error al cerrar la orden');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al cerrar la orden');
     }
   };
 
@@ -204,7 +205,8 @@ export default function TecnicoOrdenPage() {
     }
   };
 
-  const handleSaveSignature = async (_dataUrl: string) => {
+  const handleSaveSignature = async (dataUrl: string) => {
+    void dataUrl;
     try {
       const mockPath = `signatures/${order?.id}/${currentUser?.id}_tech_sig.png`;
       await signWorkOrder({
@@ -234,6 +236,9 @@ export default function TecnicoOrdenPage() {
   const canEdit = order.status === 'IN_PROGRESS';
 
   // Datos de cierre técnico (readonly)
+  type WorkOrderRaw = NonNullable<GetWorkOrderByIdQuery['workOrder']>;
+  type ClosureExtras = Pick<WorkOrderRaw, 'customSparePart' | 'customMaterial' | 'spareParts' | 'materials'>;
+
   const closureData = isClosed
     ? {
         breakdownDescription: workOrderRaw.breakdownDescription,
@@ -242,10 +247,10 @@ export default function TecnicoOrdenPage() {
         toolsUsed: workOrderRaw.toolsUsed,
         downtimeMinutes: workOrderRaw.downtimeMinutes,
         observations: workOrderRaw.observations,
-        customSparePart: (workOrderRaw as any).customSparePart as string | null,
-        customMaterial: (workOrderRaw as any).customMaterial as string | null,
-        spareParts: (workOrderRaw as any).spareParts as { id: string; quantity: number; sparePart: { partNumber: string; brand: string; model: string } }[] | null,
-        materials: (workOrderRaw as any).materials as { id: string; quantity: number; material: { description: string; brand: string } }[] | null,
+        customSparePart: (workOrderRaw as ClosureExtras).customSparePart ?? null,
+        customMaterial: (workOrderRaw as ClosureExtras).customMaterial ?? null,
+        spareParts: (workOrderRaw as ClosureExtras).spareParts ?? null,
+        materials: (workOrderRaw as ClosureExtras).materials ?? null,
       }
     : null;
 

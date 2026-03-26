@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import {
     CreateUserDocument,
     UpdateUserDocument,
+    type CreateUserInput,
+    type UpdateUserInput,
 } from '@/lib/graphql/generated/graphql';
 
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,15 @@ import { Loader2 } from 'lucide-react';
 interface RequesterFormModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    requester: any | null;
+    requester: {
+        id: string;
+        employeeNumber: string;
+        firstName: string;
+        lastName: string;
+        department?: { id: string } | null;
+        email?: string | null;
+        phone?: string | null;
+    } | null;
     requesterRoleId: string | undefined;
     departments: Array<{ id: string; name: string }>;
     onSuccess: () => void;
@@ -108,7 +118,7 @@ export default function RequesterFormModal({
         }
 
         try {
-            const input: any = {
+            const input: UpdateUserInput = {
                 firstName: values.firstName,
                 lastName: values.lastName,
                 employeeNumber: values.employeeNumber,
@@ -122,16 +132,24 @@ export default function RequesterFormModal({
                 await updateUser({ variables: { id: requester.id, input } });
                 toast.success('Solicitante actualizado correctamente');
             } else {
-                input.password = values.password;
-                input.roleIds = [requesterRoleId];
-                await createUser({ variables: { input } });
+                const createPayload: CreateUserInput = {
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    employeeNumber: values.employeeNumber,
+                    departmentId: values.departmentId ?? '',
+                    email: values.email || undefined,
+                    phone: values.phone || undefined,
+                    password: values.password,
+                    roleIds: [requesterRoleId],
+                };
+                await createUser({ variables: { input: createPayload } });
                 toast.success('Solicitante creado correctamente');
             }
 
             onOpenChange(false);
             onSuccess();
-        } catch (error: any) {
-            toast.error(error.message || 'Ocurri\u00f3 un error al guardar');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Ocurrió un error al guardar');
         }
     };
 

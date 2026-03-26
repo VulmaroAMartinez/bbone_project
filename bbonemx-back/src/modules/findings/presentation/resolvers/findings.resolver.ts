@@ -9,7 +9,7 @@ import {
   FindingSortInput,
 } from '../../application/dto';
 import { FindingType, FindingPaginatedResponse, FindingStats } from '../types';
-import { JwtAuthGuard, RolesGuard, Roles, CurrentUser, Role } from 'src/common';
+import { JwtAuthGuard, RolesGuard, Roles, Role } from 'src/common';
 
 @Resolver(() => FindingType)
 @UseGuards(JwtAuthGuard, RolesGuard)

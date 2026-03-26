@@ -29,8 +29,10 @@ export class WorkOrderType {
   @Field(() => MachineType, { nullable: true }) machine?: MachineType;
   @Field() description: string;
   @Field(() => WorkOrderStatus) status: WorkOrderStatus;
-  @Field(() => WorkOrderPriority, { nullable: true }) priority?: WorkOrderPriority;
-  @Field(() => MaintenanceType, { nullable: true }) maintenanceType?: MaintenanceType;
+  @Field(() => WorkOrderPriority, { nullable: true })
+  priority?: WorkOrderPriority;
+  @Field(() => MaintenanceType, { nullable: true })
+  maintenanceType?: MaintenanceType;
   @Field(() => StopType, { nullable: true }) stopType?: StopType;
   @Field({ nullable: true }) scheduledDate?: Date;
   @Field(() => WorkType, { nullable: true }) workType?: WorkType;

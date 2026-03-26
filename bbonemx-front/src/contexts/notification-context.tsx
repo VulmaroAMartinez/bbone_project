@@ -1,12 +1,11 @@
 import {
   createContext,
-  useContext,
   useCallback,
   useEffect,
   type ReactNode,
 } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { useAuth } from './auth-context';
+import { useAuth } from '@/hooks/useAuth';
 import {
   MarkAllNotificationsAsReadDocument,
   MarkNotificationAsReadDocument,
@@ -36,6 +35,7 @@ export interface NotificationContextType {
 
 // Crear contexto
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+export { NotificationContext };
 
 interface NotificationProviderProps {
   children: ReactNode;
@@ -116,13 +116,3 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     </NotificationContext.Provider>
   );
 }
-
-export function useNotification(): NotificationContextType {
-  const context = useContext(NotificationContext);
-  if (context === undefined) {
-    throw new Error('useNotifications debe usarse dentro de un NotificationProvider');
-  }
-  return context;
-}
-
-

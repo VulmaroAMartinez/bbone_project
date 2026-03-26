@@ -1,4 +1,4 @@
-import { InputType, Field, ID, PartialType, Int } from '@nestjs/graphql';
+import { InputType, Field, ID, Int } from '@nestjs/graphql';
 import {
   IsNotEmpty,
   IsString,
@@ -9,7 +9,6 @@ import {
   Min,
   ValidateIf,
   IsDateString,
-  IsObject,
 } from 'class-validator';
 import {
   WorkOrderStatus,

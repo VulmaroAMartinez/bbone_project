@@ -6,7 +6,10 @@ import { dateColumnTransformer } from 'src/common/transformers';
 
 @Entity({ name: 'overtime' })
 export class Overtime extends BaseEntity {
-  @Column({ name: 'work_date', type: 'date', transformer: dateColumnTransformer,
+  @Column({
+    name: 'work_date',
+    type: 'date',
+    transformer: dateColumnTransformer,
   })
   workDate: Date;
 
@@ -19,7 +22,11 @@ export class Overtime extends BaseEntity {
   @Column({ type: 'text' })
   activity: string;
 
-  @Column({ name: 'reason_for_payment', type: 'enum', enum: ReasonForPayment, nullable: true,
+  @Column({
+    name: 'reason_for_payment',
+    type: 'enum',
+    enum: ReasonForPayment,
+    nullable: true,
   })
   reasonForPayment?: ReasonForPayment;
 

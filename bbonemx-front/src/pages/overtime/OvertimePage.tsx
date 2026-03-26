@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@apollo/client/react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 import {
   GET_OVERTIME_RECORDS_QUERY,
   GET_MY_OVERTIME_RECORDS_QUERY,
@@ -51,79 +51,20 @@ import { downloadBlob } from '@/lib/utils/excel-download';
 import { OvertimeFormModal } from './modals/OvertimeFormModal';
 import { OvertimeViewModal } from './modals/OvertimeViewModal';
 
-// ── Types (exported for modal components) ─────────────
-export interface OvertimeRecord {
-  id: string;
-  workDate: string;
-  startTime: string;
-  endTime: string;
-  workTime: string;
-  activity: string;
-  reasonForPayment: string | null;
-  technicianId: string;
-  technician: {
-    id: string;
-    user: {
-      id: string;
-      employeeNumber: string;
-      firstName: string;
-      lastName: string;
-    };
-    position: {
-      id: string;
-      name: string;
-    };
-  };
-  createdAt: string;
-}
-
-export interface TechnicianOption {
-  id: string;
-  user: {
-    id: string;
-    employeeNumber: string;
-    firstName: string;
-    lastName: string;
-  };
-  position: {
-    id: string;
-    name: string;
-  };
-}
-
 interface PositionOption {
   id: string;
   name: string;
   isActive: boolean;
 }
 
-// ── Enums / Labels (exported for modal components) ────
-export const REASON_FOR_PAYMENT_OPTIONS = [
-  { value: 'HOLIDAY', label: 'Dia festivo' },
-  { value: 'WORK_BREAK', label: 'Descanso laboral' },
-  { value: 'OVERTIME', label: 'Tiempo extra' },
-];
-
-export const getReasonLabel = (reason: string | null) => {
-  if (!reason) return '—';
-  return REASON_FOR_PAYMENT_OPTIONS.find((o) => o.value === reason)?.label ?? reason;
-};
-
-export const getReasonBadgeVariant = (reason: string | null): 'default' | 'secondary' | 'outline' => {
-  if (!reason) return 'outline';
-  switch (reason) {
-    case 'HOLIDAY': return 'default';
-    case 'WORK_BREAK': return 'secondary';
-    case 'OVERTIME': return 'default';
-    default: return 'outline';
-  }
-};
-
-// ── Helper ────────────────────────────────────────────
-export function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
-}
+import {
+  type OvertimeRecord,
+  type TechnicianOption,
+  REASON_FOR_PAYMENT_OPTIONS,
+  getReasonLabel,
+  getReasonBadgeVariant,
+  formatDate,
+} from './overtime.constants';
 
 // ── Page ──────────────────────────────────────────────
 export default function OvertimePage() {

@@ -1,4 +1,7 @@
-import type { ExcelColumnDefinition, ExcelReportDefinition } from 'src/infrastructure/excel';
+import type {
+  ExcelColumnDefinition,
+  ExcelReportDefinition,
+} from 'src/infrastructure/excel';
 import type { PdfTableDefinition } from 'src/infrastructure/pdf';
 import { Activity } from '../../domain/entities';
 import { ActivityStatus } from 'src/common/enums';
@@ -9,7 +12,7 @@ const STATUS_LABELS: Record<ActivityStatus, string> = {
   [ActivityStatus.COMPLETED]: 'Realizado',
 };
 
-function formatDate(value: any): string {
+function formatDate(value: string | number | Date | null | undefined): string {
   if (!value) return '-';
   const d = new Date(value);
   if (isNaN(d.getTime())) return '-';
@@ -46,37 +49,41 @@ export const ACTIVITY_EXCEL_COLUMNS: ExcelColumnDefinition<Activity>[] = [
     header: 'F. Inicio',
     key: 'startDate',
     width: 15,
-    transform: (value) => formatDate(value),
+    transform: (value: unknown) =>
+      formatDate(value as string | number | Date | null | undefined),
   },
   {
     header: 'F. Fin',
     key: 'endDate',
     width: 15,
-    transform: (value) => formatDate(value),
+    transform: (value: unknown) =>
+      formatDate(value as string | number | Date | null | undefined),
   },
   {
     header: 'Estatus',
     key: 'status',
     width: 15,
-    transform: (value) => STATUS_LABELS[value as ActivityStatus] ?? value ?? '',
+    transform: (value: unknown) =>
+      STATUS_LABELS[value as ActivityStatus] ?? (value as string) ?? '',
   },
   {
     header: 'Avance',
     key: 'progress',
     width: 12,
-    transform: (value) => (value == null ? '-' : `${value}%`),
+    transform: (value: unknown) =>
+      value == null ? '-' : `${value as number}%`,
   },
   {
     header: 'Comentarios',
     key: 'comments',
     width: 30,
-    transform: (value) => value || '-',
+    transform: (value: unknown) => (value as string) || '-',
   },
   {
     header: 'Prioridad',
     key: 'priority',
     width: 12,
-    transform: (value) => (value ? 'Sí' : 'No'),
+    transform: (value: unknown) => (value ? 'Sí' : 'No'),
   },
 ];
 
@@ -114,12 +121,44 @@ export const ACTIVITY_PDF_REPORT: PdfTableDefinition<Activity> = {
         return names.length > 0 ? names.join(', ') : '-';
       },
     },
-    { header: 'F. Inicio', key: 'startDate', width: 55, transform: (v) => formatDate(v) },
-    { header: 'F. Fin', key: 'endDate', width: 55, transform: (v) => formatDate(v) },
-    { header: 'Estatus', key: 'status', width: 60, transform: (v) => STATUS_LABELS[v as ActivityStatus] ?? v ?? '' },
-    { header: 'Avance', key: 'progress', width: 40, transform: (v) => (v == null ? '-' : `${v}%`) },
-    { header: 'Comentarios', key: 'comments', width: 110, transform: (v) => v || '-' },
-    { header: 'Prioridad', key: 'priority', width: 55, transform: (v) => (v ? 'Sí' : 'No') },
+    {
+      header: 'F. Inicio',
+      key: 'startDate',
+      width: 55,
+      transform: (v) =>
+        formatDate(v as string | number | Date | null | undefined),
+    },
+    {
+      header: 'F. Fin',
+      key: 'endDate',
+      width: 55,
+      transform: (v) =>
+        formatDate(v as string | number | Date | null | undefined),
+    },
+    {
+      header: 'Estatus',
+      key: 'status',
+      width: 60,
+      transform: (v) => STATUS_LABELS[v as ActivityStatus] ?? v ?? '',
+    },
+    {
+      header: 'Avance',
+      key: 'progress',
+      width: 40,
+      transform: (v: unknown) => (v == null ? '-' : `${v as number}%`),
+    },
+    {
+      header: 'Comentarios',
+      key: 'comments',
+      width: 110,
+      transform: (v) => (v as string) || '-',
+    },
+    {
+      header: 'Prioridad',
+      key: 'priority',
+      width: 55,
+      transform: (v) => (v ? 'Sí' : 'No'),
+    },
   ],
   renderOptions: {
     title: 'Actividades',

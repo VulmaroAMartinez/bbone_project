@@ -5,24 +5,25 @@ import {
   MaxLength,
   IsOptional,
   IsUUID,
-  IsDateString,
+  IsDate,
   ValidateIf,
   Validate,
   ValidatorConstraint,
   ValidatorConstraintInterface,
   ValidationArguments,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 @ValidatorConstraint({ name: 'AreaOrSubAreaRequired', async: false })
 export class AreaOrSubAreaRequiredConstraint implements ValidatorConstraintInterface {
-  validate(_value: any, args: ValidationArguments): boolean {
-    const obj = args.object as any;
+  validate(_value: unknown, args: ValidationArguments): boolean {
+    const obj = args.object as Record<string, unknown>;
     const hasArea = !!obj.areaId;
     const hasSubArea = !!obj.subAreaId;
     return (hasArea || hasSubArea) && !(hasArea && hasSubArea);
   }
 
-  defaultMessage(_args: ValidationArguments): string {
+  defaultMessage(): string {
     return 'Debe especificar exactamente uno: areaId (máquina directa al área) o subAreaId (máquina en sub-área). No ambos ni ninguno.';
   }
 }
@@ -50,7 +51,7 @@ export class CreateMachineInput {
     nullable: true,
     description: 'ID del área (si la máquina pertenece directamente al área)',
   })
-  @ValidateIf((o) => !o.subAreaId)
+  @ValidateIf((o: CreateMachineInput) => !o.subAreaId)
   @IsUUID('4', { message: 'areaId debe ser un UUID válido' })
   @Validate(AreaOrSubAreaRequiredConstraint)
   areaId?: string;
@@ -59,7 +60,7 @@ export class CreateMachineInput {
     nullable: true,
     description: 'ID de la sub-área (si la máquina pertenece a una sub-área)',
   })
-  @ValidateIf((o) => !o.areaId)
+  @ValidateIf((o: CreateMachineInput) => !o.areaId)
   @IsUUID('4', { message: 'subAreaId debe ser un UUID válido' })
   subAreaId?: string;
 
@@ -80,7 +81,8 @@ export class CreateMachineInput {
 
   @Field({ nullable: true })
   @IsOptional()
-  @IsDateString()
+  @Type(() => Date)
+  @IsDate()
   installationDate?: Date;
 
   @Field({ nullable: true })

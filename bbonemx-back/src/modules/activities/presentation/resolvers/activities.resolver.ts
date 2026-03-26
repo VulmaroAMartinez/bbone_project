@@ -35,13 +35,7 @@ import {
   ActivityWorkOrderType,
   ActivityMaterialRequestType,
 } from '../types';
-import {
-  JwtAuthGuard,
-  RolesGuard,
-  Role,
-  Roles,
-  CurrentUser,
-} from 'src/common';
+import { JwtAuthGuard, RolesGuard, Role, Roles, CurrentUser } from 'src/common';
 import { User } from 'src/modules/users/domain/entities';
 import { ActivityTechniciansRepository } from '../../infrastructure/repositories/activity-technicians.repository';
 import { ActivityWorkOrdersRepository } from '../../infrastructure/repositories/activity-work-orders.repository';
@@ -66,7 +60,8 @@ export class ActivitiesResolver {
   @Roles(Role.ADMIN, Role.BOSS)
   async findFiltered(
     @Args('filters', { nullable: true }) filters?: ActivityFiltersInput,
-    @Args('pagination', { nullable: true }) pagination?: ActivityPaginationInput,
+    @Args('pagination', { nullable: true })
+    pagination?: ActivityPaginationInput,
     @Args('sort', { nullable: true }) sort?: ActivitySortInput,
   ): Promise<ActivityPaginatedResponse> {
     const { data, total } = await this.activitiesService.findWithFilters(
@@ -104,9 +99,7 @@ export class ActivitiesResolver {
   @Query(() => ActivityType, { name: 'activity', nullable: true })
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.BOSS)
-  async findById(
-    @Args('id', { type: () => ID }) id: string,
-  ) {
+  async findById(@Args('id', { type: () => ID }) id: string) {
     return this.activitiesService.findById(id);
   }
 
@@ -136,9 +129,7 @@ export class ActivitiesResolver {
   @Mutation(() => Boolean)
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  async deleteActivity(
-    @Args('id', { type: () => ID }) id: string,
-  ) {
+  async deleteActivity(@Args('id', { type: () => ID }) id: string) {
     await this.activitiesService.deactivate(id);
     return true;
   }
@@ -220,6 +211,8 @@ export class ActivitiesResolver {
 
   @ResolveField('materialRequests', () => [ActivityMaterialRequestType])
   async materialRequests(@Parent() activity: ActivityType) {
-    return this.activityMaterialRequestsRepository.findByActivityId(activity.id);
+    return this.activityMaterialRequestsRepository.findByActivityId(
+      activity.id,
+    );
   }
 }

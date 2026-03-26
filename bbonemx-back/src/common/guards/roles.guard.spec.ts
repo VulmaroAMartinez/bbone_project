@@ -17,7 +17,7 @@ describe('RolesGuard', () => {
     const context = {
       getHandler: jest.fn(),
       getClass: jest.fn(),
-    } as any;
+    } as unknown as import('@nestjs/common').ExecutionContext;
     (reflector.getAllAndOverride as jest.Mock).mockReturnValue(undefined);
 
     expect(guard.canActivate(context)).toBe(true);
@@ -29,7 +29,7 @@ describe('RolesGuard', () => {
       getHandler: jest.fn(),
       getClass: jest.fn(),
       switchToHttp: () => ({ getRequest: () => ({ user: null }) }),
-    } as any;
+    } as unknown as import('@nestjs/common').ExecutionContext;
     (reflector.getAllAndOverride as jest.Mock).mockReturnValue(['ADMIN']);
 
     expect(guard.canActivate(context)).toBe(false);
@@ -40,13 +40,13 @@ describe('RolesGuard', () => {
       getType: jest.fn().mockReturnValue('graphql'),
       getHandler: jest.fn(),
       getClass: jest.fn(),
-    } as any;
+    } as unknown as import('@nestjs/common').ExecutionContext;
     (reflector.getAllAndOverride as jest.Mock).mockReturnValue(['BOSS']);
     jest.spyOn(GqlExecutionContext, 'create').mockReturnValue({
       getContext: () => ({
         req: { user: { roles: [{ name: 'BOSS' }] } },
       }),
-    } as any);
+    } as unknown as GqlExecutionContext);
 
     expect(guard.canActivate(context)).toBe(true);
   });

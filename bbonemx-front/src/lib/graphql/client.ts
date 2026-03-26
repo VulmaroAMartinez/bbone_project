@@ -15,6 +15,7 @@ import { logDevWarning, reportError } from '../logging';
 import { shouldAttemptRefresh } from './error-handling';
 
 const GRAPHLQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_URL;
+const SHOW_RAW_GRAPHQL_ERRORS = import.meta.env.DEV;
 
 function readCookie(name: string): string | null {
   if (typeof document === 'undefined') {
@@ -92,6 +93,13 @@ const errorLink = new ErrorLink(({ error, operation, forward }) => {
       });
     }
 
+    if (SHOW_RAW_GRAPHQL_ERRORS) {
+      console.error('[GraphQL][RAW_ERRORS]', {
+        operationName: operation.operationName || 'anonymous',
+        errors: error.errors,
+      });
+    }
+
     logDevWarning('GraphQL', 'La operación GraphQL devolvió errores.', {
       operationName: operation.operationName || 'anonymous',
       errorCount: error.errors.length,
@@ -101,6 +109,13 @@ const errorLink = new ErrorLink(({ error, operation, forward }) => {
   }
 
   if (CombinedProtocolErrors.is(error)) {
+    if (SHOW_RAW_GRAPHQL_ERRORS) {
+      console.error('[GraphQL][RAW_PROTOCOL_ERRORS]', {
+        operationName: operation.operationName || 'anonymous',
+        errors: error.errors,
+      });
+    }
+
     logDevWarning('GraphQL', 'Se detectó un error de protocolo en Apollo Client.', {
       operationName: operation.operationName || 'anonymous',
       errorCount: error.errors.length,

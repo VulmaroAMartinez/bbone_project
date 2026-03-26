@@ -7,15 +7,15 @@ import * as ResizablePrimitive from 'react-resizable-panels'
 import { cn } from '@/lib/utils'
 
 const RP = ResizablePrimitive as unknown as {
-  PanelGroup: React.ComponentType<any>
-  Panel: React.ComponentType<any>
-  PanelResizeHandle: React.ComponentType<any>
+  PanelGroup: React.ComponentType<Record<string, unknown>>
+  Panel: React.ComponentType<Record<string, unknown>>
+  PanelResizeHandle: React.ComponentType<Record<string, unknown>>
 }
 
 function ResizablePanelGroup({
   className,
   ...props
-}: React.ComponentProps<any>) {
+}: React.ComponentProps<'div'> & Record<string, unknown>) {
   return (
     <RP.PanelGroup
       data-slot="resizable-panel-group"
@@ -30,7 +30,7 @@ function ResizablePanelGroup({
 
 function ResizablePanel({
   ...props
-}: React.ComponentProps<any>) {
+}: React.ComponentProps<'div'> & Record<string, unknown>) {
   return <RP.Panel data-slot="resizable-panel" {...props} />
 }
 
@@ -38,7 +38,7 @@ function ResizableHandle({
   withHandle,
   className,
   ...props
-}: React.ComponentProps<any> & {
+}: React.ComponentProps<'div'> & Record<string, unknown> & {
   withHandle?: boolean
 }) {
   return (
