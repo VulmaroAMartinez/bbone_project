@@ -39,7 +39,7 @@ Después de ejecutar los seeds, tendrás acceso con:
 | Email | `admin@bbonemx.com` |
 | Contraseña | `ADMIN_SEED_PASSWORD` (variable de entorno) |
 
-> ⚠️ **IMPORTANTE**: Define `ADMIN_SEED_PASSWORD` (o `SEED_ADMIN_PASSWORD`) antes de ejecutar seeds, especialmente en producción.
+> ⚠️ **IMPORTANTE**: Define `ADMIN_SEED_PASSWORD` en tu archivo `.env` antes de ejecutar los seeds. Es obligatorio para crear el administrador inicial de forma segura.
 
 ## Agregar nuevos seeds
 
