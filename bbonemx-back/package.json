@@ -20,6 +20,12 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:ci": "jest --coverage --ci"
+    "typeorm": "typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts",
+    "migration:generate": "npm run typeorm -- migration:generate src/infrastructure/database/migrations/$npm_config_name",
+    "migration:create": "npm run typeorm -- migration:create src/infrastructure/database/migrations/$npm_config_name",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert",
+    "migration:show": "npm run typeorm -- migration:show"
   },
   "dependencies": {
     "@apollo/server": "^5.3.0",
