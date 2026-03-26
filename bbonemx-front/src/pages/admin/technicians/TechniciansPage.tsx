@@ -53,11 +53,11 @@ export default function TecnicosPage() {
         <div className="space-y-6 pb-12">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Cat\u00e1logo de T\u00e9cnicos</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Catálogo de Técnicos</h1>
                     <p className="text-muted-foreground">Personal de mantenimiento operativo</p>
                 </div>
                 <Button onClick={() => openModal()} className="gap-2">
-                    <Plus className="h-4 w-4" /> Registrar T\u00e9cnico
+                    <Plus className="h-4 w-4" /> Registrar Técnico
                 </Button>
             </div>
 
@@ -65,7 +65,7 @@ export default function TecnicosPage() {
                 <CardHeader className="py-4">
                     <div className="relative max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Buscar por Nombre o N\u00famero de N\u00f3mina..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+                        <Input placeholder="Buscar por Nombre o Número de Nómina..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -73,8 +73,8 @@ export default function TecnicosPage() {
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                                 <tr>
-                                    <th className="px-4 py-3 font-semibold">Num. N\u00f3mina</th>
-                                    <th className="px-4 py-3 font-semibold">T\u00e9cnico</th>
+                                    <th className="px-4 py-3 font-semibold">Num. Nómina</th>
+                                    <th className="px-4 py-3 font-semibold">Técnico</th>
                                     <th className="px-4 py-3 font-semibold hidden md:table-cell">Puesto</th>
                                     <th className="px-4 py-3 font-semibold hidden lg:table-cell">Contacto</th>
                                     <th className="px-4 py-3 font-semibold">Estado</th>
@@ -85,7 +85,7 @@ export default function TecnicosPage() {
                                 {loading ? (
                                     <tr><td colSpan={6} className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></td></tr>
                                 ) : filteredTechnicians.length === 0 ? (
-                                    <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No se encontraron t\u00e9cnicos</td></tr>
+                                    <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No se encontraron técnicos</td></tr>
                                 ) : filteredTechnicians.map((tech) => (
                                     <tr key={tech.id} className="hover:bg-muted/10 transition-colors">
                                         <td className="px-4 py-3 font-mono font-medium text-primary">{tech.user.employeeNumber}</td>

@@ -159,6 +159,15 @@ export const GET_ACTIVITY_MATERIAL_REQUESTS_QUERY = gql`
   }
 `;
 
+export const EXPORT_ACTIVITIES_EXCEL_QUERY = gql`
+  query ExportActivitiesExcel(
+    $filters: ActivityFiltersInput
+    $sort: ActivitySortInput
+  ) {
+    exportActivitiesExcel(filters: $filters, sort: $sort)
+  }
+`;
+
 // ======= MUTATIONS =======
 
 export const CREATE_ACTIVITY_MUTATION = gql`

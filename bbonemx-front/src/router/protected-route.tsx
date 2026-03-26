@@ -2,7 +2,7 @@
 
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
-import { Skeleton } from './ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { AllowedRole } from '@/lib/types';
 
 interface ProtectedRouteProps {
@@ -48,5 +48,5 @@ export const ProtectedRoute = ({
     }
   }
 
-  return <Outlet/>;
-}
+  return <Outlet />;
+};

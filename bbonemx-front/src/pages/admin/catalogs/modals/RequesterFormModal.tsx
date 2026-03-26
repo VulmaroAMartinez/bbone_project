@@ -29,16 +29,16 @@ const createSchema = (isEditing: boolean) =>
     yup.object({
         firstName: yup.string().trim().required('El nombre es obligatorio'),
         lastName: yup.string().trim().required('Los apellidos son obligatorios'),
-        employeeNumber: yup.string().trim().required('El n\u00famero de empleado es obligatorio'),
+        employeeNumber: yup.string().trim().required('El número de empleado es obligatorio'),
         departmentId: yup.string().required('Debe seleccionar un departamento'),
-        email: yup.string().trim().email('Email no v\u00e1lido').default(''),
+        email: yup.string().trim().email('Email no válido').default(''),
         phone: yup.string().trim().default(''),
         password: isEditing
             ? yup.string().default('')
             : yup
-                  .string()
-                  .required('La contrase\u00f1a inicial es obligatoria')
-                  .min(8, 'M\u00ednimo 8 caracteres'),
+                .string()
+                .required('La contraseña inicial es obligatoria')
+                .min(8, 'Mínimo 8 caracteres'),
     });
 
 type FormValues = yup.InferType<ReturnType<typeof createSchema>>;
@@ -153,18 +153,18 @@ export default function RequesterFormModal({
                             </div>
                             <div className="space-y-2">
                                 <Label>Apellidos *</Label>
-                                <Input {...register('lastName')} placeholder="Ej: P\u00e9rez" />
+                                <Input {...register('lastName')} placeholder="Ej: P9rez" />
                                 {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
                             </div>
                         </div>
                     </div>
 
-                    {/* Identificaci\u00f3n */}
+                    {/* Identificación */}
                     <div className="space-y-4 p-4 rounded-lg border border-border">
-                        <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">Identificaci\u00f3n</h4>
+                        <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">Identificación</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>N\u00famero de Empleado *</Label>
+                                <Label>Número de Empleado *</Label>
                                 <Input {...register('employeeNumber')} placeholder="Ej: EMP-1050" />
                                 {errors.employeeNumber && <p className="text-xs text-destructive">{errors.employeeNumber.message}</p>}
                             </div>
@@ -198,8 +198,8 @@ export default function RequesterFormModal({
                                 {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                             </div>
                             <div className="space-y-2">
-                                <Label>Tel\u00e9fono (Opcional)</Label>
-                                <Input type="tel" {...register('phone')} placeholder="10 d\u00edgitos" />
+                                <Label>Teléfono (Opcional)</Label>
+                                <Input type="tel" {...register('phone')} placeholder="10 dígitos" />
                             </div>
                         </div>
                     </div>
@@ -208,14 +208,14 @@ export default function RequesterFormModal({
                     <div className="space-y-4 p-4 rounded-lg border border-border border-t-2">
                         <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">Seguridad</h4>
                         <div className="space-y-2">
-                            <Label>{isEditing ? 'Nueva Contrase\u00f1a (Opcional)' : 'Contrase\u00f1a Inicial *'}</Label>
+                            <Label>{isEditing ? 'Nueva Contraseña (Opcional)' : 'Contraseña Inicial *'}</Label>
                             <Input
                                 type="password"
                                 {...register('password')}
                                 placeholder={isEditing ? 'Dejar en blanco para no cambiar' : '********'}
                             />
                             {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-                            {isEditing && <p className="text-xs text-muted-foreground">Si no desea cambiar la contrase\u00f1a del usuario, deje este campo vac\u00edo.</p>}
+                            {isEditing && <p className="text-xs text-muted-foreground">Si no desea cambiar la contrase\u00f1a del usuario, deje este campo vacío.</p>}
                         </div>
                     </div>
 

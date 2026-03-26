@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@apollo/client/react';
 import { GetDashboardDataDocument, GetShiftsDocument, type WorkOrderStatus } from '@/lib/graphql/generated/graphql';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,8 @@ import {
   Activity,
   CheckCircle2,
   Users,
-  PlusCircle
+  PlusCircle,
+  FileDown,
 } from 'lucide-react';
 import {
   BarChart,
@@ -33,6 +34,10 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getDateRange } from '@/lib/utils';
+import { toast } from 'sonner';
+import { captureElementToJpegDataUrl } from '@/lib/utils/capture-chart-for-pdf';
+import { getApiBaseUrl } from '@/lib/utils/uploads';
+import { downloadBlob } from '@/lib/utils/excel-download';
 
 const tooltipStyle = {
   backgroundColor: 'oklch(0.17 0.005 260)',
@@ -99,6 +104,14 @@ export default function DashboardPage() {
   );
   const [shiftFilter, setShiftFilter] = useState<string>('all');
   const [woStatusFilter, setWoStatusFilter] = useState<WorkOrderStatus | 'all'>('all');
+  const [exportingCharts, setExportingCharts] = useState(false);
+
+  const refThroughput = useRef<HTMLDivElement>(null);
+  const refMix = useRef<HTMLDivElement>(null);
+  const refTechnicians = useRef<HTMLDivElement>(null);
+  const refMachinesDowntime = useRef<HTMLDivElement>(null);
+  const refFindingsArea = useRef<HTMLDivElement>(null);
+  const refWorkOrdersArea = useRef<HTMLDivElement>(null);
 
   const currentRange = useMemo(() => {
     return getDateRange(rangePreset as any);
@@ -130,6 +143,67 @@ export default function DashboardPage() {
     '30d': 'Últimos 30 días',
     'this_month': 'Este mes',
     'this_year': 'Este año',
+  };
+
+  const handleExportChartsPdf = async () => {
+    if (!data?.dashboardData) {
+      toast.error('Espera a que carguen las gráficas');
+      return;
+    }
+    const specs: Array<{ el: HTMLDivElement | null; title: string }> = [
+      { el: refThroughput.current, title: 'Rendimiento Semanal (Throughput)' },
+      { el: refTechnicians.current, title: 'Top Técnicos por Cierres' },
+      { el: refMachinesDowntime.current, title: 'Top Máquinas (Tiempo Muerto)' },
+      { el: refFindingsArea.current, title: 'Hallazgos por Área' },
+      { el: refWorkOrdersArea.current, title: 'Órdenes de Trabajo por Área' },
+    ];
+
+    setExportingCharts(true);
+    try {
+      const items: { title: string; imageDataUrl: string }[] = [];
+      for (const { el, title } of specs) {
+        if (!el) continue;
+        const imageDataUrl = await captureElementToJpegDataUrl(el, {
+          quality: 0.9,
+          pixelRatio: 2,
+        });
+        items.push({ title, imageDataUrl });
+      }
+      if (items.length === 0) {
+        toast.error('No se pudieron capturar las gráficas');
+        return;
+      }
+
+      const subtitle = `${rangeLabels[rangePreset] ?? 'Periodo'} · ${currentRange.dateFrom} al ${currentRange.dateTo}`;
+      const filename = `dashboard-graficas-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      const response = await fetch(`${getApiBaseUrl()}/api/dashboard/export/charts-pdf`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentTitle: 'Dashboard — Gráficas',
+          subtitle,
+          filename,
+          items,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      downloadBlob(blob, filename);
+      toast.success('PDF descargado correctamente');
+    } catch (e) {
+      toast.error(
+        `Error al exportar PDF: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    } finally {
+      setExportingCharts(false);
+    }
   };
 
   const dashboardData = data?.dashboardData;
@@ -232,6 +306,14 @@ export default function DashboardPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant="outline"
+            disabled={loading || exportingCharts || !data?.dashboardData}
+            onClick={() => void handleExportChartsPdf()}
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            {exportingCharts ? 'Generando PDF...' : 'Exportar PDF (gráficas)'}
+          </Button>
           <Button onClick={() => navigate('/admin/ordenes')}>
             <ClipboardList className="mr-2 h-4 w-4" />
             Explorar Órdenes
@@ -289,7 +371,7 @@ export default function DashboardPage() {
       {/* Main Charts */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Rendimiento (Throughput) */}
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refThroughput} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <Activity className="h-4 w-4" /> Rendimiento Semanal (Throughput)
@@ -311,7 +393,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Mix de Mantenimiento */}
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refMix} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4" /> Mix de Mantenimiento
@@ -350,7 +432,7 @@ export default function DashboardPage() {
       {/* Rankings */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Top Técnicos */}
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refTechnicians} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <Users className="h-4 w-4" /> Top Técnicos por Cierres
@@ -372,7 +454,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Top Máquinas por Downtime */}
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refMachinesDowntime} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <AlertTriangle className="h-4 w-4 text-destructive" /> Top Máquinas (Tiempo Muerto)
@@ -396,7 +478,7 @@ export default function DashboardPage() {
 
       {/* Hallazgos y OTs por Área */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refFindingsArea} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <AlertTriangle className="h-4 w-4 text-amber-500" /> Hallazgos por Área
@@ -421,7 +503,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refWorkOrdersArea} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <ClipboardList className="h-4 w-4 text-primary" /> Órdenes de Trabajo por Área

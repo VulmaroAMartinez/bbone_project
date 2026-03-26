@@ -201,4 +201,27 @@ export class UsersRepository {
   getRepository(): Repository<User> {
     return this.repository;
   }
+
+  /**
+   * Correos de usuarios activos con un rol por nombre (p. ej. ADMIN), sin duplicados.
+   */
+  async findActiveEmailsByRoleName(roleName: string): Promise<string[]> {
+    const rows = await this.repository
+      .createQueryBuilder('user')
+      .innerJoin(
+        'user.userRoles',
+        'ur',
+        'ur.is_active = :urActive AND ur.deleted_at IS NULL',
+        { urActive: true },
+      )
+      .innerJoin('ur.role', 'role', 'role.name = :roleName', { roleName })
+      .where('user.is_active = :uActive', { uActive: true })
+      .andWhere('user.email IS NOT NULL')
+      .andWhere("NULLIF(TRIM(user.email), '') IS NOT NULL")
+      .select('user.email', 'email')
+      .distinct(true)
+      .getRawMany<{ email: string }>();
+
+    return rows.map((r) => r.email.trim()).filter(Boolean);
+  }
 }

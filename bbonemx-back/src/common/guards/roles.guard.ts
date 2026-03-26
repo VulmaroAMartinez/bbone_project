@@ -20,25 +20,24 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    // Obtener roles requeridos del decorador
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    // Si no hay roles requeridos, permitir acceso
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
 
-    // Obtener usuario del contexto GraphQL
-    const ctx = GqlExecutionContext.create(context);
-    const { user } = ctx.getContext().req;
-
-    // Si no hay usuario, denegar acceso
-    if (!user) {
-      return false;
+    let user: any;
+    if (context.getType<string>() === 'http') {
+      user = context.switchToHttp().getRequest().user;
+    } else {
+      const ctx = GqlExecutionContext.create(context);
+      user = ctx.getContext().req.user;
     }
+
+    if (!user) return false;
 
     const userRoleNames =
       user.roles?.map((role: { name: string }) => role.name) ?? [];

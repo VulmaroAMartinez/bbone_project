@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Activity } from '../../domain/entities';
 import {
   ActivityFiltersInput,
@@ -28,6 +28,42 @@ export class ActivitiesRepository {
     private readonly repository: Repository<Activity>,
   ) {}
 
+  private applyFilters(
+    qb: SelectQueryBuilder<Activity>,
+    filters: ActivityFiltersInput,
+  ): void {
+    if (!filters) return;
+    if (filters.areaId) {
+      qb.andWhere('a.area_id = :areaId', { areaId: filters.areaId });
+    }
+    if (filters.machineId) {
+      qb.andWhere('a.machine_id = :machineId', { machineId: filters.machineId });
+    }
+    if (filters.status) {
+      qb.andWhere('a.status = :status', { status: filters.status });
+    }
+    if (filters.priority === true) {
+      qb.andWhere('a.priority = true');
+    }
+    if (filters.search) {
+      qb.andWhere('a.activity ILIKE :search', {
+        search: `%${filters.search}%`,
+      });
+    }
+  }
+
+  private applySort(
+    qb: SelectQueryBuilder<Activity>,
+    sort: ActivitySortInput,
+  ): void {
+    const sortField =
+      SORT_FIELD_MAP[sort?.field || ActivitySortField.CREATED_AT] ??
+      SORT_FIELD_MAP[ActivitySortField.CREATED_AT];
+    const sortOrder =
+      SORT_ORDER_MAP[sort?.order || SortOrder.DESC] ?? 'DESC';
+    qb.orderBy(sortField, sortOrder);
+  }
+
   async findAll(): Promise<Activity[]> {
     return this.repository.find({
       where: { isActive: true },
@@ -54,34 +90,11 @@ export class ActivitiesRepository {
       .leftJoinAndSelect('a.machine', 'machine')
       .where('a.is_active = true');
 
-    if (filters) {
-      if (filters.areaId) {
-        qb.andWhere('a.area_id = :areaId', { areaId: filters.areaId });
-      }
-      if (filters.machineId) {
-        qb.andWhere('a.machine_id = :machineId', { machineId: filters.machineId });
-      }
-      if (filters.status) {
-        qb.andWhere('a.status = :status', { status: filters.status });
-      }
-      if (filters.priority === true) {
-        qb.andWhere('a.priority = true');
-      }
-      if (filters.search) {
-        qb.andWhere('a.activity ILIKE :search', {
-          search: `%${filters.search}%`,
-        });
-      }
-    }
+    this.applyFilters(qb, filters);
 
     const total = await qb.getCount();
 
-    const sortField =
-      SORT_FIELD_MAP[sort?.field || ActivitySortField.CREATED_AT] ??
-      SORT_FIELD_MAP[ActivitySortField.CREATED_AT];
-    const sortOrder =
-      SORT_ORDER_MAP[sort?.order || SortOrder.DESC] ?? 'DESC';
-    qb.orderBy(sortField, sortOrder);
+    this.applySort(qb, sort);
 
     const page = pagination?.page || 1;
     const limit = pagination?.limit || 20;
@@ -90,6 +103,59 @@ export class ActivitiesRepository {
     const data = await qb.getMany();
 
     return { data, total };
+  }
+
+  async findAllWithFilters(
+    filters: ActivityFiltersInput,
+    sort: ActivitySortInput,
+  ): Promise<Activity[]> {
+    const qb = this.repository
+      .createQueryBuilder('a')
+      .leftJoinAndSelect('a.area', 'area')
+      .leftJoinAndSelect('a.machine', 'machine')
+      .leftJoinAndSelect('a.activityTechnicians', 'at', 'at.is_active = true')
+      .leftJoinAndSelect('at.technician', 'tech')
+      .where('a.is_active = true');
+
+    this.applyFilters(qb, filters);
+    this.applySort(qb, sort);
+
+    return qb.getMany();
+  }
+
+  async countForExcelExport(
+    filters: ActivityFiltersInput,
+    _sort: ActivitySortInput,
+  ): Promise<number> {
+    const qb = this.repository
+      .createQueryBuilder('a')
+      .where('a.is_active = true');
+
+    this.applyFilters(qb, filters);
+    return qb.getCount();
+  }
+
+  async findAllWithFiltersBatch(
+    filters: ActivityFiltersInput,
+    sort: ActivitySortInput,
+    pagination: ActivityPaginationInput,
+  ): Promise<Activity[]> {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 20;
+
+    const qb = this.repository
+      .createQueryBuilder('a')
+      .leftJoinAndSelect('a.area', 'area')
+      .leftJoinAndSelect('a.machine', 'machine')
+      .leftJoinAndSelect('a.activityTechnicians', 'at', 'at.is_active = true')
+      .leftJoinAndSelect('at.technician', 'tech')
+      .where('a.is_active = true');
+
+    this.applyFilters(qb, filters);
+    this.applySort(qb, sort);
+    qb.skip((page - 1) * limit).take(limit);
+
+    return qb.getMany();
   }
 
   async create(data: Partial<Activity>): Promise<Activity> {

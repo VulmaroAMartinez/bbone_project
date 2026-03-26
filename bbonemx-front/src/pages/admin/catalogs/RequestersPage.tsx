@@ -56,8 +56,8 @@ export default function RequestersPage() {
         <div className="space-y-6 pb-12">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Cat\u00e1logo de Solicitantes</h1>
-                    <p className="text-muted-foreground">Personal autorizado para reportar aver\u00edas</p>
+                    <h1 className="text-2xl font-bold text-foreground">Catálogo de Solicitantes</h1>
+                    <p className="text-muted-foreground">Personal autorizado para reportar averías</p>
                 </div>
                 <Button onClick={() => openModal()} className="gap-2">
                     <Plus className="h-4 w-4" /> Registrar Solicitante

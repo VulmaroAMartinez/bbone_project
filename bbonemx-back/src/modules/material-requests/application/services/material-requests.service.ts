@@ -108,7 +108,6 @@ export class MaterialRequestsService {
     const hasSelectedCatalogItem = !!(item.materialId || item.sparePartId);
 
     if (hasSelectedCatalogItem) {
-      // Validate that the referenced catalog entity exists
       if (item.materialId) {
         await this.materialsService.findByIdOrFail(item.materialId);
       }

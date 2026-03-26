@@ -27,7 +27,7 @@ export function SignatureDialog({ isOpen, onClose, onSave, title = 'Firmar Orden
 
         setIsSaving(true);
         try {
-            const dataURL = await sigCanvas.current?.getTrimmedCanvas().toDataURL('image/png');
+            const dataURL = sigCanvas.current?.getTrimmedCanvas().toDataURL('image/png');
 
             if (dataURL) {
                 await onSave(dataURL);

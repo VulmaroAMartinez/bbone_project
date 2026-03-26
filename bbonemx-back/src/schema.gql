@@ -496,6 +496,7 @@ type CronJobStatus {
   name: String!
   nextRunAt: DateTime
   retentionDays: Int
+  timeZone: String
 }
 
 type DashboardCharts {
@@ -927,6 +928,7 @@ type Mutation {
   """Marca una notificación como leída"""
   markNotificationAsRead(id: ID!): Notification!
   pausePreventiveTasksCron: Boolean!
+  pauseTechnicianBirthdaysCron: Boolean!
   pauseWorkOrder(id: ID!, input: PauseWorkOrderInput!): WorkOrder!
 
   """Renueva sesión con refresh token rotativo en cookie HttpOnly"""
@@ -940,8 +942,10 @@ type Mutation {
   removeWorkOrderMaterial(id: ID!): Boolean!
   removeWorkOrderSparePart(id: ID!): Boolean!
   resumePreventiveTasksCron: Boolean!
+  resumeTechnicianBirthdaysCron: Boolean!
   resumeWorkOrder(id: ID!): WorkOrder!
   runPreventiveTasksCron: GenerateWorkOrdersResult!
+  runTechnicianBirthdaysWeeklyEmail: TechnicianBirthdaysEmailResult!
   sendMaterialRequestEmail(input: SendMaterialRequestEmailInput!): Boolean!
   setLeadTechnician(id: ID!, technicianId: ID!): WorkOrderTechnician!
   signWorkOrder(input: CreateWorkOrderSignatureInput!): WorkOrderSignature!
@@ -1252,6 +1256,7 @@ type Query {
   subAreasByArea(areaId: ID!): [SubArea!]!
   subAreasWithDeleted: [SubArea!]!
   technician(id: ID!): Technician
+  technicianBirthdaysCronStatus: CronJobStatus!
 
   """Obtiene un horario por ID"""
   technicianSchedule(id: ID!): TechnicianSchedule
@@ -1535,6 +1540,13 @@ type Technician {
   updatedBy: String!
   user: User!
   vacationPeriod: Float!
+}
+
+type TechnicianBirthdaysEmailResult {
+  birthdayCount: Int!
+  reason: String
+  recipientCount: Int!
+  sent: Boolean!
 }
 
 type TechnicianMetric {

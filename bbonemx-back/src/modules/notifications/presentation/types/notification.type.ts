@@ -18,7 +18,7 @@ export class NotificationObjectType {
   @Field(() => NotificationType) type: NotificationType;
   @Field() title: string;
   @Field() body: string;
-  @Field({ nullable: true }) data?: string; // JSON string
+  @Field({ nullable: true }) data?: string; 
   @Field({ nullable: true }) readAt?: Date;
   @Field() pushSent: boolean;
   @Field() emailSent: boolean;

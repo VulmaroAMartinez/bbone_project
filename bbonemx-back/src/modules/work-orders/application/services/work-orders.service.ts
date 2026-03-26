@@ -143,7 +143,6 @@ export class WorkOrdersService {
       throw new BadRequestException(
         'Solo se puede asignar OT en estado Pendiente',
       );
-
     if (
       input.stopType === StopType.BREAKDOWN &&
       !input.machineId &&
@@ -153,7 +152,6 @@ export class WorkOrdersService {
         'La máquina es requerida cuando el tipo de paro es Avería',
       );
     }
-
     if (
       input.maintenanceType === MaintenanceType.CORRECTIVE_SCHEDULED &&
       !input.scheduledDate
@@ -162,7 +160,6 @@ export class WorkOrdersService {
         'La fecha programada es requerida para mantenimiento correctivo programado',
       );
     }
-
     if (
       input.maintenanceType !== MaintenanceType.CORRECTIVE_SCHEDULED &&
       input.scheduledDate
@@ -171,11 +168,11 @@ export class WorkOrdersService {
         'La fecha programada solo aplica para mantenimiento correctivo programado',
       );
     }
-
     if (input.assignedShiftId) {
       const validationDate = this.resolveScheduleValidationDate(
         input.scheduledDate,
       );
+
       for (const techId of input.technicianIds) {
         await this.ensureTechnicianAssignedToShift(
           techId,
@@ -260,10 +257,8 @@ export class WorkOrdersService {
       id,
       technicianId,
     );
-    if (!isAssigned)
-      throw new BadRequestException('El técnico no está asignado a la OT');
-    if (!wo.canPause())
-      throw new BadRequestException('No se puede pausar la OT en este estado');
+    if (!isAssigned) throw new BadRequestException('El técnico no está asignado a la OT');
+    if (!wo.canPause()) throw new BadRequestException('No se puede pausar la OT en este estado');
 
     const now = new Date();
     const segmentMinutes = this.calculateSegmentMinutes(wo.lastResumedAt, now);

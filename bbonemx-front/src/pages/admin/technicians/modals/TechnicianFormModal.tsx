@@ -27,29 +27,29 @@ const createSchema = (isEditing: boolean) =>
     yup.object({
         firstName: yup.string().trim().required('El nombre es obligatorio'),
         lastName: yup.string().trim().required('Los apellidos son obligatorios'),
-        employeeNumber: yup.string().trim().required('El n\u00famero de n\u00f3mina es obligatorio'),
+        employeeNumber: yup.string().trim().required('El número de nómina es obligatorio'),
         departmentId: yup.string().required('Seleccione un departamento'),
-        email: yup.string().trim().email('Email no v\u00e1lido').default(''),
-        phone: yup.string().trim().required('El tel\u00e9fono es obligatorio'),
+        email: yup.string().trim().email('Email no válido').default(''),
+        phone: yup.string().trim().required('El teléfono es obligatorio'),
         password: isEditing
             ? yup.string().default('')
             : yup
                 .string()
-                .required('La contrase\u00f1a es obligatoria')
-                .min(8, 'M\u00ednimo 8 caracteres'),
+                .required('La contraseña es obligatoria')
+                .min(8, 'Mínimo 8 caracteres'),
         positionId: yup.string().required('Seleccione un cargo'),
-        address: yup.string().trim().required('La direcci\u00f3n es obligatoria'),
+        address: yup.string().trim().required('La dirección es obligatoria'),
         allergies: yup.string().trim().required('Indique alergias o "Ninguna"'),
         birthDate: yup.string().required('La fecha de nacimiento es obligatoria'),
         bloodType: yup.string().trim().required('El tipo de sangre es obligatorio'),
         childrenCount: yup.number().min(0).required('Indique la cantidad de hijos').default(0),
         education: yup.string().trim().required('La escolaridad es obligatoria'),
         emergencyContactName: yup.string().trim().required('El nombre del contacto es obligatorio'),
-        emergencyContactPhone: yup.string().trim().required('El tel\u00e9fono de emergencia es obligatorio'),
+        emergencyContactPhone: yup.string().trim().required('El teléfono de emergencia es obligatorio'),
         emergencyContactRelationship: yup.string().trim().required('El parentesco es obligatorio'),
-        hireDate: yup.string().required('La fecha de contrataci\u00f3n es obligatoria'),
+        hireDate: yup.string().required('La fecha de contratación es obligatoria'),
         nss: yup.string().trim().default(''),
-        pantsSize: yup.string().trim().required('La talla de pantal\u00f3n es obligatoria'),
+        pantsSize: yup.string().trim().required('La talla de pantalón es obligatoria'),
         rfc: yup.string().trim().default(''),
         shirtSize: yup.string().trim().required('La talla de camisa es obligatoria'),
         shoeSize: yup.string().trim().required('La talla de calzado es obligatoria'),
@@ -147,7 +147,7 @@ export default function TechnicianFormModal({
 
     const onSubmit = async (values: FormValues) => {
         if (!techRoleId) {
-            toast.error('No se encontr\u00f3 el rol TECHNICIAN en la base de datos.');
+            toast.error('No se encontró el rol TECHNICIAN en la base de datos.');
             return;
         }
         setIsSaving(true);
@@ -188,9 +188,9 @@ export default function TechnicianFormModal({
                 if (values.password) userPayload.password = values.password;
                 await updateUser({ variables: { id: technician.user.id, input: userPayload } });
                 await updateTechnician({ variables: { id: technician.id, input: { ...techPayload, id: technician.id } } });
-                toast.success('T\u00e9cnico actualizado correctamente.');
+                toast.success('Técnico actualizado correctamente.');
             } else {
-                if (!values.password) throw new Error('La contrase\u00f1a es requerida para nuevos t\u00e9cnicos.');
+                if (!values.password) throw new Error('La contraseña es requerida para nuevos técnicos.');
                 userPayload.password = values.password;
                 userPayload.roleIds = [techRoleId];
 
@@ -199,7 +199,7 @@ export default function TechnicianFormModal({
                 if (!newUserId) throw new Error('Error al generar el usuario.');
 
                 await createTechnician({ variables: { input: { ...techPayload, userId: newUserId } } });
-                toast.success('T\u00e9cnico registrado correctamente.');
+                toast.success('Técnico registrado correctamente.');
             }
 
             onOpenChange(false);
@@ -220,8 +220,8 @@ export default function TechnicianFormModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{isEditing ? 'Editar Perfil del T\u00e9cnico' : 'Registrar Nuevo T\u00e9cnico'}</DialogTitle>
-                    <DialogDescription>Complete la informaci\u00f3n personal y laboral del empleado.</DialogDescription>
+                    <DialogTitle>{isEditing ? 'Editar Perfil del Técnico' : 'Registrar Nuevo Técnico'}</DialogTitle>
+                    <DialogDescription>Complete la información personal y laboral del empleado.</DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-2">
@@ -240,16 +240,16 @@ export default function TechnicianFormModal({
                                 <FieldError name="lastName" />
                             </div>
                             <div className="space-y-2">
-                                <Label>N\u00famero de N\u00f3mina *</Label>
+                                <Label>Número de Nómina *</Label>
                                 <Input {...register('employeeNumber')} />
                                 <FieldError name="employeeNumber" />
                             </div>
                             <div className="space-y-2">
-                                <Label>{isEditing ? 'Nueva Contrase\u00f1a (Opcional)' : 'Contrase\u00f1a *'}</Label>
+                                <Label>{isEditing ? 'Nueva Contraseña (Opcional)' : 'Contraseña *'}</Label>
                                 <Input
                                     type="password"
                                     {...register('password')}
-                                    placeholder={isEditing ? 'Dejar vac\u00edo para no cambiar' : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
+                                    placeholder={isEditing ? 'Dejar vacío para no cambiar' : '********'}
                                 />
                                 <FieldError name="password" />
                             </div>
@@ -287,7 +287,7 @@ export default function TechnicianFormModal({
                                 <FieldError name="positionId" />
                             </div>
                             <div className="space-y-2">
-                                <Label>Fecha de Contrataci\u00f3n *</Label>
+                                <Label>Fecha de Contratación *</Label>
                                 <Input type="date" {...register('hireDate')} />
                                 <FieldError name="hireDate" />
                             </div>
@@ -305,7 +305,7 @@ export default function TechnicianFormModal({
                                             onCheckedChange={(checked) => field.onChange(!!checked)}
                                         />
                                         <Label htmlFor="isBoss" className="cursor-pointer font-normal">
-                                            \u00bfEs jefe? (Selecciona solo si tiene t\u00e9cnicos a su cargo)
+                                            ¿Es jefe? (Selecciona solo si tiene técnicos a su cargo)
                                         </Label>
                                     </div>
                                 )} />
@@ -313,12 +313,12 @@ export default function TechnicianFormModal({
                         </div>
                     </div>
 
-                    {/* ---- 3. Informaci\u00f3n Personal ---- */}
+                    {/* ---- 3. Información Personal ---- */}
                     <div className="space-y-4 p-4 rounded-lg border border-border">
-                        <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">3. Informaci\u00f3n Personal</h4>
+                        <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">3. Información Personal</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <Label>Tel\u00e9fono *</Label>
+                                <Label>Teléfono *</Label>
                                 <Input {...register('phone')} />
                                 <FieldError name="phone" />
                             </div>
@@ -334,7 +334,7 @@ export default function TechnicianFormModal({
                             </div>
 
                             <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-                                <Label>Direcci\u00f3n Completa *</Label>
+                                <Label>Dirección Completa *</Label>
                                 <Input {...register('address')} />
                                 <FieldError name="address" />
                             </div>
@@ -388,7 +388,7 @@ export default function TechnicianFormModal({
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <div className="space-y-2">
-                                    <Label>Tel\u00e9fono *</Label>
+                                    <Label>Teléfono *</Label>
                                     <Input {...register('emergencyContactPhone')} />
                                     <FieldError name="emergencyContactPhone" />
                                 </div>
@@ -409,7 +409,7 @@ export default function TechnicianFormModal({
                                     <FieldError name="shirtSize" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Pantal\u00f3n *</Label>
+                                    <Label>Pantalón *</Label>
                                     <Input {...register('pantsSize')} />
                                     <FieldError name="pantsSize" />
                                 </div>
@@ -426,7 +426,7 @@ export default function TechnicianFormModal({
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
                         <Button type="submit" disabled={isSaving}>
                             {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                            Guardar T\u00e9cnico
+                            Guardar Técnico
                         </Button>
                     </DialogFooter>
                 </form>

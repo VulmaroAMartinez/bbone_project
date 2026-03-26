@@ -484,12 +484,13 @@ export default function CreateMaterialRequestPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-                {/* ── 1. Información de la solicitud ── */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base">1. Información de la solicitud</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+                    {/* ── 1. Información de la solicitud ── */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">1. Información de la solicitud</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
 
                         {/* Solicitante: solo técnicos */}
                         <div className="space-y-1.5">
@@ -587,15 +588,15 @@ export default function CreateMaterialRequestPage() {
                                 <p className="text-xs text-destructive">{errors.boss.message}</p>
                             )}
                         </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
 
-                {/* ── 2. Equipo o Estructura ── */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base">2. Equipo o Estructura</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                    {/* ── 2. Equipo o Estructura ── */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">2. Equipo o Estructura</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
 
                         {/* Máquinas seleccionadas */}
                         <div className="space-y-1.5">
@@ -696,8 +697,9 @@ export default function CreateMaterialRequestPage() {
                                 </div>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* ── 3. Artículos Solicitados — solo si NO es servicio ── */}
                 {showItems && (
@@ -930,30 +932,31 @@ export default function CreateMaterialRequestPage() {
                     </Card>
                 )}
 
-                {/* ── 4. Descripción / Especificaciones (por solicitud) ── */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base">
-                            {showItems ? '4.' : '3.'} Descripción / Especificaciones
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Textarea
-                            rows={4}
-                            placeholder="Describe las especificaciones o requerimientos de esta solicitud..."
-                            {...register('description')}
-                        />
-                    </CardContent>
-                </Card>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+                    {/* ── 4. Descripción / Especificaciones (por solicitud) ── */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                                {showItems ? '4.' : '3.'} Descripción / Especificaciones
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Textarea
+                                rows={4}
+                                placeholder="Describe las especificaciones o requerimientos de esta solicitud..."
+                                {...register('description')}
+                            />
+                        </CardContent>
+                    </Card>
 
-                {/* ── 5. Importancia y Compatibilidad ── */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base">
-                            {showItems ? '5.' : '4.'} Importancia y Compatibilidad
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                    {/* ── 5. Importancia y Compatibilidad ── */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                                {showItems ? '5.' : '4.'} Importancia y Compatibilidad
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
 
                         <div className="space-y-1.5">
                             <Label>Importancia <span className="text-destructive">*</span></Label>
@@ -978,8 +981,9 @@ export default function CreateMaterialRequestPage() {
                             )}
                         </div>
 
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* ── 6. Información Adicional ── */}
                 <Card>

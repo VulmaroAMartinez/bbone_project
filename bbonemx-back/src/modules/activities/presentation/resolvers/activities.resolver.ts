@@ -85,6 +85,22 @@ export class ActivitiesResolver {
     };
   }
 
+  @Query(() => String, {
+    name: 'exportActivitiesExcel',
+    description: 'Exportar actividades a Excel (Base64)',
+  })
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.BOSS)
+  async exportActivitiesExcel(
+    @Args('filters', { nullable: true }) filters?: ActivityFiltersInput,
+    @Args('sort', { nullable: true }) sort?: ActivitySortInput,
+  ): Promise<string> {
+    return this.activitiesService.exportToExcel(
+      filters || {},
+      sort || { field: ActivitySortField.CREATED_AT, order: SortOrder.DESC },
+    );
+  }
+
   @Query(() => ActivityType, { name: 'activity', nullable: true })
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.BOSS)

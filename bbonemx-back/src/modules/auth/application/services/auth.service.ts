@@ -250,9 +250,8 @@ export class AuthService {
       relations: ['user'],
     });
 
-    if (!storedToken) {
-      throw new UnauthorizedException('Refresh token inválido');
-    }
+    if (!storedToken) throw new UnauthorizedException('Refresh token inválido');
+    
 
     if (storedToken.expiresAt.getTime() <= Date.now()) {
       storedToken.revokedAt = new Date();

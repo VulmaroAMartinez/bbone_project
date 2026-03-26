@@ -2,8 +2,9 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
     overwrite: true,
-    // Usar schema local para evitar límites de profundidad/complejidad del endpoint
-    schema: "../bbonemx-back/src/schema.gql",
+    // Usar el esquema generado/actualizado en la raíz del backend.
+    // `src/schema.gql` puede quedar desactualizado y romper la validación de documentos.
+    schema: "../bbonemx-back/schema.gql",
     documents: [
         "src/lib/graphql/operations/**/*.ts",
         //"src/**/*.{ts,tsx}"

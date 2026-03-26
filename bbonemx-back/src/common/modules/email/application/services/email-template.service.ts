@@ -3,6 +3,7 @@ import {
   BaseEmailTemplateData,
   MaterialRequestEmailTemplateData,
   MaterialRequestEmailItemData,
+  TechnicianBirthdaysWeeklyTemplateData,
 } from '../../presentation/types';
 
 @Injectable()
@@ -29,6 +30,68 @@ export class EmailTemplateService {
                 </table>
             </div>
         `;
+  }
+
+  renderTechnicianBirthdaysWeeklyTemplate(
+    data: TechnicianBirthdaysWeeklyTemplateData,
+  ): string {
+    const appName = 'Bumble Bee Maintenance';
+    const rows =
+      data.birthdays.length === 0
+        ? ''
+        : data.birthdays
+            .map(
+              (b) => `
+        <tr>
+          <td style="padding:10px 12px;font-size:14px;color:#0f172a;border-bottom:1px solid #f1f5f9;">${this.escapeHtml(b.fullName)}</td>
+          <td style="padding:10px 12px;font-size:14px;color:#64748b;border-bottom:1px solid #f1f5f9;">${this.escapeHtml(b.employeeNumber ?? '—')}</td>
+          <td style="padding:10px 12px;font-size:14px;color:#64748b;border-bottom:1px solid #f1f5f9;">${this.escapeHtml(b.positionName ?? '—')}</td>
+          <td style="padding:10px 12px;font-size:14px;font-weight:600;color:#8b1a1a;border-bottom:1px solid #f1f5f9;">${this.escapeHtml(b.birthdayThisWeekLabel)}</td>
+        </tr>`,
+            )
+            .join('');
+
+    return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;padding:24px 8px;">
+<tr><td align="center">
+<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
+  <tr>
+    <td style="background-color:#8b1a1a;padding:20px 24px;">
+      <p style="margin:0;font-size:11px;color:#fca5a5;text-transform:uppercase;letter-spacing:1px;">${appName}</p>
+      <h1 style="margin:4px 0 0;font-size:20px;color:#ffffff;font-weight:700;">Cumpleaños de técnicos</h1>
+      <p style="margin:8px 0 0;font-size:14px;color:#fecaca;">${this.escapeHtml(data.weekTitle)}</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#334155;">${this.escapeHtml(data.introMessage)}</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
+        <tr style="background-color:#f8fafc;">
+          <th align="left" style="padding:10px 12px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Nombre</th>
+          <th align="left" style="padding:10px 12px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">No. empleado</th>
+          <th align="left" style="padding:10px 12px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Puesto</th>
+          <th align="left" style="padding:10px 12px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Día</th>
+        </tr>
+        ${rows}
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:16px 24px;border-top:1px solid #e2e8f0;">
+      <p style="margin:0;font-size:11px;color:#94a3b8;text-align:center;">
+        Este correo fue enviado automáticamente por ${appName}.
+      </p>
+    </td>
+  </tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
   }
 
   renderMaterialRequestTemplate(data: MaterialRequestEmailTemplateData): string {
@@ -266,6 +329,15 @@ export class EmailTemplateService {
       </table>
     </td>
   </tr>`;
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   private renderActionButton(actionText?: string, actionUrl?: string): string {

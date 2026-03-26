@@ -1,5 +1,7 @@
 import { Provider } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
+import { RedisPubSub } from 'graphql-redis-subscriptions';
+import Redis from 'ioredis';
 
 /**
  * Token de inyección para PubSub.
@@ -25,5 +27,19 @@ export const SUBSCRIPTION_TRIGGERS = {
  */
 export const PubSubProvider: Provider = {
   provide: NOTIFICATION_PUB_SUB,
-  useFactory: () => new PubSub(),
+  useFactory: () => {
+    const redisEnabled = process.env.REDIS_ENABLED === 'true';
+    if (!redisEnabled) {
+      return new PubSub();
+    }
+
+    const host = process.env.REDIS_HOST ?? 'redis';
+    const port = Number(process.env.REDIS_PORT ?? 6379);
+    const password = process.env.REDIS_PASSWORD || undefined;
+
+    return new RedisPubSub({
+      publisher: new Redis({ host, port, password, lazyConnect: true }),
+      subscriber: new Redis({ host, port, password, lazyConnect: true }),
+    });
+  },
 };
