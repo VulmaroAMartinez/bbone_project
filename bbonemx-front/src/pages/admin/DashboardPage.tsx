@@ -152,7 +152,6 @@ export default function DashboardPage() {
     }
     const specs: Array<{ el: HTMLDivElement | null; title: string }> = [
       { el: refThroughput.current, title: 'Rendimiento Semanal (Throughput)' },
-      { el: refMix.current, title: 'Mix de Mantenimiento' },
       { el: refTechnicians.current, title: 'Top Técnicos por Cierres' },
       { el: refMachinesDowntime.current, title: 'Top Máquinas (Tiempo Muerto)' },
       { el: refFindingsArea.current, title: 'Hallazgos por Área' },
@@ -165,8 +164,8 @@ export default function DashboardPage() {
       for (const { el, title } of specs) {
         if (!el) continue;
         const imageDataUrl = await captureElementToJpegDataUrl(el, {
-          quality: 0.82,
-          pixelRatio: 1.35,
+          quality: 0.9,
+          pixelRatio: 2,
         });
         items.push({ title, imageDataUrl });
       }
@@ -372,14 +371,14 @@ export default function DashboardPage() {
       {/* Main Charts */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Rendimiento (Throughput) */}
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refThroughput} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <Activity className="h-4 w-4" /> Rendimiento Semanal (Throughput)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div ref={refThroughput} role="img" aria-label="Gráfica de rendimiento semanal (throughput) de órdenes cerradas">
+            <div role="img" aria-label="Gráfica de rendimiento semanal (throughput) de órdenes cerradas">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
                 <LineChart data={charts.throughputByWeek}>
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
@@ -394,14 +393,14 @@ export default function DashboardPage() {
         </Card>
 
         {/* Mix de Mantenimiento */}
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refMix} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4" /> Mix de Mantenimiento
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div ref={refMix} role="img" aria-label="Gráfica de pastel con el mix de tipos de mantenimiento">
+            <div role="img" aria-label="Gráfica de pastel con el mix de tipos de mantenimiento">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
                 <PieChart>
                   <Pie
@@ -433,14 +432,14 @@ export default function DashboardPage() {
       {/* Rankings */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Top Técnicos */}
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refTechnicians} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <Users className="h-4 w-4" /> Top Técnicos por Cierres
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div ref={refTechnicians} role="img" aria-label="Gráfica de barras con los técnicos con más órdenes completadas">
+            <div role="img" aria-label="Gráfica de barras con los técnicos con más órdenes completadas">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
                 <BarChart data={rankings.topTechniciansByClosures} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" horizontal={false} />
@@ -455,14 +454,14 @@ export default function DashboardPage() {
         </Card>
 
         {/* Top Máquinas por Downtime */}
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refMachinesDowntime} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <AlertTriangle className="h-4 w-4 text-destructive" /> Top Máquinas (Tiempo Muerto)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div ref={refMachinesDowntime} role="img" aria-label="Gráfica de barras con las máquinas con mayor tiempo muerto">
+            <div role="img" aria-label="Gráfica de barras con las máquinas con mayor tiempo muerto">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
                 <BarChart data={topMachinesByDowntime} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" horizontal={false} />
@@ -479,14 +478,14 @@ export default function DashboardPage() {
 
       {/* Hallazgos y OTs por Área */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refFindingsArea} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <AlertTriangle className="h-4 w-4 text-amber-500" /> Hallazgos por Área
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div ref={refFindingsArea} role="img" aria-label="Gráfica de barras con número de hallazgos por área">
+            <div role="img" aria-label="Gráfica de barras con número de hallazgos por área">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
               <BarChart data={findingsByAreaColored}>
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
@@ -504,14 +503,14 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm">
+        <Card ref={refWorkOrdersArea} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <ClipboardList className="h-4 w-4 text-primary" /> Órdenes de Trabajo por Área
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div ref={refWorkOrdersArea} role="img" aria-label="Gráfica de barras con número de órdenes de trabajo por área">
+            <div role="img" aria-label="Gráfica de barras con número de órdenes de trabajo por área">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
               <BarChart data={workOrdersByAreaColored}>
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />

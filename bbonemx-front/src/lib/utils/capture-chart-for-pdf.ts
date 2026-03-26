@@ -9,9 +9,14 @@ export async function captureElementToJpegDataUrl(
   options?: { quality?: number; pixelRatio?: number },
 ): Promise<string> {
   return toJpeg(element, {
-    quality: options?.quality ?? 0.82,
-    pixelRatio: options?.pixelRatio ?? 1.35,
+    quality: options?.quality ?? 0.9,
+    pixelRatio: options?.pixelRatio ?? 2,
     cacheBust: true,
     backgroundColor: '#ffffff',
+    /**
+     * Evita leer `cssRules` de hojas de estilo remotas (p. ej. Google Fonts),
+     * que en cross-origin lanzan SecurityError y dejan la captura colgada.
+     */
+    skipFonts: true,
   });
 }

@@ -298,7 +298,8 @@ export class PdfGeneratorService {
   }
 
   private static readonly MAX_CHART_ITEMS = 12;
-  private static readonly MAX_IMAGE_BYTES = 900_000;
+  /** Capturas 2x JPEG pueden superar ~900 KB; el límite global de body ya es amplio. */
+  private static readonly MAX_IMAGE_BYTES = 2_000_000;
 
   private normalizeChartDataUrl(dataUrl: string): string {
     const trimmed = dataUrl?.trim() ?? '';
@@ -359,50 +360,105 @@ export class PdfGeneratorService {
     const items = options?.items;
     this.preflightChartsPdfItems(items);
 
-    const imageMaxWidth = options.imageMaxWidth ?? 720;
+    /** A4 vertical: una sola página con rejilla 2 columnas (imágenes escaladas con `fit`). */
+    const pageMargins: [number, number, number, number] = [22, 26, 22, 26];
+    const pageInnerWidth = 595 - pageMargins[0] - pageMargins[2];
+    const columnGap = 8;
+    const colW = Math.floor((pageInnerWidth - columnGap) / 2);
+    const fullW = Math.min(options.imageMaxWidth ?? pageInnerWidth, pageInnerWidth);
+    /** Alto máximo por miniatura para intentar caber todas en una hoja. */
+    const imageFitH = 168;
     const startedAt = Date.now();
 
     const content: any[] = [];
     const title = options.documentTitle?.trim() || 'Dashboard — Gráficas';
     content.push({
       text: title,
-      fontSize: 16,
+      fontSize: 14,
       bold: true,
-      margin: [0, 0, 0, 6],
+      margin: [0, 0, 0, 4],
     });
     if (options.subtitle?.trim()) {
       content.push({
         text: options.subtitle.trim(),
-        fontSize: 9,
+        fontSize: 8,
         color: '#444444',
-        margin: [0, 0, 0, 12],
+        margin: [0, 0, 0, 8],
       });
     }
 
-    items.forEach((item, idx) => {
-      const safeTitle = item.title?.trim() || `Gráfica ${idx + 1}`;
-      const image = this.normalizeChartDataUrl(item.imageDataUrl);
-      content.push({
-        text: safeTitle,
-        fontSize: 11,
-        bold: true,
-        margin: [0, idx === 0 ? 0 : 10, 0, 6],
-      });
-      content.push({
-        image,
-        width: imageMaxWidth,
-        alignment: 'center',
-        margin: [0, 0, 0, 4],
-      });
-      if (idx < items.length - 1) {
-        content.push({ text: '', pageBreak: 'after' as const });
+    for (let i = 0; i < items.length; i += 2) {
+      const left = items[i];
+      const right = items[i + 1];
+      const titleTopMargin = i === 0 ? 0 : 5;
+
+      if (right) {
+        const safeLeft = left.title?.trim() || `Gráfica ${i + 1}`;
+        const safeRight = right.title?.trim() || `Gráfica ${i + 2}`;
+        const imgLeft = this.normalizeChartDataUrl(left.imageDataUrl);
+        const imgRight = this.normalizeChartDataUrl(right.imageDataUrl);
+        content.push({
+          columns: [
+            {
+              width: '*',
+              stack: [
+                {
+                  text: safeLeft,
+                  fontSize: 8,
+                  bold: true,
+                  margin: [0, titleTopMargin, 0, 2],
+                },
+                {
+                  image: imgLeft,
+                  fit: [colW, imageFitH],
+                  alignment: 'center' as const,
+                },
+              ],
+            },
+            {
+              width: '*',
+              stack: [
+                {
+                  text: safeRight,
+                  fontSize: 8,
+                  bold: true,
+                  margin: [0, titleTopMargin, 0, 2],
+                },
+                {
+                  image: imgRight,
+                  fit: [colW, imageFitH],
+                  alignment: 'center' as const,
+                },
+              ],
+            },
+          ],
+          columnGap,
+        });
+      } else {
+        const safeTitle = left.title?.trim() || `Gráfica ${i + 1}`;
+        const image = this.normalizeChartDataUrl(left.imageDataUrl);
+        content.push({
+          stack: [
+            {
+              text: safeTitle,
+              fontSize: 8,
+              bold: true,
+              margin: [0, titleTopMargin, 0, 2],
+            },
+            {
+              image,
+              fit: [fullW, imageFitH + 14],
+              alignment: 'center' as const,
+            },
+          ],
+        });
       }
-    });
+    }
 
     const docDefinition: TDocumentDefinitions = {
       pageSize: 'A4',
-      pageOrientation: 'landscape',
-      pageMargins: [40, 40, 40, 40],
+      pageOrientation: 'portrait',
+      pageMargins,
       content,
       defaultStyle: {
         font: 'Roboto',

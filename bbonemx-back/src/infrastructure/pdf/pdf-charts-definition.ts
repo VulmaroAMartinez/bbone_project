@@ -8,6 +8,6 @@ export interface DashboardChartsPdfOptions {
   documentTitle?: string;
   subtitle?: string;
   items: DashboardChartPdfItem[];
-  /** Ancho de imagen en puntos PDF (landscape A4 útil ~720). */
+  /** Ancho máximo (pt) para la última fila si queda una sola gráfica (A4 vertical). */
   imageMaxWidth?: number;
 }
