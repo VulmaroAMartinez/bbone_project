@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, User, Lock, Loader2 } from 'lucide-react';
 import logo from '@/assets/logo2.png';
+import { resolveLoginRedirectPath } from '@/lib/auth/auth-flow';
 
 const loginSchema = yup.object({
   employeeNumber: yup
@@ -47,7 +48,7 @@ function LoginPage() {
     },
   });
 
-  const from = location.state?.from?.pathname || '/';
+  const from = resolveLoginRedirectPath(location.state?.from?.pathname);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {

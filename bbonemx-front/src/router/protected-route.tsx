@@ -4,6 +4,7 @@ import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { AllowedRole } from '@/lib/types';
+import { resolveProtectedRouteAccess } from '@/lib/auth/auth-flow';
 
 interface ProtectedRouteProps {
   allowedRoles?: AllowedRole[];
@@ -19,7 +20,19 @@ export const ProtectedRoute = ({
   const { user, isAuthenticated, isLoading, activeRole, isBoss } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  const accessResult = resolveProtectedRouteAccess({
+    isLoading,
+    isAuthenticated,
+    hasUser: !!user,
+    isUserActive: !!user?.isActive,
+    activeRole,
+    isBoss,
+    allowedRoles,
+    requireActive,
+    redirectUnauthorizedTo,
+  });
+
+  if (accessResult === 'loading') {
     return (
       <div className="flex h-screen w-full items-center justify-center p-4">
         <div className="space-y-4 w-full max-w-md">
@@ -30,22 +43,12 @@ export const ProtectedRoute = ({
     );
   }
 
-  if (!isAuthenticated || !user) {
+  if (accessResult === '/login') {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requireActive && !user.isActive) {
-    return <Navigate to={redirectUnauthorizedTo} replace />;
-  }
-
-  if (allowedRoles && allowedRoles.length > 0) {
-    const hasAccess =
-      (activeRole !== null && allowedRoles.includes(activeRole as AllowedRole)) ||
-      (isBoss && allowedRoles.includes('BOSS' as AllowedRole));
-
-    if (!hasAccess) {
-      return <Navigate to={redirectUnauthorizedTo} replace />;
-    }
+  if (accessResult !== 'allow') {
+    return <Navigate to={accessResult} replace />;
   }
 
   return <Outlet />;
