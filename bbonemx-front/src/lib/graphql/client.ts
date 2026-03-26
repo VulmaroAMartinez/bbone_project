@@ -12,6 +12,7 @@ import {
 } from '@apollo/client/errors';
 
 import { logDevWarning, reportError } from '../logging';
+import { shouldAttemptRefresh } from './error-handling';
 
 const GRAPHLQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_URL;
 
@@ -37,6 +38,7 @@ const csrfLink = new ApolloLink((operation, forward) => {
 
   return forward(operation);
 });
+
 
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -66,14 +68,11 @@ async function executeRefresh(): Promise<boolean> {
 
 const errorLink = new ErrorLink(({ error, operation, forward }) => {
   if (CombinedGraphQLErrors.is(error)) {
-    const isUnauthenticated = error.errors.some(
-      (entry) => entry.extensions?.code === 'UNAUTHENTICATED',
-    );
-    const hasRefreshed = operation.getContext().hasRefreshed;
-    const isRefreshOperation = operation.operationName === 'RefreshAuth';
+    const codes = error.errors.map((entry) => String(entry.extensions?.code ?? 'UNKNOWN'));
+    const hasRefreshed = operation.getContext().hasRefreshed as boolean | undefined;
     const isLoginOperation = operation.operationName === 'Login';
 
-    if (isUnauthenticated && !hasRefreshed && !isRefreshOperation) {
+    if (shouldAttemptRefresh(operation.operationName, hasRefreshed, codes)) {
       operation.setContext({ hasRefreshed: true });
 
       refreshPromise ??= executeRefresh().finally(() => {
