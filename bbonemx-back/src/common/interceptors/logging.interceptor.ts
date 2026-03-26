@@ -17,13 +17,13 @@ import { tap } from 'rxjs/operators';
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger('GraphQL');
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const gqlContext = GqlExecutionContext.create(context);
-    const info = gqlContext.getInfo();
-    const ctx = gqlContext.getContext();
+    const info = gqlContext.getInfo<import('graphql').GraphQLResolveInfo>();
+    const ctx = gqlContext.getContext<{ req?: { user?: { id?: string } } }>();
 
-    const operationType = info.parentType.name; // Query, Mutation, Subscription
-    const fieldName = info.fieldName;
+    const operationType = info.parentType?.name || 'Unknown'; // Query, Mutation, Subscription
+    const fieldName = info.fieldName || 'Unknown';
     const userId = ctx.req?.user?.id || 'anonymous';
 
     const startTime = Date.now();
@@ -36,10 +36,10 @@ export class LoggingInterceptor implements NestInterceptor {
             `${operationType}.${fieldName} - User: ${userId} - ${duration}ms`,
           );
         },
-        error: (error) => {
+        error: (error: unknown) => {
           const duration = Date.now() - startTime;
           this.logger.error(
-            `${operationType}.${fieldName} - User: ${userId} - ${duration}ms - Error: ${error.message}`,
+            `${operationType}.${fieldName} - User: ${userId} - ${duration}ms - Error: ${(error as Error).message}`,
           );
         },
       }),

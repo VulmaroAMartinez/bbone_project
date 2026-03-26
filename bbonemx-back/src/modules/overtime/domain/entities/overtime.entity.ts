@@ -45,7 +45,7 @@ export class Overtime extends BaseEntity {
     const [sh, sm] = this.startTime.split(':').map(Number);
     const [eh, em] = this.endTime.split(':').map(Number);
     let totalMinutes = eh * 60 + em - (sh * 60 + sm);
-    if (totalMinutes < 0) totalMinutes += 24 * 60; // cruza medianoche
+    if (totalMinutes < 0) totalMinutes += 24 * 60;
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return `${hours}h ${minutes}m`;

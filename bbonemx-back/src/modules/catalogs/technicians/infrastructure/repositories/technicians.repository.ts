@@ -105,4 +105,28 @@ export class TechniciansRepository {
     technician.deletedAt = null;
     await this.repository.save(technician);
   }
+
+  /**
+   * Técnicos activos cuyo cumpleaños (mes-día) cae en la lista indicada (ej. una semana).
+   */
+  async findActiveWithBirthdaysOnMonthDays(
+    monthDayKeys: string[],
+  ): Promise<Technician[]> {
+    if (monthDayKeys.length === 0) {
+      return [];
+    }
+
+    return this.repository
+      .createQueryBuilder('t')
+      .leftJoinAndSelect('t.user', 'u')
+      .leftJoinAndSelect('t.position', 'p')
+      .where('t.is_active = :active', { active: true })
+      .andWhere("to_char(t.birth_date, 'MM-DD') IN (:...mds)", {
+        mds: monthDayKeys,
+      })
+      .orderBy("to_char(t.birth_date, 'MM-DD')", 'ASC')
+      .addOrderBy('u.last_name', 'ASC')
+      .addOrderBy('u.first_name', 'ASC')
+      .getMany();
+  }
 }

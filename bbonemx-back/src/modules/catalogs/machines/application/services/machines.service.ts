@@ -74,11 +74,11 @@ export class MachinesService {
       input.subAreaId !== undefined ? input.subAreaId : existing.subAreaId;
 
     // Si se envía areaId, limpiar subAreaId y viceversa
-    const data: Partial<Machine> = { ...input };
+    const data: Partial<Machine> & Record<string, unknown> = { ...input };
     if (input.areaId) {
-      data.subAreaId = null as any;
+      data.subAreaId = null as unknown as undefined;
     } else if (input.subAreaId) {
-      data.areaId = null as any;
+      data.areaId = null as unknown as undefined;
     }
 
     await this.validateAreaSubAreaXor(

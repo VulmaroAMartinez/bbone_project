@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import {
     GetMaterialRequestDocument,
     SendMaterialRequestEmailDocument,
+    type GetMaterialRequestQuery,
 } from '@/lib/graphql/generated/graphql';
 import { toast } from 'sonner';
 
@@ -39,7 +40,7 @@ import {
     IMPORTANCE_LABELS,
     PRIORITY_COLORS,
     IMPORTANCE_COLORS,
-} from './MaterialRequestsPage';
+} from './material-requests.constants';
 
 // ─── Email modal ─────────────────────────────────────────────────────────────
 
@@ -168,7 +169,7 @@ export default function MaterialRequestDetailPage() {
     const navigate = useNavigate();
     const [emailOpen, setEmailOpen] = useState(false);
 
-    const { data, loading } = useQuery(GetMaterialRequestDocument, {
+  const { data, loading } = useQuery<GetMaterialRequestQuery>(GetMaterialRequestDocument, {
         variables: { id: id! },
         skip: !id,
         fetchPolicy: 'cache-and-network',
@@ -211,9 +212,9 @@ export default function MaterialRequestDetailPage() {
     }
 
     // ── Data ──────────────────────────────────────────────────────────────────
-    const machineEntities = (request.machines ?? []).map((mrm: any) => mrm.machine);
+  const machineEntities = (request.machines ?? []).map((mrm) => mrm.machine);
     const areaNames = new Set(
-        machineEntities.map((m: any) => m?.area?.name ?? m?.subArea?.area?.name).filter(Boolean),
+    machineEntities.map((m) => m?.area?.name ?? m?.subArea?.area?.name).filter(Boolean),
     );
     const derivedAreaName = areaNames.size === 1
         ? [...areaNames][0]
@@ -341,7 +342,7 @@ export default function MaterialRequestDetailPage() {
                             <p className="text-sm font-medium">{derivedAreaName}</p>
                         </div>
                     )}
-                    {machineEntities.map((machine: any, idx: number) => {
+    {machineEntities.map((machine, idx: number) => {
                         const mArea = machine?.area?.name ?? machine?.subArea?.area?.name;
                         const mSubArea = machine?.subArea?.name;
                         return (

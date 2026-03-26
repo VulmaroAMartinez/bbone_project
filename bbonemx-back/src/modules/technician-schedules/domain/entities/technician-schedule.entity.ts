@@ -37,9 +37,6 @@ export class TechnicianSchedule extends BaseEntity {
   @JoinColumn({ name: 'absence_reason_id' })
   absenceReason?: AbsenceReason;
 
-  @Column({ name: 'notes', type: 'text', nullable: true })
-  notes?: string;
-
   isWorkDay(): boolean {
     return this.shiftId !== null && this.shiftId !== undefined;
   }

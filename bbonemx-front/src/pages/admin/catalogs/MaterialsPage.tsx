@@ -1,51 +1,29 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
 import {
     GetMaterialsDocument,
-    CreateMaterialDocument,
-    UpdateMaterialDocument,
     ActivateMaterialDocument,
-    DeactivateMaterialDocument
+    DeactivateMaterialDocument,
+    type GetMaterialsQuery,
 } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2 } from 'lucide-react';
-
-const schema = yup.object({
-    description: yup.string().trim().required('La descripción es obligatoria'),
-    brand: yup.string().trim().default(''),
-    manufacturer: yup.string().trim().default(''),
-    model: yup.string().trim().default(''),
-    partNumber: yup.string().trim().default(''),
-    sku: yup.string().trim().default(''),
-    unitOfMeasure: yup.string().trim().default(''),
-});
-
-type FormValues = yup.InferType<typeof schema>;
+import MaterialFormModal from './modals/MaterialFormModal';
+import { toast } from 'sonner';
 
 export default function MaterialsPage() {
-    const { data, loading, refetch } = useQuery(GetMaterialsDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useQuery<GetMaterialsQuery>(GetMaterialsDocument, { fetchPolicy: 'cache-and-network' });
 
-    const [createMaterial, { loading: creating }] = useMutation(CreateMaterialDocument);
-    const [updateMaterial, { loading: updating }] = useMutation(UpdateMaterialDocument);
     const [activateMaterial] = useMutation(ActivateMaterialDocument);
     const [deactivateMaterial] = useMutation(DeactivateMaterialDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
-        resolver: yupResolver(schema),
-        defaultValues: { description: '', brand: '', manufacturer: '', model: '', partNumber: '', sku: '', unitOfMeasure: '' },
-    });
+    type MaterialItem = GetMaterialsQuery['materialsWithDeleted'][number];
+    const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
 
     const materials = data?.materialsWithDeleted || [];
 
@@ -55,37 +33,9 @@ export default function MaterialsPage() {
         m.partNumber?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const openModal = (material: any = null) => {
-        if (material) {
-            setEditingId(material.id);
-            reset({
-                description: material.description || '',
-                brand: material.brand || '',
-                manufacturer: material.manufacturer || '',
-                model: material.model || '',
-                partNumber: material.partNumber || '',
-                sku: material.sku || '',
-                unitOfMeasure: material.unitOfMeasure || '',
-            });
-        } else {
-            setEditingId(null);
-            reset({ description: '', brand: '', manufacturer: '', model: '', partNumber: '', sku: '', unitOfMeasure: '' });
-        }
+    const openModal = (material: MaterialItem | null = null) => {
+        setEditingMaterial(material);
         setIsModalOpen(true);
-    };
-
-    const onSubmit = async (values: FormValues) => {
-        try {
-            if (editingId) {
-                await updateMaterial({ variables: { id: editingId, input: { ...values } } });
-            } else {
-                await createMaterial({ variables: { input: { ...values } } });
-            }
-            setIsModalOpen(false);
-            refetch();
-        } catch (error: any) {
-            alert(error.message);
-        }
     };
 
     const toggleStatus = async (id: string, currentStatus: boolean) => {
@@ -96,12 +46,10 @@ export default function MaterialsPage() {
                 await activateMaterial({ variables: { id } });
             }
             refetch();
-        } catch (error: any) {
-            alert(error.message);
+        } catch {
+            toast.error('Error al actualizar el estado');
         }
     };
-
-    const isSaving = creating || updating;
 
     return (
         <div className="space-y-6 pb-12">
@@ -189,52 +137,12 @@ export default function MaterialsPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{editingId ? 'Editar Material' : 'Nuevo Material'}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Descripción *</Label>
-                            <Input {...register('description')} placeholder="Ej: Aceite lubricante multiusos..." />
-                            {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>SKU</Label>
-                                <Input {...register('sku')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>No. de Parte</Label>
-                                <Input {...register('partNumber')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Marca</Label>
-                                <Input {...register('brand')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Modelo</Label>
-                                <Input {...register('model')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Fabricante</Label>
-                                <Input {...register('manufacturer')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>U. de Medida</Label>
-                                <Input {...register('unitOfMeasure')} placeholder="Ej: Lts, Pza, Cajas..." />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={isSaving}>
-                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <MaterialFormModal
+                open={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                material={editingMaterial}
+                onSuccess={() => refetch()}
+            />
         </div>
     );
 }

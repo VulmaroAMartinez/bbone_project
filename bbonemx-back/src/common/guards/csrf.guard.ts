@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { GraphQLResolveInfo } from 'graphql';
+import { GraphQLResolveInfo, OperationTypeNode } from 'graphql';
 import { METADATA_KEYS } from '../constants';
 
 const EXCLUDED_MUTATIONS = new Set(['login', 'refreshAuth', 'logout']);
@@ -31,17 +31,19 @@ export class CsrfGuard implements CanActivate {
     const gqlContext = GqlExecutionContext.create(context);
     const info = gqlContext.getInfo<GraphQLResolveInfo>();
 
-    if (info.operation.operation !== 'mutation') {
+    if (info.operation.operation !== OperationTypeNode.MUTATION) {
       return true;
     }
     if (EXCLUDED_MUTATIONS.has(info.fieldName)) {
       return true;
     }
 
-    const req = gqlContext.getContext().req as {
-      cookies?: Record<string, string>;
-      headers?: Record<string, string | string[] | undefined>;
-    };
+    const req = gqlContext.getContext<{
+      req: {
+        cookies?: Record<string, string>;
+        headers?: Record<string, string | string[] | undefined>;
+      };
+    }>().req;
     const csrfCookie = req?.cookies?.csrf_token;
     const csrfHeader = req?.headers?.['x-csrf-token'];
 

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PositionsRepository } from '../../infrastructure/repositories';
 import { Position } from '../../domain/entities';
 import { CreatePositionInput, UpdatePositionInput } from '../dto';

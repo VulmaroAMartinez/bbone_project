@@ -19,7 +19,10 @@ export class SendMaterialRequestEmailInput {
   @Field(() => [String])
   @IsArray()
   @ArrayMinSize(1, { message: 'Debe haber al menos un destinatario' })
-  @IsEmail({}, { each: true, message: 'Cada destinatario debe ser un correo válido' })
+  @IsEmail(
+    {},
+    { each: true, message: 'Cada destinatario debe ser un correo válido' },
+  )
   to: string[];
 
   @Field(() => [String], { nullable: true })

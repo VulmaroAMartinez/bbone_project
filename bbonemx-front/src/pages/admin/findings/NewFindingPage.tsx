@@ -83,9 +83,9 @@ export default function NewFindingPage() {
 
             setSuccess({ folio: data?.createFinding.folio || 'N/A' });
             setTimeout(() => navigate('/hallazgos'), 2000);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setFormError(err.message || 'Error al registrar el hallazgo');
+            setFormError(err instanceof Error ? err.message : 'Error al registrar el hallazgo');
         } finally {
             setIsSubmitting(false);
         }

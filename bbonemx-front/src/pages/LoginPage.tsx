@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, User, Lock, Loader2 } from 'lucide-react';
 import logo from '@/assets/logo2.png';
+import { resolveLoginRedirectPath } from '@/lib/auth/auth-flow';
 
 const loginSchema = yup.object({
   employeeNumber: yup
@@ -47,7 +48,7 @@ function LoginPage() {
     },
   });
 
-  const from = location.state?.from?.pathname || '/';
+  const from = resolveLoginRedirectPath(location.state?.from?.pathname);
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {

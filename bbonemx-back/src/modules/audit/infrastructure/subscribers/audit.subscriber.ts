@@ -46,17 +46,13 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     dataSource.subscribers.push(this);
   }
 
-  /**
-   * Verifica si la entidad debe ser auditada.
-   */
   private shouldAudit(entityName: string): boolean {
     return !EXCLUDED_ENTITIES.includes(entityName);
   }
 
-  /**
-   * Limpia los valores sensibles de un objeto.
-   */
-  private sanitizeValues(values: Record<string, any>): Record<string, any> {
+  private sanitizeValues(
+    values: Record<string, unknown>,
+  ): Record<string, unknown> {
     if (!values) return values;
 
     const sanitized = { ...values };
@@ -72,8 +68,8 @@ export class AuditSubscriber implements EntitySubscriberInterface {
    * Obtiene los campos que cambiaron entre dos objetos.
    */
   private getChangedFields(
-    oldValues: Record<string, any>,
-    newValues: Record<string, any>,
+    oldValues: Record<string, unknown>,
+    newValues: Record<string, unknown>,
   ): string[] {
     if (!oldValues || !newValues) return [];
 
@@ -106,7 +102,6 @@ export class AuditSubscriber implements EntitySubscriberInterface {
     data: Partial<AuditLog>,
   ): Promise<void> {
     try {
-      // Obtener contexto del usuario desde AsyncLocalStorage
       const context = UserContext.getCurrentContext();
 
       const auditLog = manager.create(AuditLog, {
@@ -117,7 +112,6 @@ export class AuditSubscriber implements EntitySubscriberInterface {
         sessionId: context?.sessionId,
       });
 
-      // Usar query builder para evitar triggers recursivos
       await manager
         .createQueryBuilder()
         .insert()
@@ -125,7 +119,6 @@ export class AuditSubscriber implements EntitySubscriberInterface {
         .values(auditLog)
         .execute();
     } catch (error) {
-      // Log del error pero no interrumpir la operación principal
       console.error('Error creating audit log:', error);
     }
   }
@@ -133,16 +126,17 @@ export class AuditSubscriber implements EntitySubscriberInterface {
   /**
    * Convierte una entidad a un objeto plano para auditoría.
    */
-  private entityToObject(entity: any): Record<string, any> {
+  private entityToObject(entity: unknown): Record<string, unknown> {
     if (!entity) return {};
 
     // Si ya es un objeto plano, retornarlo
     if (typeof entity !== 'object') return {};
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
+    const entityObj = entity as Record<string, unknown>;
 
-    for (const key of Object.keys(entity)) {
-      const value = entity[key];
+    for (const key of Object.keys(entityObj)) {
+      const value = entityObj[key];
 
       // Excluir funciones y relaciones complejas
       if (typeof value === 'function') continue;
@@ -154,8 +148,8 @@ export class AuditSubscriber implements EntitySubscriberInterface {
         !(value instanceof Date)
       ) {
         // Es una relación o entidad anidada, guardamos solo el ID si existe
-        if (value.id) {
-          result[`${key}Id`] = value.id;
+        if ((value as { id?: string }).id) {
+          result[`${key}Id`] = (value as { id: string }).id;
         }
         continue;
       }
@@ -169,7 +163,7 @@ export class AuditSubscriber implements EntitySubscriberInterface {
   /**
    * Hook para INSERT - después de insertar una entidad.
    */
-  async afterInsert(event: InsertEvent<any>): Promise<void> {
+  async afterInsert(event: InsertEvent<unknown>): Promise<void> {
     const entityName = event.metadata.name;
     if (!this.shouldAudit(entityName)) return;
 
@@ -177,7 +171,7 @@ export class AuditSubscriber implements EntitySubscriberInterface {
 
     await this.createAuditLog(event.manager, {
       tableName: event.metadata.tableName,
-      recordId: event.entity?.id,
+      recordId: (event.entity as { id?: string })?.id,
       action: AuditAction.INSERT,
       oldValues: undefined,
       newValues,
@@ -190,31 +184,30 @@ export class AuditSubscriber implements EntitySubscriberInterface {
   /**
    * Hook para UPDATE - después de actualizar una entidad.
    */
-  async afterUpdate(event: UpdateEvent<any>): Promise<void> {
+  async afterUpdate(event: UpdateEvent<unknown>): Promise<void> {
     const entityName = event.metadata.name;
     if (!this.shouldAudit(entityName)) return;
 
-    // Obtener valores anteriores del databaseEntity
     const oldValues = this.sanitizeValues(
       this.entityToObject(event.databaseEntity),
     );
 
-    // Obtener nuevos valores combinando databaseEntity con los cambios
     const newValues = this.sanitizeValues(
       this.entityToObject({
-        ...event.databaseEntity,
-        ...event.entity,
+        ...(event.databaseEntity as object),
+        ...(event.entity as object),
       }),
     );
 
     const changedFields = this.getChangedFields(oldValues, newValues);
 
-    // Solo crear log si realmente hubo cambios
     if (changedFields.length === 0) return;
 
     await this.createAuditLog(event.manager, {
       tableName: event.metadata.tableName,
-      recordId: event.entity?.id || event.databaseEntity?.id,
+      recordId:
+        (event.entity as { id?: string })?.id ||
+        (event.databaseEntity as { id?: string })?.id,
       action: AuditAction.UPDATE,
       oldValues,
       newValues,
@@ -225,7 +218,7 @@ export class AuditSubscriber implements EntitySubscriberInterface {
   /**
    * Hook para DELETE - antes de eliminar una entidad.
    */
-  async beforeRemove(event: RemoveEvent<any>): Promise<void> {
+  async beforeRemove(event: RemoveEvent<unknown>): Promise<void> {
     const entityName = event.metadata.name;
     if (!this.shouldAudit(entityName)) return;
     if (!event.entity && !event.databaseEntity) return;
@@ -236,7 +229,9 @@ export class AuditSubscriber implements EntitySubscriberInterface {
 
     await this.createAuditLog(event.manager, {
       tableName: event.metadata.tableName,
-      recordId: event.entity?.id || event.databaseEntity?.id,
+      recordId:
+        (event.entity as { id?: string })?.id ||
+        (event.databaseEntity as { id?: string })?.id,
       action: AuditAction.DELETE,
       oldValues,
       newValues: undefined,
@@ -247,7 +242,7 @@ export class AuditSubscriber implements EntitySubscriberInterface {
   /**
    * Hook para SOFT DELETE - antes de soft delete.
    */
-  async beforeSoftRemove(event: SoftRemoveEvent<any>): Promise<void> {
+  async beforeSoftRemove(event: SoftRemoveEvent<unknown>): Promise<void> {
     const entityName = event.metadata.name;
     if (!this.shouldAudit(entityName)) return;
     if (!event.entity && !event.databaseEntity) return;
@@ -258,7 +253,9 @@ export class AuditSubscriber implements EntitySubscriberInterface {
 
     await this.createAuditLog(event.manager, {
       tableName: event.metadata.tableName,
-      recordId: event.entity?.id || event.databaseEntity?.id,
+      recordId:
+        (event.entity as { id?: string })?.id ||
+        (event.databaseEntity as { id?: string })?.id,
       action: AuditAction.SOFT_DELETE,
       oldValues,
       newValues: {

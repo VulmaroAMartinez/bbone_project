@@ -33,6 +33,7 @@ import {
   NOTIFICATION_PUB_SUB,
   SUBSCRIPTION_TRIGGERS,
 } from '../../infrastructure/providers';
+import { Notification } from '../../domain/entities/notification.entity';
 
 @Resolver(() => NotificationObjectType)
 @UseGuards(JwtAuthGuard)
@@ -118,17 +119,24 @@ export class NotificationsResolver {
     name: 'newNotification',
     description:
       'Recibe notificaciones en tiempo real para el usuario autenticado',
-    filter: (payload, _variables, context) => {
+    filter: (
+      payload: Record<string, unknown>,
+      _variables: unknown,
+      context: {
+        req?: { user?: { id?: string } };
+        connection?: { context?: { userId?: string } };
+      },
+    ) => {
       const userId =
         context?.req?.user?.id || context?.connection?.context?.userId;
-      const notification = payload?.newNotification;
+      const notification = payload?.newNotification as Record<string, unknown>;
       return notification?.recipientId === userId;
     },
-    resolve: (payload) => {
-      const n = payload?.newNotification;
+    resolve: (payload: Record<string, unknown>) => {
+      const n = payload?.newNotification as Record<string, unknown>;
       return {
         ...n,
-        data: n?.data ? JSON.stringify(n.data) : null,
+        data: n?.data ? JSON.stringify(n.data) : undefined,
       };
     },
   })
@@ -145,9 +153,9 @@ export class NotificationsResolver {
   async myDeviceTokens(
     @CurrentUser('id') userId: string,
   ): Promise<UserDeviceTokenType[]> {
-    return this.deviceTokensService.findByUserId(
+    return (await this.deviceTokensService.findByUserId(
       userId,
-    ) as unknown as UserDeviceTokenType[];
+    )) as unknown as UserDeviceTokenType[];
   }
 
   @Mutation(() => UserDeviceTokenType, {
@@ -158,10 +166,10 @@ export class NotificationsResolver {
     @Args('input') input: RegisterDeviceTokenInput,
     @CurrentUser('id') userId: string,
   ): Promise<UserDeviceTokenType> {
-    return this.deviceTokensService.register(
+    return (await this.deviceTokensService.register(
       userId,
       input,
-    ) as unknown as UserDeviceTokenType;
+    )) as unknown as UserDeviceTokenType;
   }
 
   @Mutation(() => Boolean, {
@@ -182,9 +190,9 @@ export class NotificationsResolver {
   async myPreferences(
     @CurrentUser('id') userId: string,
   ): Promise<NotificationPreferenceType[]> {
-    return this.preferencesService.findByUserId(
+    return (await this.preferencesService.findByUserId(
       userId,
-    ) as unknown as NotificationPreferenceType[];
+    )) as unknown as NotificationPreferenceType[];
   }
 
   @Mutation(() => NotificationPreferenceType, {
@@ -195,10 +203,10 @@ export class NotificationsResolver {
     @Args('input') input: UpdateNotificationPreferenceInput,
     @CurrentUser('id') userId: string,
   ): Promise<NotificationPreferenceType> {
-    return this.preferencesService.update(
+    return (await this.preferencesService.update(
       userId,
       input,
-    ) as unknown as NotificationPreferenceType;
+    )) as unknown as NotificationPreferenceType;
   }
 
   @Mutation(() => [NotificationPreferenceType], {
@@ -209,16 +217,16 @@ export class NotificationsResolver {
     @Args('input') input: BulkUpdatePreferencesInput,
     @CurrentUser('id') userId: string,
   ): Promise<NotificationPreferenceType[]> {
-    return this.preferencesService.bulkUpdate(
+    return (await this.preferencesService.bulkUpdate(
       userId,
       input.preferences,
-    ) as unknown as NotificationPreferenceType[];
+    )) as unknown as NotificationPreferenceType[];
   }
 
-  private mapNotification(n: any): NotificationObjectType {
+  private mapNotification(n: Notification): NotificationObjectType {
     return {
-      ...n,
-      data: n.data ? JSON.stringify(n.data) : null,
+      ...(n as unknown as NotificationObjectType),
+      data: n.data ? JSON.stringify(n.data) : undefined,
     };
   }
 }

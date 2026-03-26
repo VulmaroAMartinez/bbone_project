@@ -1,11 +1,5 @@
-import { InputType, Field, ID } from '@nestjs/graphql';
-import {
-  IsNotEmpty,
-  IsString,
-  IsUUID,
-  IsOptional,
-  IsEnum,
-} from 'class-validator';
+import { InputType, Field } from '@nestjs/graphql';
+import { IsNotEmpty, IsString, IsOptional, IsEnum } from 'class-validator';
 import { DevicePlatform } from 'src/common';
 
 @InputType()

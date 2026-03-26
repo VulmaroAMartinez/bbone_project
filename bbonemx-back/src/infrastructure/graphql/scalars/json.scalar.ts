@@ -6,23 +6,27 @@ import { Kind, ValueNode } from 'graphql';
  * Permite enviar y recibir objetos JSON complejos.
  */
 @Scalar('JSON', () => Object)
-export class JSONScalar implements CustomScalar<any, any> {
+export class JSONScalar implements CustomScalar<unknown, unknown> {
   description = 'JSON custom scalar type';
 
-  parseValue(value: any): any {
+  parseValue(value: unknown): unknown {
     return value; // Valor entrante del cliente
   }
 
-  serialize(value: any): any {
+  serialize(value: unknown): unknown {
     return value; // Valor saliente hacia el cliente
   }
 
-  parseLiteral(ast: ValueNode): any {
+  parseLiteral(ast: ValueNode): unknown {
     switch (ast.kind) {
       case Kind.STRING:
         return JSON.parse(ast.value);
       case Kind.OBJECT:
-        return this.parseObject(ast);
+        return this.parseObject(
+          ast as unknown as {
+            fields: Array<{ name: { value: string }; value: ValueNode }>;
+          },
+        );
       case Kind.INT:
         return parseInt(ast.value, 10);
       case Kind.FLOAT:
@@ -38,9 +42,11 @@ export class JSONScalar implements CustomScalar<any, any> {
     }
   }
 
-  private parseObject(ast: any): any {
-    const result: any = {};
-    ast.fields.forEach((field: any) => {
+  private parseObject(ast: {
+    fields: Array<{ name: { value: string }; value: ValueNode }>;
+  }): unknown {
+    const result: Record<string, unknown> = {};
+    ast.fields.forEach((field) => {
       result[field.name.value] = this.parseLiteral(field.value);
     });
     return result;

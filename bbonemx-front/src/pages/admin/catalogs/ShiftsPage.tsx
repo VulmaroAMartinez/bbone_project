@@ -1,84 +1,36 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
 import {
     GetShiftsAllDocument,
-    CreateShiftDocument,
-    UpdateShiftDocument,
     ActivateShiftDocument,
-    DeactivateShiftDocument
+    DeactivateShiftDocument,
+    type GetShiftsAllQuery,
 } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Search, ClockPlus, Edit2, Power, PowerOff, Loader2, Clock } from 'lucide-react';
-
-const schema = yup.object({
-    name: yup.string().trim().required('El nombre es obligatorio'),
-    startTime: yup.string().required('La hora de inicio es obligatoria'),
-    endTime: yup.string().required('La hora de fin es obligatoria'),
-});
-
-type FormValues = yup.InferType<typeof schema>;
+import { toast } from 'sonner';
+import ShiftFormModal from './modals/ShiftFormModal';
 
 export default function ShiftsPage() {
-    const { data, loading, refetch } = useQuery(GetShiftsAllDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useQuery<GetShiftsAllQuery>(GetShiftsAllDocument, { fetchPolicy: 'cache-and-network' });
 
-    const [createShift, { loading: creating }] = useMutation(CreateShiftDocument);
-    const [updateShift, { loading: updating }] = useMutation(UpdateShiftDocument);
     const [activateShift] = useMutation(ActivateShiftDocument);
     const [deactivateShift] = useMutation(DeactivateShiftDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
-        resolver: yupResolver(schema),
-        defaultValues: { name: '', startTime: '07:00', endTime: '15:00' },
-    });
+    type ShiftItem = GetShiftsAllQuery['shiftsWithDeleted'][number];
+    const [editingItem, setEditingItem] = useState<ShiftItem | null>(null);
 
     const shifts = data?.shiftsWithDeleted || [];
     const filteredShifts = shifts.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const openModal = (shift: any = null) => {
-        if (shift) {
-            setEditingId(shift.id);
-            reset({
-                name: shift.name,
-                startTime: shift.startTime.slice(0, 5),
-                endTime: shift.endTime.slice(0, 5)
-            });
-        } else {
-            setEditingId(null);
-            reset({ name: '', startTime: '07:00', endTime: '15:00' });
-        }
+    const openModal = (shift: ShiftItem | null = null) => {
+        setEditingItem(shift);
         setIsModalOpen(true);
-    };
-
-    const onSubmit = async (values: FormValues) => {
-        const payload = {
-            name: values.name,
-            startTime: values.startTime.length === 5 ? `${values.startTime}:00` : values.startTime,
-            endTime: values.endTime.length === 5 ? `${values.endTime}:00` : values.endTime
-        };
-
-        try {
-            if (editingId) {
-                await updateShift({ variables: { id: editingId, input: payload } });
-            } else {
-                await createShift({ variables: { input: payload } });
-            }
-            setIsModalOpen(false);
-            refetch();
-        } catch (error: any) {
-            alert(error.message);
-        }
     };
 
     const toggleStatus = async (id: string, currentStatus: boolean) => {
@@ -86,8 +38,8 @@ export default function ShiftsPage() {
             if (currentStatus) await deactivateShift({ variables: { id } });
             else await activateShift({ variables: { id } });
             refetch();
-        } catch (error: any) {
-            alert(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al actualizar el estado');
         }
     };
 
@@ -150,36 +102,12 @@ export default function ShiftsPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>{editingId ? 'Editar Turno' : 'Nuevo Turno'}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Nombre del Turno *</Label>
-                            <Input {...register('name')} placeholder="Ej: Matutino, Vespertino..." />
-                            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Hora Inicio *</Label>
-                                <Input type="time" {...register('startTime')} />
-                                {errors.startTime && <p className="text-xs text-destructive">{errors.startTime.message}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Hora Fin *</Label>
-                                <Input type="time" {...register('endTime')} />
-                                {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
-                            </div>
-                        </div>
-                        <DialogFooter className="pt-4">
-                            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={creating || updating}>Guardar</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <ShiftFormModal
+                open={isModalOpen}
+                onOpenChange={(open) => { setIsModalOpen(open); if (!open) setEditingItem(null); }}
+                shift={editingItem}
+                onSuccess={() => refetch()}
+            />
         </div>
     );
 }

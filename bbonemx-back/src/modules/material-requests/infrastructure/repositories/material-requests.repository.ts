@@ -86,9 +86,11 @@ export class MaterialRequestsRepository {
   }
 
   async create(data: Partial<MaterialRequest>): Promise<MaterialRequest> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const result = await this.repository.query(
       `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM material_requests`,
     );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const sequence = Number(result[0].next_seq);
     const folio = FolioGenerator.generateMaterialRequestFolio(
       sequence,
@@ -117,7 +119,10 @@ export class MaterialRequestsRepository {
     if (newMachines) {
       await this.machineRepository.delete({ materialRequestId: id });
       const entries = newMachines.map((m) =>
-        this.machineRepository.create({ materialRequestId: id, machineId: m.machineId }),
+        this.machineRepository.create({
+          materialRequestId: id,
+          machineId: m.machineId,
+        }),
       );
       await this.machineRepository.save(entries);
     }

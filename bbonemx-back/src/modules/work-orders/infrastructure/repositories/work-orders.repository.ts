@@ -11,7 +11,6 @@ import {
   SortOrder,
   WorkOrderSortField,
 } from '../../application/dto/work-order-filters.dto';
-import { WorkOrderStats } from '../../presentation/types/work-order.type';
 import { FolioGenerator } from 'src/common/utils/folio-generator.util';
 
 // Usar nombres de propiedad de la entidad (no columnas DB) para evitar error de TypeORM
@@ -265,9 +264,11 @@ export class WorkOrdersRepository {
   }
 
   async create(data: Partial<WorkOrder>): Promise<WorkOrder> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const result = await this.repository.query(
       `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM work_orders`,
     );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const sequence = Number(result[0].next_seq);
     const folio = FolioGenerator.generateWorkOrderFolio(sequence, new Date());
     const entity = this.repository.create({ ...data, sequence, folio });
@@ -299,7 +300,7 @@ export class WorkOrdersRepository {
     });
     if (!workOrder) return;
     workOrder.isActive = true;
-    workOrder.deletedAt = null as any;
+    workOrder.deletedAt = null;
     await this.repository.save(workOrder);
   }
 

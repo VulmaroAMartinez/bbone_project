@@ -66,7 +66,11 @@ export class MaterialRequest extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   comments?: string;
 
-  @Column({ name: 'email_sent_at', type: 'timestamp with time zone', nullable: true })
+  @Column({
+    name: 'email_sent_at',
+    type: 'timestamp with time zone',
+    nullable: true,
+  })
   emailSentAt?: Date | null;
 
   @Column({ name: 'requester_id', type: 'uuid' })
@@ -86,8 +90,12 @@ export class MaterialRequest extends BaseEntity {
   })
   items: MaterialRequestItem[];
 
-  @OneToMany(() => MaterialRequestHistory, (histories) => histories.materialRequest, {
-    cascade: true,
-  })
+  @OneToMany(
+    () => MaterialRequestHistory,
+    (histories) => histories.materialRequest,
+    {
+      cascade: true,
+    },
+  )
   histories: MaterialRequestHistory[];
 }

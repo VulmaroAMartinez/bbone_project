@@ -4,7 +4,7 @@ import {
   ArgumentMetadata,
   BadRequestException,
 } from '@nestjs/common';
-import { validate } from 'class-validator';
+import { validate, ValidationError } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 
 /**
@@ -15,13 +15,13 @@ import { plainToInstance } from 'class-transformer';
  * configurado en main.ts. Este pipe es para casos especiales.
  */
 @Injectable()
-export class CustomValidationPipe implements PipeTransform<any> {
-  async transform(value: any, { metatype }: ArgumentMetadata) {
+export class CustomValidationPipe implements PipeTransform<unknown> {
+  async transform(value: unknown, { metatype }: ArgumentMetadata) {
     if (!metatype || !this.toValidate(metatype)) {
       return value;
     }
 
-    const object = plainToInstance(metatype, value);
+    const object = plainToInstance(metatype, value) as object;
     const errors = await validate(object, {
       whitelist: true,
       forbidNonWhitelisted: true,
@@ -39,12 +39,12 @@ export class CustomValidationPipe implements PipeTransform<any> {
     return object;
   }
 
-  private toValidate(metatype: Function): boolean {
-    const types: Function[] = [String, Boolean, Number, Array, Object];
+  private toValidate(metatype: unknown): boolean {
+    const types: unknown[] = [String, Boolean, Number, Array, Object];
     return !types.includes(metatype);
   }
 
-  private formatErrors(errors: any[]): Record<string, string[]> {
+  private formatErrors(errors: ValidationError[]): Record<string, string[]> {
     const result: Record<string, string[]> = {};
 
     errors.forEach((error) => {

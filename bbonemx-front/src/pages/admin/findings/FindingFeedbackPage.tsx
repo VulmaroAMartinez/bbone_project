@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { toast } from 'sonner';
@@ -11,6 +11,9 @@ import {
     GetMachinesPageDataDocument,
     AreaBasicFragmentDoc,
     MachineBasicFragmentDoc,
+    FindingBasicFragmentDoc,
+    type GetMachinesPageDataQuery,
+    type UpdateFindingInput,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
@@ -35,50 +38,34 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     CONVERTED_TO_WO: { label: 'Convertido a OT', className: 'bg-green-100 text-green-700' },
 };
 
-export default function FindingFeedbackPage() {
-    const { id } = useParams<{ id: string }>();
+function FindingFeedbackForm({
+    finding,
+    areas,
+    shifts,
+    machines,
+    updating,
+    onSubmitUpdate,
+}: {
+    finding: NonNullable<ReturnType<typeof useParams<{ id: string }>>>;
+    areas: Array<{ id: string; name: string }>;
+    shifts: Array<{ id: string; name: string }>;
+    machines: Array<{ id: string; name: string; code?: string | null }>;
+    updating: boolean;
+    onSubmitUpdate: (input: UpdateFindingInput) => Promise<void>;
+}) {
     const navigate = useNavigate();
 
-    const { data: findingData, loading: findingLoading } = useQuery(GetFindingByIdDocument, {
-        variables: { id: id! },
-        skip: !id,
-    });
+    const machineIdInitial = (finding as unknown as { machineId?: string | null } | null)?.machineId ?? '';
 
-    const { data: areasData } = useQuery(GetAreasDocument);
-    const { data: shiftsData } = useQuery(GetShiftsDocument);
-    const { data: machinesData } = useQuery(GetMachinesPageDataDocument);
+    const [form, setForm] = useState(() => ({
+        areaId: (finding as unknown as { area?: { id?: string | null } | null })?.area?.id || '',
+        shiftId: (finding as unknown as { shift?: { id?: string | null } | null })?.shift?.id || '',
+        machineId: machineIdInitial || '',
+        description: (finding as unknown as { description?: string | null })?.description || '',
+        photoPath: (finding as unknown as { photoPath?: string | null })?.photoPath || '',
+    }));
 
-    const [updateFinding, { loading: updating }] = useMutation(UpdateFindingDocument);
-
-    const areas = useFragment(AreaBasicFragmentDoc, areasData?.areas ?? []);
-    const machines = (machinesData?.machinesWithDeleted ?? []).map((ref) =>
-        useFragment(MachineBasicFragmentDoc, ref),
-    );
-    const shifts = shiftsData?.shiftsActive || [];
-
-    const finding = findingData?.finding as any;
-
-    const [form, setForm] = useState({
-        areaId: '',
-        shiftId: '',
-        machineId: '',
-        description: '',
-        photoPath: '',
-    });
-
-    useEffect(() => {
-        if (finding) {
-            setForm({
-                areaId: finding.area?.id || '',
-                shiftId: finding.shift?.id || '',
-                machineId: (finding as any).machineId || '',
-                description: finding.description || '',
-                photoPath: finding.photoPath || '',
-            });
-        }
-    }, [finding]);
-
-    const handleChange = (field: string, value: string) => {
+    const handleChange = (field: keyof typeof form, value: string) => {
         setForm((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -90,7 +77,7 @@ export default function FindingFeedbackPage() {
         }
 
         try {
-            const input: any = {
+            const input: UpdateFindingInput = {
                 areaId: form.areaId,
                 shiftId: form.shiftId,
                 description: form.description.trim(),
@@ -98,13 +85,122 @@ export default function FindingFeedbackPage() {
                 ...(form.photoPath ? { photoPath: form.photoPath } : {}),
             };
 
-            await updateFinding({ variables: { id: id!, input } });
+            await onSubmitUpdate(input);
             toast.success('Hallazgo actualizado correctamente');
             navigate(-1);
-        } catch (err: any) {
-            toast.error(err.message || 'Error al actualizar el hallazgo');
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Error al actualizar el hallazgo');
         }
     };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                    <Label>Área *</Label>
+                    <Select value={form.areaId} onValueChange={(v) => handleChange('areaId', v)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar área" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {areas.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-2">
+                    <Label>Turno *</Label>
+                    <Select value={form.shiftId} onValueChange={(v) => handleChange('shiftId', v)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar turno" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {shifts.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label>Máquina Afectada (Opcional)</Label>
+                <Select
+                    value={form.machineId || '__none__'}
+                    onValueChange={(v) => handleChange('machineId', v === '__none__' ? '' : v)}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Sin máquina asignada" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="__none__">Sin máquina</SelectItem>
+                        {machines.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>
+                                {m.name} [{m.code}]
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="space-y-2">
+                <Label>Descripción *</Label>
+                <Textarea
+                    value={form.description}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    placeholder="Describe el hallazgo..."
+                    className="min-h-[100px]"
+                />
+            </div>
+
+            <div className="space-y-2">
+                <Label>Ruta de Foto (Opcional)</Label>
+                <Input
+                    value={form.photoPath}
+                    onChange={(e) => handleChange('photoPath', e.target.value)}
+                    placeholder="Ruta o URL de la evidencia fotográfica"
+                />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => navigate(-1)} className="flex-1" disabled={updating}>
+                    Cancelar
+                </Button>
+                <Button type="submit" disabled={updating} className="flex-1">
+                    {updating
+                        ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>
+                        : <><Save className="mr-2 h-4 w-4" /> Guardar Cambios</>
+                    }
+                </Button>
+            </div>
+        </form>
+    );
+}
+
+export default function FindingFeedbackPage() {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+
+    const { data: findingData, loading: findingLoading } = useQuery(GetFindingByIdDocument, {
+        variables: { id: id! },
+        skip: !id,
+    });
+
+    const { data: areasData } = useQuery(GetAreasDocument);
+    const { data: shiftsData } = useQuery(GetShiftsDocument);
+    const { data: machinesData } = useQuery<GetMachinesPageDataQuery>(GetMachinesPageDataDocument);
+
+    const [updateFinding, { loading: updating }] = useMutation(UpdateFindingDocument);
+
+    const areas = useFragment(AreaBasicFragmentDoc, areasData?.areas ?? []);
+    const machineRefs = machinesData?.machinesWithDeleted ?? [];
+    const machines = useFragment(MachineBasicFragmentDoc, machineRefs);
+    const shifts = shiftsData?.shiftsActive || [];
+
+    const findingRef = findingData?.finding ?? null;
+    const finding = useFragment(FindingBasicFragmentDoc, findingRef);
 
     if (findingLoading) {
         return (
@@ -165,88 +261,15 @@ export default function FindingFeedbackPage() {
                     <CardDescription>Los campos marcados con * son obligatorios</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label>Área *</Label>
-                                <Select value={form.areaId} onValueChange={(v) => handleChange('areaId', v)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccionar área" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {areas.map((a) => (
-                                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Turno *</Label>
-                                <Select value={form.shiftId} onValueChange={(v) => handleChange('shiftId', v)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccionar turno" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {shifts.map((s) => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Máquina Afectada (Opcional)</Label>
-                            <Select
-                                value={form.machineId || '__none__'}
-                                onValueChange={(v) => handleChange('machineId', v === '__none__' ? '' : v)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Sin máquina asignada" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="__none__">Sin máquina</SelectItem>
-                                    {machines.map((m) => (
-                                        <SelectItem key={m.id} value={m.id}>
-                                            {m.name} [{m.code}]
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Descripción *</Label>
-                            <Textarea
-                                value={form.description}
-                                onChange={(e) => handleChange('description', e.target.value)}
-                                placeholder="Describe el hallazgo..."
-                                className="min-h-[100px]"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Ruta de Foto (Opcional)</Label>
-                            <Input
-                                value={form.photoPath}
-                                onChange={(e) => handleChange('photoPath', e.target.value)}
-                                placeholder="Ruta o URL de la evidencia fotográfica"
-                            />
-                        </div>
-
-                        <div className="flex gap-3 pt-4">
-                            <Button type="button" variant="outline" onClick={() => navigate(-1)} className="flex-1" disabled={updating}>
-                                Cancelar
-                            </Button>
-                            <Button type="submit" disabled={updating} className="flex-1">
-                                {updating
-                                    ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>
-                                    : <><Save className="mr-2 h-4 w-4" /> Guardar Cambios</>
-                                }
-                            </Button>
-                        </div>
-                    </form>
+                    <FindingFeedbackForm
+                        key={finding.id}
+                        finding={finding as unknown as NonNullable<ReturnType<typeof useParams<{ id: string }>>>}
+                        areas={areas}
+                        shifts={shifts}
+                        machines={machines as unknown as Array<{ id: string; name: string; code?: string | null }>}
+                        updating={updating}
+                        onSubmitUpdate={(input) => updateFinding({ variables: { id: id!, input } }).then(() => undefined)}
+                    />
                 </CardContent>
             </Card>
         </div>

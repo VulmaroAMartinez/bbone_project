@@ -35,6 +35,30 @@ export class NotificationPreferencesService {
     return this.preferencesRepository.getDefaults(userId, type);
   }
 
+  async getPreferencesForUsers(
+    userIds: string[],
+    type: NotificationType,
+  ): Promise<Map<string, NotificationPreference>> {
+    const preferences = await this.preferencesRepository.findByUserIdsAndType(
+      userIds,
+      type,
+    );
+    const preferencesByUserId = new Map(
+      preferences.map((preference) => [preference.userId, preference]),
+    );
+
+    for (const userId of userIds) {
+      if (!preferencesByUserId.has(userId)) {
+        preferencesByUserId.set(
+          userId,
+          this.buildDefaultPreference(userId, type),
+        );
+      }
+    }
+
+    return preferencesByUserId;
+  }
+
   async update(
     userId: string,
     input: UpdateNotificationPreferenceInput,
@@ -67,5 +91,18 @@ export class NotificationPreferencesService {
       results.push(await this.update(userId, input));
     }
     return results;
+  }
+
+  private buildDefaultPreference(
+    userId: string,
+    type: NotificationType,
+  ): NotificationPreference {
+    const defaultPref = new NotificationPreference();
+    defaultPref.userId = userId;
+    defaultPref.notificationType = type;
+    defaultPref.pushEnabled = true;
+    defaultPref.emailEnabled = false;
+    defaultPref.inAppEnabled = true;
+    return defaultPref;
   }
 }

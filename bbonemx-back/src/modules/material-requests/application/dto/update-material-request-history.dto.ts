@@ -1,12 +1,20 @@
 import { InputType, Field, ID } from '@nestjs/graphql';
-import { IsNotEmpty, IsUUID, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsUUID,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { StatusHistoryMR } from 'src/common';
 
 @InputType()
 export class UpdateMaterialRequestHistoryInput {
   @Field(() => ID)
   @IsNotEmpty({ message: 'El ID de la solicitud de material es requerido' })
-  @IsUUID('4', { message: 'El ID de la solicitud de material debe ser un UUID válido' })
+  @IsUUID('4', {
+    message: 'El ID de la solicitud de material debe ser un UUID válido',
+  })
   materialRequestId: string;
 
   @Field(() => StatusHistoryMR)

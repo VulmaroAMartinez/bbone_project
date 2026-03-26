@@ -21,7 +21,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * Retorna true si el endpoint es público o si el JWT es válido.
    */
   canActivate(context: ExecutionContext) {
-    // Verificar si el endpoint está marcado como público
     const isPublic = this.reflector.getAllAndOverride<boolean>(
       METADATA_KEYS.IS_PUBLIC,
       [context.getHandler(), context.getClass()],
@@ -34,16 +33,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  /**
-   * Obtiene el request del contexto GraphQL.
-   * Necesario porque GraphQL no usa el request HTTP directamente.
-   */
-  getRequest(context: ExecutionContext) {
+  getRequest(context: ExecutionContext): unknown {
     if (context.getType<string>() === 'http') {
-      return context.switchToHttp().getRequest();
+      return context.switchToHttp().getRequest<unknown>();
     }
 
     const ctx = GqlExecutionContext.create(context);
-    return ctx.getContext().req;
+    return ctx.getContext<{ req: unknown }>().req;
   }
 }

@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "codegen": "graphql-codegen",
-    "codegen:watch": "graphql-codegen --watch"
+    "codegen:watch": "graphql-codegen --watch",
+    "test": "node --test --experimental-test-coverage --test-coverage-include='src/lib/auth/*.ts' --test-coverage-include='src/lib/work-orders/*.ts' --test-coverage-include='src/lib/graphql/error-handling.ts' --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=70 tests/**/*.test.mjs"
   },
   "dependencies": {
     "@apollo/client": "^4.1.4",
@@ -48,6 +49,7 @@
     "embla-carousel-react": "^8.6.0",
     "firebase": "^12.10.0",
     "graphql": "^16.12.0",
+    "html-to-image": "^1.11.13",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.563.0",
     "next-themes": "^0.4.6",

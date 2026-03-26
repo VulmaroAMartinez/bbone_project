@@ -122,7 +122,9 @@ export class PaginationInput {
 
 @InputType()
 export class WorkOrderSortInput {
-  @Field(() => WorkOrderSortField, { defaultValue: WorkOrderSortField.CREATED_AT })
+  @Field(() => WorkOrderSortField, {
+    defaultValue: WorkOrderSortField.CREATED_AT,
+  })
   @IsOptional()
   @IsEnum(WorkOrderSortField)
   field?: WorkOrderSortField;

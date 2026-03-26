@@ -9,7 +9,11 @@ import {
   MaterialRequestItemsRepository,
   MaterialRequestHistoryRepository,
 } from '../../infrastructure/repositories';
-import { MaterialRequest, MaterialRequestItem } from '../../domain/entities';
+import {
+  MaterialRequest,
+  MaterialRequestItem,
+  MaterialRequestMachine,
+} from '../../domain/entities';
 import {
   CreateMaterialRequestInput,
   UpdateMaterialRequestInput,
@@ -108,7 +112,6 @@ export class MaterialRequestsService {
     const hasSelectedCatalogItem = !!(item.materialId || item.sparePartId);
 
     if (hasSelectedCatalogItem) {
-      // Validate that the referenced catalog entity exists
       if (item.materialId) {
         await this.materialsService.findByIdOrFail(item.materialId);
       }
@@ -203,7 +206,9 @@ export class MaterialRequestsService {
       await this.validateItem(item, input.category);
     }
     const { machineIds, ...rest } = input;
-    const machines = machineIds.map((machineId) => ({ machineId }) as any);
+    const machines = machineIds.map(
+      (machineId) => ({ machineId }) as unknown as { machineId: string },
+    );
     return this.materialRequestsRepository.create({
       ...rest,
       machines,
@@ -220,9 +225,13 @@ export class MaterialRequestsService {
       await this.validateItem(item, category);
     }
     const { machineIds, ...rest } = input;
-    const data: Partial<MaterialRequest> = { ...rest } as Partial<MaterialRequest>;
+    const data: Partial<MaterialRequest> = {
+      ...rest,
+    } as Partial<MaterialRequest>;
     if (machineIds) {
-      data.machines = machineIds.map((machineId) => ({ machineId }) as any);
+      data.machines = machineIds.map((machineId) => ({
+        machineId,
+      })) as unknown as MaterialRequestMachine[];
     }
     return this.materialRequestsRepository.update(id, data);
   }
@@ -277,8 +286,18 @@ export class MaterialRequestsService {
     const formatDate = (d: Date): string => {
       const day = String(d.getDate()).padStart(2, '0');
       const months = [
-        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+        'enero',
+        'febrero',
+        'marzo',
+        'abril',
+        'mayo',
+        'junio',
+        'julio',
+        'agosto',
+        'septiembre',
+        'octubre',
+        'noviembre',
+        'diciembre',
       ];
       const month = months[d.getMonth()];
       const year = d.getFullYear();
@@ -344,7 +363,8 @@ export class MaterialRequestsService {
     // Auto-create history with initial status after email is sent
     await this.materialRequestHistoryRepository.upsert(request.id, {
       status: StatusHistoryMR.PENDING_PURCHASE_REQUEST,
-      progressPercentage: STATUS_PROGRESS_MAP[StatusHistoryMR.PENDING_PURCHASE_REQUEST],
+      progressPercentage:
+        STATUS_PROGRESS_MAP[StatusHistoryMR.PENDING_PURCHASE_REQUEST],
     });
 
     this.logger.log(
@@ -368,13 +388,15 @@ export class MaterialRequestsService {
     }
 
     // Fetch existing history to merge with input for chain validation
-    const existing = await this.materialRequestHistoryRepository.findByMaterialRequestId(
-      input.materialRequestId,
-    );
+    const existing =
+      await this.materialRequestHistoryRepository.findByMaterialRequestId(
+        input.materialRequestId,
+      );
 
     const effectiveSC = input.purchaseRequest || existing?.purchaseRequest;
     const effectiveOC = input.purchaseOrder || existing?.purchaseOrder;
-    const effectiveEM = input.deliveryMerchandise || existing?.deliveryMerchandise;
+    const effectiveEM =
+      input.deliveryMerchandise || existing?.deliveryMerchandise;
 
     // Chain validation: OC depends on SC, EM depends on OC
     const STATUSES_REQUIRING_SC = new Set([

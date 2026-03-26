@@ -167,9 +167,11 @@ export class FindingsRepository {
   }
 
   async create(data: Partial<Finding>): Promise<Finding> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const result = await this.repository.query(
       `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM findings`,
     );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const sequence = Number(result[0].next_seq);
     const folio = FolioGenerator.generateFindingFolio(sequence, new Date());
     const entity = this.repository.create({ ...data, sequence, folio });
@@ -221,7 +223,7 @@ export class FindingsRepository {
     });
     if (!finding) throw new NotFoundException('Hallazgo no encontrado');
     finding.isActive = true;
-    finding.deletedAt = null as any;
+    finding.deletedAt = null;
     await this.repository.save(finding);
   }
 

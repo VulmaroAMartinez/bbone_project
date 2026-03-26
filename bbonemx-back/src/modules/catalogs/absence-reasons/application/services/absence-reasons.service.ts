@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AbsenceReasonsRepository } from '../../infrastructure/repositories';
 import { AbsenceReason } from '../../domain/entities';
 import { CreateAbsenceReasonInput, UpdateAbsenceReasonInput } from '../dto';

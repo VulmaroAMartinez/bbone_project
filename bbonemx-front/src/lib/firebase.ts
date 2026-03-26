@@ -6,6 +6,8 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getMessaging, getToken, type Messaging } from 'firebase/messaging';
 
+import { logDevDebug, logDevWarning, reportError } from './logging';
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -24,7 +26,7 @@ function isFirebaseConfigured(): boolean {
 
 function getFirebaseApp(): FirebaseApp | null {
   if (!isFirebaseConfigured()) {
-    console.warn('[Firebase] No configurado. Verifica las variables VITE_FIREBASE_* en .env');
+    logDevWarning('Firebase', 'Configuración incompleta. Verifica VITE_FIREBASE_*');
     return null;
   }
   if (!app) {
@@ -42,29 +44,38 @@ export function getFirebaseMessaging(): Messaging | null {
     messaging = getMessaging(firebaseApp);
     return messaging;
   } catch (error) {
-    console.error('[Firebase] Error al inicializar messaging:', error);
+    reportError('Firebase', 'No se pudo inicializar Firebase Messaging.', error);
     return null;
   }
 }
 
 /**
  * Registers the Firebase messaging service worker.
- * Config is hardcoded in the SW file (public client credentials).
+ * Firebase public config is passed via query params because files in /public
+ * are served as-is and cannot read import.meta.env/process.env directly.
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) {
-    console.warn('[SW] Service workers no soportados');
+    logDevWarning('SW', 'Service workers no soportados por este navegador.');
     return null;
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+    const swUrl = new URL('/firebase-messaging-sw.js', window.location.origin);
+    swUrl.searchParams.set('apiKey', firebaseConfig.apiKey ?? '');
+    swUrl.searchParams.set('authDomain', firebaseConfig.authDomain ?? '');
+    swUrl.searchParams.set('projectId', firebaseConfig.projectId ?? '');
+    swUrl.searchParams.set('storageBucket', firebaseConfig.storageBucket ?? '');
+    swUrl.searchParams.set('messagingSenderId', firebaseConfig.messagingSenderId ?? '');
+    swUrl.searchParams.set('appId', firebaseConfig.appId ?? '');
+
+    const registration = await navigator.serviceWorker.register(swUrl.toString(), {
       scope: '/',
     });
-    console.log('[SW] Service Worker registrado');
+    logDevDebug('SW', 'Service Worker registrado correctamente.');
     return registration;
   } catch (error) {
-    console.error('[SW] Error al registrar Service Worker:', error);
+    reportError('SW', 'No se pudo registrar el Service Worker de mensajería.', error);
     return null;
   }
 }
@@ -74,60 +85,51 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
  * Returns null if permission denied or Firebase not configured.
  */
 export async function requestFcmToken(): Promise<string | null> {
-  console.log('[Firebase Debug] 1. Iniciando requestFcmToken...');
+  logDevDebug('Firebase', 'Iniciando solicitud de token FCM.');
 
   const fcmMessaging = getFirebaseMessaging();
   if (!fcmMessaging) {
-    console.error('[Firebase Debug] 2. FALLÓ: getFirebaseMessaging() retornó null');
-    console.log('[Firebase Debug] Config:', {
-      apiKey: !!firebaseConfig.apiKey,
-      projectId: firebaseConfig.projectId,
-      messagingSenderId: firebaseConfig.messagingSenderId,
-      appId: !!firebaseConfig.appId,
+    logDevWarning('Firebase', 'Firebase Messaging no está disponible.', {
+      hasApiKey: !!firebaseConfig.apiKey,
+      hasProjectId: !!firebaseConfig.projectId,
+      hasMessagingSenderId: !!firebaseConfig.messagingSenderId,
+      hasAppId: !!firebaseConfig.appId,
     });
     return null;
   }
-  console.log('[Firebase Debug] 2. OK: Messaging inicializado');
 
   const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
   if (!vapidKey) {
-    console.error('[Firebase Debug] 3. FALLÓ: VITE_FIREBASE_VAPID_KEY no existe');
+    logDevWarning('Firebase', 'Falta la VAPID key para solicitar el token FCM.');
     return null;
   }
-  console.log('[Firebase Debug] 3. OK: VAPID key existe (primeros 20 chars):', vapidKey.substring(0, 20));
 
   try {
-    console.log('[Firebase Debug] 4. Pidiendo permiso de notificación...');
     const permission = await Notification.requestPermission();
-    console.log('[Firebase Debug] 4. Permiso:', permission);
+    logDevDebug('Firebase', 'Resultado del permiso de notificaciones.', { permission });
     if (permission !== 'granted') {
       return null;
     }
 
-    console.log('[Firebase Debug] 5. Esperando Service Worker ready...');
     const registration = await navigator.serviceWorker.ready;
-    console.log('[Firebase Debug] 5. OK: SW ready. Scope:', registration.scope);
-    console.log('[Firebase Debug] 5. SW state:', registration.active?.state);
+    logDevDebug('Firebase', 'Service Worker listo para solicitar el token FCM.', {
+      hasActiveWorker: !!registration.active,
+    });
 
-    console.log('[Firebase Debug] 6. Solicitando FCM token con getToken()...');
     const token = await getToken(fcmMessaging, {
       vapidKey,
       serviceWorkerRegistration: registration,
     });
 
-    if (token) {
-      console.log('[Firebase Debug] 6. OK: Token obtenido (primeros 20 chars):', token.substring(0, 20));
-    } else {
-      console.error('[Firebase Debug] 6. FALLÓ: getToken() retornó null/empty');
+    if (!token) {
+      logDevWarning('Firebase', 'Firebase no devolvió un token FCM.');
+      return null;
     }
+
+    logDevDebug('Firebase', 'Token FCM obtenido correctamente.');
     return token;
   } catch (error) {
-    console.error('[Firebase Debug] EXCEPCIÓN en paso actual:', error);
-    if (error instanceof Error) {
-      console.error('[Firebase Debug] Error name:', error.name);
-      console.error('[Firebase Debug] Error message:', error.message);
-      console.error('[Firebase Debug] Error stack:', error.stack);
-    }
+    reportError('Firebase', 'Ocurrió un error al solicitar el token FCM.', error);
     return null;
   }
 }

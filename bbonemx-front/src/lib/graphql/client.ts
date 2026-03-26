@@ -4,7 +4,6 @@ import {
   HttpLink,
   ApolloLink,
   Observable,
-  type FetchResult,
 } from '@apollo/client';
 import { ErrorLink } from '@apollo/client/link/error';
 import {
@@ -12,7 +11,11 @@ import {
   CombinedProtocolErrors,
 } from '@apollo/client/errors';
 
+import { logDevWarning, reportError } from '../logging';
+import { shouldAttemptRefresh } from './error-handling';
+
 const GRAPHLQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_URL;
+const SHOW_RAW_GRAPHQL_ERRORS = import.meta.env.DEV;
 
 function readCookie(name: string): string | null {
   if (typeof document === 'undefined') {
@@ -36,6 +39,7 @@ const csrfLink = new ApolloLink((operation, forward) => {
 
   return forward(operation);
 });
+
 
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -65,21 +69,18 @@ async function executeRefresh(): Promise<boolean> {
 
 const errorLink = new ErrorLink(({ error, operation, forward }) => {
   if (CombinedGraphQLErrors.is(error)) {
-    const isUnauthenticated = error.errors.some(
-      (entry) => entry.extensions?.code === 'UNAUTHENTICATED',
-    );
-    const hasRefreshed = operation.getContext().hasRefreshed;
-    const isRefreshOperation = operation.operationName === 'RefreshAuth';
+    const codes = error.errors.map((entry) => String(entry.extensions?.code ?? 'UNKNOWN'));
+    const hasRefreshed = operation.getContext().hasRefreshed as boolean | undefined;
     const isLoginOperation = operation.operationName === 'Login';
 
-    if (isUnauthenticated && !hasRefreshed && !isRefreshOperation) {
+    if (shouldAttemptRefresh(operation.operationName, hasRefreshed, codes)) {
       operation.setContext({ hasRefreshed: true });
 
       refreshPromise ??= executeRefresh().finally(() => {
         refreshPromise = null;
       });
 
-      return new Observable<FetchResult>((observer) => {
+      return new Observable<ApolloLink.Result>((observer) => {
         refreshPromise
           ?.then((didRefresh) => {
             if (!didRefresh || isLoginOperation) {
@@ -92,24 +93,39 @@ const errorLink = new ErrorLink(({ error, operation, forward }) => {
       });
     }
 
-    error.errors.forEach(({ message, locations, path }) =>
-      console.log(
-        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
-      ),
-    );
+    if (SHOW_RAW_GRAPHQL_ERRORS) {
+      console.error('[GraphQL][RAW_ERRORS]', {
+        operationName: operation.operationName || 'anonymous',
+        errors: error.errors,
+      });
+    }
+
+    logDevWarning('GraphQL', 'La operación GraphQL devolvió errores.', {
+      operationName: operation.operationName || 'anonymous',
+      errorCount: error.errors.length,
+      codes: error.errors.map((entry) => entry.extensions?.code ?? 'UNKNOWN'),
+    });
     return;
   }
 
   if (CombinedProtocolErrors.is(error)) {
-    error.errors.forEach(({ message, extensions }) =>
-      console.log(
-        `[Protocol Error]: Message: ${message}, Extensions: ${JSON.stringify(extensions)}`,
-      ),
-    );
+    if (SHOW_RAW_GRAPHQL_ERRORS) {
+      console.error('[GraphQL][RAW_PROTOCOL_ERRORS]', {
+        operationName: operation.operationName || 'anonymous',
+        errors: error.errors,
+      });
+    }
+
+    logDevWarning('GraphQL', 'Se detectó un error de protocolo en Apollo Client.', {
+      operationName: operation.operationName || 'anonymous',
+      errorCount: error.errors.length,
+    });
     return;
   }
 
-  console.error(`[Error]: ${error.message}`);
+  reportError('GraphQL', 'Apollo Client recibió un error inesperado.', error, {
+    operationName: operation.operationName || 'anonymous',
+  });
 });
 
 const httpLink = new HttpLink({

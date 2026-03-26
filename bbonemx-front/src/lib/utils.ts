@@ -23,30 +23,40 @@ export function getDateRange(preset: 'today' | '7d' | '30d' | 'this_month' | 'th
       dateFrom = dateTo;
       break;
     case '7d':
-      const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(today.getDate() - 7);
-      dateFrom = sevenDaysAgo.toISOString().split('T')[0];
+      {
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        dateFrom = sevenDaysAgo.toISOString().split('T')[0];
+      }
       break;
     case '30d':
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-      dateFrom = thirtyDaysAgo.toISOString().split('T')[0];
+      {
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        dateFrom = thirtyDaysAgo.toISOString().split('T')[0];
+      }
       break;
     case 'this_month':
       // Día 1 del mes actual
-      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      dateFrom = firstDayOfMonth.toISOString().split('T')[0];
+      {
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        dateFrom = firstDayOfMonth.toISOString().split('T')[0];
+      }
       break;
     case 'this_year':
       // Día 1 de Enero del año actual
-      const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
-      dateFrom = firstDayOfYear.toISOString().split('T')[0];
+      {
+        const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
+        dateFrom = firstDayOfYear.toISOString().split('T')[0];
+      }
       break;
     default:
       // Fallback: últimos 30 días
-      const fallback = new Date(today);
-      fallback.setDate(today.getDate() - 30);
-      dateFrom = fallback.toISOString().split('T')[0];
+      {
+        const fallback = new Date(today);
+        fallback.setDate(today.getDate() - 30);
+        dateFrom = fallback.toISOString().split('T')[0];
+      }
   }
 
   return { dateFrom, dateTo, preset };

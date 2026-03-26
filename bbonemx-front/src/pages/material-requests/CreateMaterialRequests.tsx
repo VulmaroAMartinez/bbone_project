@@ -39,7 +39,7 @@ import {
     CATEGORY_LABELS,
     PRIORITY_LABELS,
     IMPORTANCE_LABELS,
-} from './MaterialRequestsPage';
+} from './material-requests.constants';
 
 // ─── Helpers de categoría ────────────────────────────────────────────────────
 
@@ -134,14 +134,86 @@ export default function CreateMaterialRequestPage() {
     const [globalError, setGlobalError] = useState('');
 
     // ── Queries ──────────────────────────────────────────────────────────────
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: formData, loading: formLoading } = useQuery<any>(
+    type MaterialRequestFormData = {
+        techniciansActive: Array<{
+            user: { id: string; fullName: string; employeeNumber?: string | null };
+            position?: { name: string } | null;
+        }>;
+        usersWithDeleted: Array<{
+            id: string;
+            fullName: string;
+            employeeNumber?: string | null;
+            isActive: boolean;
+            roles?: Array<{ name: string }>;
+        }>;
+        machinesActive: Array<{
+            id: string;
+            name: string;
+            brand?: string | null;
+            model?: string | null;
+            manufacturer?: string | null;
+            area?: { name: string } | null;
+            subArea?: { name: string; area?: { name: string } | null } | null;
+        }>;
+        materialsActive: Array<{
+            id: string;
+            description: string;
+            brand?: string | null;
+            model?: string | null;
+            partNumber?: string | null;
+            sku?: string | null;
+            unitOfMeasure?: string | null;
+        }>;
+        sparePartsActive: Array<{
+            id: string;
+            partNumber: string;
+            brand?: string | null;
+            model?: string | null;
+            unitOfMeasure?: string | null;
+        }>;
+    };
+
+    const { data: formData, loading: formLoading } = useQuery<MaterialRequestFormData>(
         GET_MATERIAL_REQUEST_FORM_DATA_QUERY,
         { fetchPolicy: 'cache-and-network' },
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: editData, loading: editLoading } = useQuery<any>(
+    type MaterialRequestEditData = {
+        materialRequest: {
+            id: string;
+            requester: { id: string };
+            category: string;
+            priority: string;
+            boss: string;
+            machines?: Array<{ machine: { id: string } }>;
+            machine: { brand?: string | null; model?: string | null; manufacturer?: string | null };
+            customMachineBrand?: string | null;
+            customMachineModel?: string | null;
+            customMachineManufacturer?: string | null;
+            importance: string;
+            description?: string | null;
+            justification?: string | null;
+            comments?: string | null;
+            suggestedSupplier?: string | null;
+            items: Array<{
+                id: string;
+                materialId?: string | null;
+                sparePartId?: string | null;
+                customName?: string | null;
+                brand?: string | null;
+                model?: string | null;
+                partNumber?: string | null;
+                sku?: string | null;
+                unitOfMeasure?: string | null;
+                requestedQuantity?: number | null;
+                proposedMaxStock?: number | null;
+                proposedMinStock?: number | null;
+                isGenericAllowed?: boolean | null;
+            }>;
+        };
+    };
+
+    const { data: editData, loading: editLoading } = useQuery<MaterialRequestEditData>(
         GET_MATERIAL_REQUEST_QUERY,
         {
             variables: { id: editId! },
@@ -151,12 +223,16 @@ export default function CreateMaterialRequestPage() {
     );
 
     // ── Mutations ─────────────────────────────────────────────────────────────
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [createRequest] = useMutation<any>(CREATE_MATERIAL_REQUEST_MUTATION);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [updateRequest] = useMutation<any>(UPDATE_MATERIAL_REQUEST_MUTATION);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [addItemToRequest] = useMutation<any>(ADD_MATERIAL_TO_REQUEST_MUTATION);
+    type CreateRequestResult = { createMaterialRequest?: { id: string } | null };
+    type CreateRequestVars = { input: Record<string, unknown> };
+    type UpdateRequestResult = Record<string, unknown>;
+    type UpdateRequestVars = { id: string; input: Record<string, unknown> };
+    type AddItemResult = Record<string, unknown>;
+    type AddItemVars = { materialRequestId: string; input: Record<string, unknown> };
+
+    const [createRequest] = useMutation<CreateRequestResult, CreateRequestVars>(CREATE_MATERIAL_REQUEST_MUTATION);
+    const [updateRequest] = useMutation<UpdateRequestResult, UpdateRequestVars>(UPDATE_MATERIAL_REQUEST_MUTATION);
+    const [addItemToRequest] = useMutation<AddItemResult, AddItemVars>(ADD_MATERIAL_TO_REQUEST_MUTATION);
 
     // ── Form ──────────────────────────────────────────────────────────────────
     const {
@@ -191,15 +267,15 @@ export default function CreateMaterialRequestPage() {
 
     // ── Datos derivados ───────────────────────────────────────────────────────
     const technicians = formData?.techniciansActive ?? [];
-    const allUsers = formData?.usersWithDeleted ?? [];
-    const machines = formData?.machinesActive ?? [];
-    const materials = formData?.materialsActive ?? [];
-    const spareParts = formData?.sparePartsActive ?? [];
+    const allUsers = useMemo(() => formData?.usersWithDeleted ?? [], [formData?.usersWithDeleted]);
+    const machines = useMemo(() => formData?.machinesActive ?? [], [formData?.machinesActive]);
+    const materials = useMemo(() => formData?.materialsActive ?? [], [formData?.materialsActive]);
+    const spareParts = useMemo(() => formData?.sparePartsActive ?? [], [formData?.sparePartsActive]);
 
     // Jefes: usuarios activos con rol BOSS
     const bosses = useMemo(
         () => allUsers.filter(
-            (u: any) => u.isActive && u.roles?.some((r: any) => r.name === 'BOSS')
+            (u) => u.isActive && u.roles?.some((r) => r.name === 'BOSS')
         ),
         [allUsers],
     );
@@ -215,7 +291,7 @@ export default function CreateMaterialRequestPage() {
 
     // Máquinas seleccionadas
     const selectedMachines = useMemo(
-        () => (watchedMachineIds ?? []).map((id: string) => machines.find((m: any) => m.id === id)).filter(Boolean),
+        () => (watchedMachineIds ?? []).map((id: string) => machines.find((m) => m.id === id)).filter((m): m is NonNullable<typeof m> => Boolean(m)),
         [machines, watchedMachineIds],
     );
 
@@ -225,7 +301,7 @@ export default function CreateMaterialRequestPage() {
     // Nombre del área derivada de las máquinas
     const derivedAreaName = useMemo(() => {
         const areas = new Set(
-            selectedMachines.map((m: any) => m.area?.name ?? m.subArea?.area?.name).filter(Boolean),
+            selectedMachines.map((m) => m.area?.name ?? m.subArea?.area?.name).filter(Boolean),
         );
         if (areas.size === 1) return [...areas][0];
         if (areas.size > 1) return 'Diversas áreas';
@@ -259,7 +335,7 @@ export default function CreateMaterialRequestPage() {
         } else if (fields.length === 0) {
             append({ ...EMPTY_ITEM });
         }
-    }, [watchedCategory]);
+    }, [watchedCategory, isService, remove, fields.length, append]);
 
     // ── Pre-rellenar formulario al editar ─────────────────────────────────────
     useEffect(() => {
@@ -270,7 +346,7 @@ export default function CreateMaterialRequestPage() {
             category: req.category,
             priority: req.priority,
             boss: req.boss,
-            machineIds: (req.machines ?? []).map((mrm: any) => mrm.machine.id),
+            machineIds: (req.machines ?? []).map((mrm) => mrm.machine.id),
             customMachineBrand: req.customMachineBrand ?? req.machine.brand ?? 'N/A',
             customMachineModel: req.customMachineModel ?? req.machine.model ?? 'N/A',
             customMachineManufacturer: req.customMachineManufacturer ?? req.machine.manufacturer ?? 'N/A',
@@ -280,7 +356,7 @@ export default function CreateMaterialRequestPage() {
             comments: req.comments ?? '',
             suggestedSupplier: req.suggestedSupplier ?? '',
             items: req.items.length > 0
-                ? req.items.map((item: any) => ({
+                ? req.items.map((item) => ({
                     catalogId: item.materialId || item.sparePartId || (item.brand || item.partNumber ? 'OTHER' : ''),
                     isManual: !item.materialId && !item.sparePartId,
                     customName: item.customName ?? '',
@@ -300,7 +376,7 @@ export default function CreateMaterialRequestPage() {
 
     const catalogItems = useMemo(() => {
         if (isMaterialCategory) {
-            return materials.map((m: any) => ({
+            return materials.map((m) => ({
                 id: m.id,
                 label: `${m.description}${m.partNumber ? ` · ${m.partNumber}` : ''}`,
                 brand: m.brand ?? '',
@@ -311,7 +387,7 @@ export default function CreateMaterialRequestPage() {
             }));
         }
         if (isSparePartCategory) {
-            return spareParts.map((s: any) => ({
+            return spareParts.map((s) => ({
                 id: s.id,
                 label: `${s.partNumber}${s.brand ? ` · ${s.brand}` : ''}`,
                 brand: s.brand ?? '',
@@ -335,7 +411,7 @@ export default function CreateMaterialRequestPage() {
                 setValue(`items.${index}.sku`, '');
                 return;
             }
-            const found = catalogItems.find((c: any) => c.id === catalogId);
+            const found = catalogItems.find((c) => c.id === catalogId);
             setValue(`items.${index}.catalogId`, catalogId);
             setValue(`items.${index}.isManual`, false);
             if (found) {
@@ -407,7 +483,7 @@ export default function CreateMaterialRequestPage() {
                         input: { ...requestPayload, items: [] },
                     },
                 });
-                targetId = createdData?.createMaterialRequest?.id;
+                targetId = createdData?.createMaterialRequest?.id as string;
                 if (!targetId) throw new Error('No se pudo obtener el ID de la solicitud creada.');
 
                 for (const item of values.items) {
@@ -484,12 +560,13 @@ export default function CreateMaterialRequestPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
-                {/* ── 1. Información de la solicitud ── */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base">1. Información de la solicitud</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+                    {/* ── 1. Información de la solicitud ── */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">1. Información de la solicitud</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
 
                         {/* Solicitante: solo técnicos */}
                         <div className="space-y-1.5">
@@ -499,7 +576,7 @@ export default function CreateMaterialRequestPage() {
                                 control={control}
                                 render={({ field }) => (
                                     <Combobox
-                                        options={technicians.map((t: any) => ({
+                                        options={technicians.map((t) => ({
                                             value: t.user.id,
                                             label: `${t.user.fullName}${t.position ? ` · ${t.position.name}` : ''}`,
                                         }))}
@@ -571,7 +648,7 @@ export default function CreateMaterialRequestPage() {
                                 control={control}
                                 render={({ field }) => (
                                     <Combobox
-                                        options={bosses.map((b: any) => ({
+                                        options={bosses.map((b) => ({
                                             value: b.fullName,
                                             label: `${b.fullName}${b.employeeNumber ? ` · ${b.employeeNumber}` : ''}`,
                                         }))}
@@ -587,24 +664,24 @@ export default function CreateMaterialRequestPage() {
                                 <p className="text-xs text-destructive">{errors.boss.message}</p>
                             )}
                         </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
 
-                {/* ── 2. Equipo o Estructura ── */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base">2. Equipo o Estructura</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                    {/* ── 2. Equipo o Estructura ── */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">2. Equipo o Estructura</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
 
                         {/* Máquinas seleccionadas */}
                         <div className="space-y-1.5">
                             <Label>Máquina(s) / Equipo(s) <span className="text-destructive">*</span></Label>
 
                             {/* Lista de máquinas ya seleccionadas */}
-                            {selectedMachines.length > 0 && (
+                                {selectedMachines.length > 0 && (
                                 <div className="space-y-1.5 mb-2">
-                                    {selectedMachines.map((m: any) => (
+                                    {selectedMachines.map((m) => (
                                         <div
                                             key={m.id}
                                             className="flex items-center justify-between bg-muted/40 rounded-md px-3 py-1.5 text-sm border border-border/50"
@@ -630,8 +707,8 @@ export default function CreateMaterialRequestPage() {
                             {/* Combobox para agregar */}
                             <Combobox
                                 options={machines
-                                    .filter((m: any) => !(watchedMachineIds ?? []).includes(m.id))
-                                    .map((m: any) => ({
+                                    .filter((m) => !(watchedMachineIds ?? []).includes(m.id))
+                                    .map((m) => ({
                                         value: m.id,
                                         label: machineLabel(m),
                                     }))}
@@ -646,7 +723,7 @@ export default function CreateMaterialRequestPage() {
                                 searchPlaceholder="Buscar máquina..."
                             />
                             {errors.machineIds && (
-                                <p className="text-xs text-destructive">{(errors.machineIds as any).message ?? 'Selecciona al menos una máquina'}</p>
+                                <p className="text-xs text-destructive">{(errors.machineIds as unknown as { message?: string }).message ?? 'Selecciona al menos una máquina'}</p>
                             )}
                         </div>
 
@@ -696,8 +773,9 @@ export default function CreateMaterialRequestPage() {
                                 </div>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* ── 3. Artículos Solicitados — solo si NO es servicio ── */}
                 {showItems && (
@@ -750,7 +828,7 @@ export default function CreateMaterialRequestPage() {
                                                     </Label>
                                                     <Combobox
                                                         options={[
-                                                            ...catalogItems.map((c: any) => ({
+                                                            ...catalogItems.map((c) => ({
                                                                 value: c.id,
                                                                 label: c.label,
                                                             })),
@@ -930,30 +1008,31 @@ export default function CreateMaterialRequestPage() {
                     </Card>
                 )}
 
-                {/* ── 4. Descripción / Especificaciones (por solicitud) ── */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base">
-                            {showItems ? '4.' : '3.'} Descripción / Especificaciones
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Textarea
-                            rows={4}
-                            placeholder="Describe las especificaciones o requerimientos de esta solicitud..."
-                            {...register('description')}
-                        />
-                    </CardContent>
-                </Card>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+                    {/* ── 4. Descripción / Especificaciones (por solicitud) ── */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                                {showItems ? '4.' : '3.'} Descripción / Especificaciones
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Textarea
+                                rows={4}
+                                placeholder="Describe las especificaciones o requerimientos de esta solicitud..."
+                                {...register('description')}
+                            />
+                        </CardContent>
+                    </Card>
 
-                {/* ── 5. Importancia y Compatibilidad ── */}
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base">
-                            {showItems ? '5.' : '4.'} Importancia y Compatibilidad
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                    {/* ── 5. Importancia y Compatibilidad ── */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-base">
+                                {showItems ? '5.' : '4.'} Importancia y Compatibilidad
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
 
                         <div className="space-y-1.5">
                             <Label>Importancia <span className="text-destructive">*</span></Label>
@@ -978,8 +1057,9 @@ export default function CreateMaterialRequestPage() {
                             )}
                         </div>
 
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* ── 6. Información Adicional ── */}
                 <Card>

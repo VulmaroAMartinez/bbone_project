@@ -1,11 +1,4 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  Index,
-  OneToMany,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from 'src/infrastructure/database/base.entity';
 import { User } from 'src/modules/users/domain/entities';
 import { Area } from 'src/modules/catalogs/areas/domain/entities';

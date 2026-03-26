@@ -3,15 +3,12 @@
 import { useState } from 'react';
 import { useQuery } from '@apollo/client/react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 
 import {
   MyRequestedWorkOrdersDocument,
   type WorkOrderStatus,
   WorkOrderItemFragmentDoc,
-  AreaBasicFragmentDoc,
-  SubAreaBasicFragmentDoc,
-  UserBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
@@ -125,10 +122,10 @@ export default function MisOrdenesJefePage() {
           </Card>
         ) : (
           filteredOrders.map((order) => {
-            const area = useFragment(AreaBasicFragmentDoc, order.area);
-            const subArea = order.subArea ? useFragment(SubAreaBasicFragmentDoc, order.subArea) : null;
+            const area = order.area as unknown as { name?: string } | null;
+            const subArea = order.subArea as unknown as { name?: string } | null;
             const leadTechRel = order.technicians?.find((t) => t.isLead);
-            const leadTechnician = useFragment(UserBasicFragmentDoc, leadTechRel?.technician);
+            const leadTechnician = leadTechRel?.technician as unknown as { firstName?: string; lastName?: string } | null;
 
             return (
               <Card
@@ -147,18 +144,18 @@ export default function MisOrdenesJefePage() {
                       </div>
                       <p className="text-sm text-foreground line-clamp-2">{order.description}</p>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-muted-foreground">
-                        {area && (
+                        {area?.name && (
                           <span className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             {area.name}
-                            {subArea ? ` - ${subArea.name}` : ''}
+                            {subArea?.name ? ` - ${subArea.name}` : ''}
                           </span>
                         )}
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {new Date(order.createdAt).toLocaleDateString('es-MX')}
                         </span>
-                        {leadTechnician && (
+                        {leadTechnician?.firstName && leadTechnician?.lastName && (
                           <span className="flex items-center gap-1">
                             <User className="h-3 w-3" />
                             {leadTechnician.firstName} {leadTechnician.lastName}

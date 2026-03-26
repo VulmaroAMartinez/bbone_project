@@ -1,68 +1,38 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
 import {
     GetSparePartsDocument,
-    GetMachinesPageDataDocument,
-    CreateSparePartDocument,
-    UpdateSparePartDocument,
     ActivateSparePartDocument,
     DeactivateSparePartDocument,
-    MachineBasicFragmentDoc
+    type GetSparePartsQuery
 } from '@/lib/graphql/generated/graphql';
-import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Combobox } from '@/components/ui/combobox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, Wrench } from 'lucide-react';
 
-const schema = yup.object({
-    partNumber: yup.string().trim().required('El número de parte es obligatorio'),
-    machineId: yup.string().required('Debe seleccionar una máquina'),
-    brand: yup.string().trim().default(''),
-    model: yup.string().trim().default(''),
-    supplier: yup.string().trim().default(''),
-    unitOfMeasure: yup.string().trim().default(''),
-});
-
-type FormValues = yup.InferType<typeof schema>;
+import SparePartFormModal from './modals/SparePartFormModal';
+import { toast } from 'sonner';
 
 export default function SparePartsPage() {
-    const { data, loading, refetch } = useQuery(GetSparePartsDocument, { fetchPolicy: 'cache-and-network' });
-    const { data: machinesData, loading: loadingMachines } = useQuery(GetMachinesPageDataDocument);
+    const { data, loading, refetch } = useQuery<GetSparePartsQuery>(GetSparePartsDocument, { fetchPolicy: 'cache-and-network' });
 
-    const [createSparePart, { loading: creating }] = useMutation(CreateSparePartDocument);
-    const [updateSparePart, { loading: updating }] = useMutation(UpdateSparePartDocument);
     const [activateSparePart] = useMutation(ActivateSparePartDocument);
     const [deactivateSparePart] = useMutation(DeactivateSparePartDocument);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [editingSparePart, setEditingSparePart] = useState<any>(null);
 
-    const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormValues>({
-        resolver: yupResolver(schema),
-        defaultValues: { partNumber: '', machineId: '', brand: '', model: '', supplier: '', unitOfMeasure: '' },
-    });
-
-    const rawSpareParts = data?.sparePartsWithDeleted || [];
-    const machines = (machinesData?.machinesWithDeleted ?? []).map((ref) =>
-        useFragment(MachineBasicFragmentDoc, ref),
-    );
-
-    const unmask = useFragment;
+    const rawSpareParts = useMemo(() => data?.sparePartsWithDeleted || [], [data?.sparePartsWithDeleted]);
     const spareParts = useMemo(() =>
         rawSpareParts.map(p => ({
             ...p,
-            machine: unmask(MachineBasicFragmentDoc, p.machine),
+            machine: p.machine as unknown as { name: string },
         })),
-        [rawSpareParts, unmask]
+        [rawSpareParts]
     );
 
     const filteredParts = spareParts.filter(p =>
@@ -71,36 +41,10 @@ export default function SparePartsPage() {
         p.brand?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const openModal = (part: any = null) => {
-        if (part) {
-            setEditingId(part.id);
-            reset({
-                partNumber: part.partNumber || '',
-                machineId: part.machine.id || '',
-                brand: part.brand || '',
-                model: part.model || '',
-                supplier: part.supplier || '',
-                unitOfMeasure: part.unitOfMeasure || '',
-            });
-        } else {
-            setEditingId(null);
-            reset({ partNumber: '', machineId: '', brand: '', model: '', supplier: '', unitOfMeasure: '' });
-        }
+        setEditingSparePart(part);
         setIsModalOpen(true);
-    };
-
-    const onSubmit = async (values: FormValues) => {
-        try {
-            if (editingId) {
-                await updateSparePart({ variables: { id: editingId, input: { ...values } } });
-            } else {
-                await createSparePart({ variables: { input: { ...values } } });
-            }
-            setIsModalOpen(false);
-            refetch();
-        } catch (error: any) {
-            alert(error.message);
-        }
     };
 
     const toggleStatus = async (id: string, currentStatus: boolean) => {
@@ -111,12 +55,10 @@ export default function SparePartsPage() {
                 await activateSparePart({ variables: { id } });
             }
             refetch();
-        } catch (error: any) {
-            alert(error.message);
+        } catch {
+            toast.error('Error al actualizar el estado');
         }
     };
-
-    const isSaving = creating || updating;
 
     return (
         <div className="space-y-6 pb-12">
@@ -203,62 +145,12 @@ export default function SparePartsPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{editingId ? 'Editar Refacción' : 'Nueva Refacción'}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label className="text-primary font-semibold">Máquina a la que pertenece *</Label>
-                            <Controller
-                                name="machineId"
-                                control={control}
-                                render={({ field }) => (
-                                    <Combobox
-                                        options={machines.map((m: any) => ({ value: m.id, label: `${m.name} [${m.code}]` }))}
-                                        value={field.value}
-                                        onValueChange={field.onChange}
-                                        placeholder={loadingMachines ? "Cargando..." : "Seleccionar máquina..."}
-                                        searchPlaceholder="Buscar máquina..."
-                                        disabled={loadingMachines}
-                                    />
-                                )}
-                            />
-                            {errors.machineId && <p className="text-xs text-destructive">{errors.machineId.message}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Número de Parte *</Label>
-                            <Input {...register('partNumber')} placeholder="Ej: BAL-608-ZZ" />
-                            {errors.partNumber && <p className="text-xs text-destructive">{errors.partNumber.message}</p>}
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Marca</Label>
-                                <Input {...register('brand')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Modelo</Label>
-                                <Input {...register('model')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Proveedor</Label>
-                                <Input {...register('supplier')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>U. de Medida</Label>
-                                <Input {...register('unitOfMeasure')} placeholder="Ej: Pza, Juego..." />
-                            </div>
-                        </div>
-                        <DialogFooter className="pt-4">
-                            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={isSaving}>
-                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <SparePartFormModal
+                open={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                sparePart={editingSparePart}
+                onSuccess={() => refetch()}
+            />
         </div>
     );
 }

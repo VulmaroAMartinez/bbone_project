@@ -139,10 +139,11 @@ export class PreventiveTask extends BaseEntity {
         return 'Semanal';
       case FrequencyType.MONTHLY:
         return 'Mensual';
-      case FrequencyType.CUSTOM:
+      case FrequencyType.CUSTOM: {
         const unit =
           this.frequencyUnit === FrequencyUnit.HOURS ? 'horas' : 'días';
         return `Cada ${this.frequencyValue} ${unit}`;
+      }
       default:
         return 'Desconocido';
     }

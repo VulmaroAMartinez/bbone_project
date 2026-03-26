@@ -77,7 +77,7 @@ export class FindingsService {
   }
 
   async update(id: string, data: Partial<Finding>): Promise<Finding | null> {
-    const finding = await this.findByIdOrFail(id);
+    await this.findByIdOrFail(id);
     return this.findingsRepository.update(id, data);
   }
 

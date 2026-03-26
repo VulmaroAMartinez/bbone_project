@@ -6,7 +6,7 @@ import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 import {
   CreateWorkOrderDocument,
   UploadWorkOrderPhotoDocument,
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { FileText, MapPin, CheckCircle, Send, ArrowLeft, ImageIcon, Loader2 } from 'lucide-react';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
+import { uploadFileToBackend } from '@/lib/utils/uploads';
 
 const crearOTSchema = yup.object({
   areaId: yup.string().required('El área es obligatoria.'),
@@ -124,7 +125,7 @@ export default function SolicitanteCrearOTPage() {
       const newWorkOrderId = otData?.createWorkOrder.id;
 
       if (newWorkOrderId && photoFile) {
-        const mockFilePath = `uploads/${newWorkOrderId}/${photoFile.name}`;
+        const uploadedPhoto = await uploadFileToBackend(photoFile);
         await uploadPhoto({
           variables: {
             input: {
@@ -132,7 +133,7 @@ export default function SolicitanteCrearOTPage() {
               fileName: photoFile.name,
               mimeType: photoFile.type,
               photoType: 'BEFORE',
-              filePath: mockFilePath,
+              filePath: uploadedPhoto.url,
             }
           }
         });

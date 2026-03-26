@@ -52,7 +52,6 @@ export class FcmProvider implements OnModuleInit {
   }
 
   private resolveCredential(): admin.credential.Credential | null {
-    // Opción 1: Ruta al archivo JSON (recomendado por Firebase)
     const serviceAccountPath = this.configService.get<string>(
       'FIREBASE_SERVICE_ACCOUNT_PATH',
     );
@@ -61,11 +60,11 @@ export class FcmProvider implements OnModuleInit {
       if (fs.existsSync(resolvedPath)) {
         const serviceAccount = JSON.parse(
           fs.readFileSync(resolvedPath, 'utf-8'),
-        );
+        ) as Record<string, unknown>;
         this.logger.log(
           `Firebase credential cargado desde archivo: ${resolvedPath}`,
         );
-        return admin.credential.cert(serviceAccount);
+        return admin.credential.cert(serviceAccount as admin.ServiceAccount);
       }
       this.logger.warn(`Archivo serviceAccount no encontrado: ${resolvedPath}`);
     }
@@ -75,9 +74,12 @@ export class FcmProvider implements OnModuleInit {
       'FIREBASE_SERVICE_ACCOUNT_JSON',
     );
     if (serviceAccountJson) {
-      const serviceAccount = JSON.parse(serviceAccountJson);
+      const serviceAccount = JSON.parse(serviceAccountJson) as Record<
+        string,
+        unknown
+      >;
       this.logger.log('Firebase credential cargado desde variable JSON inline');
-      return admin.credential.cert(serviceAccount);
+      return admin.credential.cert(serviceAccount as admin.ServiceAccount);
     }
 
     // Opción 3: Variables individuales (fallback)
@@ -117,7 +119,6 @@ export class FcmProvider implements OnModuleInit {
           ...(message.imageUrl && { imageUrl: message.imageUrl }),
         },
         data: message.data,
-        // Configuración para foreground y background
         android: {
           priority: 'high',
           notification: {
@@ -151,8 +152,9 @@ export class FcmProvider implements OnModuleInit {
       });
 
       return { token, success: true };
-    } catch (error: any) {
-      const errorCode = error?.code || error?.message || 'UNKNOWN';
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
+      const errorCode = err?.code || err?.message || 'UNKNOWN';
       this.logger.error(
         `Error enviando push a token ${token.substring(0, 20)}...`,
         errorCode,

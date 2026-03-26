@@ -27,6 +27,20 @@ export class NotificationPreferencesRepository {
     });
   }
 
+  async findByUserIdsAndType(
+    userIds: string[],
+    type: NotificationType,
+  ): Promise<NotificationPreference[]> {
+    if (userIds.length === 0) return [];
+
+    return this.repository
+      .createQueryBuilder('np')
+      .where('np.userId IN (:...userIds)', { userIds })
+      .andWhere('np.notificationType = :type', { type })
+      .andWhere('np.isActive = :active', { active: true })
+      .getMany();
+  }
+
   async upsert(
     userId: string,
     type: NotificationType,

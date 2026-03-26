@@ -113,7 +113,7 @@ export class TechnicianSchedulesService {
    *  - Regla de maxPerWeek si el motivo de ausencia lo tiene configurado.
    */
   async create(input: CreateScheduleInput): Promise<TechnicianSchedule> {
-    await this.validateScheduleInput(input.shiftId, input.absenceReasonId);
+    this.validateScheduleInput(input.shiftId, input.absenceReasonId);
 
     const existing = await this.schedulesRepository.findByTechnicianAndDate(
       input.technicianId,
@@ -122,7 +122,7 @@ export class TechnicianSchedulesService {
 
     if (existing) {
       throw new ConflictException(
-        `El técnico ya tiene una asignación para la fecha ${input.scheduleDate}. Use la mutación de actualización o elimine la existente.`,
+        `El técnico ya tiene una asignación para la fecha ${input.scheduleDate}. Actualice o elimine la existente.`,
       );
     }
 
@@ -142,12 +142,11 @@ export class TechnicianSchedulesService {
     // FIX: pasar scheduleDate como string "YYYY-MM-DD" directo a PostgreSQL tipo date
     return this.schedulesRepository.create({
       technicianId: input.technicianId,
-      scheduleDate: input.scheduleDate as any,
+      scheduleDate: input.scheduleDate as unknown as Date,
       weekNumber,
       year,
       shiftId: input.shiftId || undefined,
       absenceReasonId: input.absenceReasonId || undefined,
-      notes: input.notes,
     });
   }
 
@@ -168,12 +167,10 @@ export class TechnicianSchedulesService {
   async assignWeek(
     input: AssignWeekScheduleInput,
   ): Promise<TechnicianSchedule[]> {
-    // Validar cada día: shiftId XOR absenceReasonId
     for (const day of input.days) {
-      await this.validateScheduleInput(day.shiftId, day.absenceReasonId);
+      this.validateScheduleInput(day.shiftId, day.absenceReasonId);
     }
 
-    // Contar ausencias por tipo en el batch que se está asignando
     const absenceCountMap = new Map<string, number>();
     for (const day of input.days) {
       if (day.absenceReasonId) {
@@ -182,7 +179,6 @@ export class TechnicianSchedulesService {
       }
     }
 
-    // Validar límites de ausencia para todo el batch
     for (const [absenceReasonId, count] of absenceCountMap.entries()) {
       const reason =
         await this.absenceReasonsService.findByIdOrFail(absenceReasonId);
@@ -197,8 +193,6 @@ export class TechnicianSchedulesService {
       }
     }
 
-    // FIX: Delegar al repositorio que maneja la transacción completa (upsert atómico)
-    // Las fechas se pasan como strings "YYYY-MM-DD" — nunca se hace new Date()
     return this.schedulesRepository.upsertWeekSchedule(
       input.technicianId,
       input.weekNumber,
@@ -207,7 +201,6 @@ export class TechnicianSchedulesService {
         scheduleDate: day.scheduleDate,
         shiftId: day.shiftId || undefined,
         absenceReasonId: day.absenceReasonId || undefined,
-        notes: day.notes,
       })),
     );
   }
@@ -229,7 +222,7 @@ export class TechnicianSchedulesService {
         ? input.absenceReasonId
         : schedule.absenceReasonId;
 
-    await this.validateScheduleInput(shiftId, absenceReasonId);
+    this.validateScheduleInput(shiftId, absenceReasonId);
 
     if (absenceReasonId) {
       await this.validateAbsenceReasonLimit(
@@ -249,9 +242,6 @@ export class TechnicianSchedulesService {
     if (input.absenceReasonId !== undefined) {
       updateData.absenceReasonId = input.absenceReasonId || undefined;
       updateData.shiftId = undefined; // Si asigna ausencia, quita turno
-    }
-    if (input.notes !== undefined) {
-      updateData.notes = input.notes;
     }
 
     const updated = await this.schedulesRepository.update(id, updateData);
@@ -280,7 +270,6 @@ export class TechnicianSchedulesService {
       );
     }
 
-    // Obtener horarios de la semana origen
     let sourceSchedules: TechnicianSchedule[];
     if (input.technicianId) {
       sourceSchedules = await this.schedulesRepository.findByTechnicianAndWeek(
@@ -301,7 +290,6 @@ export class TechnicianSchedulesService {
       );
     }
 
-    // Calcular el offset de días entre semanas usando UTC
     const targetWeekStart = DateUtil.getWeekStartDate(
       input.targetWeekNumber,
       input.targetYear,
@@ -312,7 +300,6 @@ export class TechnicianSchedulesService {
     );
     const dayOffsetMs = targetWeekStart.getTime() - sourceWeekStart.getTime();
 
-    // Agrupar horarios fuente por técnico
     const byTechnician = new Map<string, typeof sourceSchedules>();
     for (const s of sourceSchedules) {
       const list = byTechnician.get(s.technicianId) || [];
@@ -320,7 +307,6 @@ export class TechnicianSchedulesService {
       byTechnician.set(s.technicianId, list);
     }
 
-    // Para cada técnico, mapear sus días al destino y usar upsertWeekSchedule
     const allResults: TechnicianSchedule[] = [];
 
     for (const [techId, schedules] of byTechnician.entries()) {
@@ -337,11 +323,9 @@ export class TechnicianSchedulesService {
           scheduleDate: newDateStr,
           shiftId: s.shiftId || undefined,
           absenceReasonId: s.absenceReasonId || undefined,
-          notes: s.notes,
         };
       });
 
-      // Reutilizar upsertWeekSchedule: atómico, sin pérdida de datos
       const results = await this.schedulesRepository.upsertWeekSchedule(
         techId,
         input.targetWeekNumber,
@@ -368,10 +352,10 @@ export class TechnicianSchedulesService {
   /**
    * Valida que se envíe shiftId O absenceReasonId (mutuamente excluyentes, al menos uno requerido).
    */
-  private async validateScheduleInput(
+  private validateScheduleInput(
     shiftId?: string,
     absenceReasonId?: string,
-  ): Promise<void> {
+  ): void {
     if (shiftId && absenceReasonId) {
       throw new BadRequestException(
         'No se puede asignar un turno y un motivo de ausencia al mismo tiempo. Envíe solo uno.',

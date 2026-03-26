@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 /**
  * Firebase Cloud Messaging Service Worker
  * Handles background push notifications when the app is closed or in background.
@@ -11,12 +10,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: new URL(self.location.href).searchParams.get('apiKey'),
+  authDomain: new URL(self.location.href).searchParams.get('authDomain'),
+  projectId: new URL(self.location.href).searchParams.get('projectId'),
+  storageBucket: new URL(self.location.href).searchParams.get('storageBucket'),
+  messagingSenderId: new URL(self.location.href).searchParams.get('messagingSenderId'),
+  appId: new URL(self.location.href).searchParams.get('appId'),
 });
 
 const messaging = firebase.messaging();

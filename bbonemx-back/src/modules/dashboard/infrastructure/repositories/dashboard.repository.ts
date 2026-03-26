@@ -37,9 +37,7 @@ export class DashboardRepository {
     const from = new Date(input.dateFrom);
     const to = new Date(input.dateTo);
 
-    if (this.isDateOnly(input.dateFrom)) {
-      from.setUTCHours(0, 0, 0, 0);
-    }
+    if (this.isDateOnly(input.dateFrom)) from.setUTCHours(0, 0, 0, 0);
 
     if (this.isDateOnly(input.dateTo)) {
       to.setUTCDate(to.getUTCDate() + 1);
@@ -152,7 +150,8 @@ export class DashboardRepository {
       })
       .andWhere('wo.end_date IS NOT NULL')
       .select(
-        'COALESCE(AVG(CASE WHEN wo.functional_time_minutes IS NOT NULL AND wo.functional_time_minutes > 0 THEN wo.functional_time_minutes / 60.0 ELSE EXTRACT(EPOCH FROM (wo.end_date - wo.start_date)) / 3600.0 END), 0)',
+        'COALESCE(AVG(CASE WHEN wo.functional_time_minutes IS NOT NULL AND wo.functional_time_minutes > 0 ' +
+          'THEN wo.functional_time_minutes / 60.0 ELSE EXTRACT(EPOCH FROM (wo.end_date - wo.start_date)) / 3600.0 END), 0)',
         'avg',
       );
 

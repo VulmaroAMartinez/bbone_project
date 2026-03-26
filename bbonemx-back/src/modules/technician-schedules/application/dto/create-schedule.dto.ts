@@ -23,7 +23,7 @@ export class CreateScheduleInput {
   })
   @IsOptional()
   @IsUUID()
-  @ValidateIf((o) => !o.absenceReasonId)
+  @ValidateIf((o: CreateScheduleInput) => !o.absenceReasonId)
   shiftId?: string;
 
   @Field(() => ID, {
@@ -32,7 +32,7 @@ export class CreateScheduleInput {
   })
   @IsOptional()
   @IsUUID()
-  @ValidateIf((o) => !o.shiftId)
+  @ValidateIf((o: CreateScheduleInput) => !o.shiftId)
   absenceReasonId?: string;
 
   @Field({ nullable: true, description: 'Notas adicionales' })

@@ -1,10 +1,6 @@
 import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
 import { UserType } from 'src/modules/users/presentation/types';
-import {
-  NotificationType,
-  NotificationChannel,
-  DevicePlatform,
-} from 'src/common';
+import { NotificationType, DevicePlatform } from 'src/common';
 
 // ============================
 // NOTIFICATION
@@ -18,7 +14,7 @@ export class NotificationObjectType {
   @Field(() => NotificationType) type: NotificationType;
   @Field() title: string;
   @Field() body: string;
-  @Field({ nullable: true }) data?: string; // JSON string
+  @Field({ nullable: true }) data?: string;
   @Field({ nullable: true }) readAt?: Date;
   @Field() pushSent: boolean;
   @Field() emailSent: boolean;

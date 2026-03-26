@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -29,6 +29,7 @@ import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 import { useNavigate } from 'react-router-dom';
 import { useAreaMachineSelector } from '@/hooks/useAreaMachineSelector';
 import { CREATE_WORK_ORDER_MUTATION, ASSIGN_WORK_ORDER_MUTATION, UPLOAD_WORK_ORDER_PHOTO_MUTATION } from '@/lib/graphql/operations/work-orders';
+import { uploadFileToBackend } from '@/lib/utils/uploads';
 
 const adminCrearOTSchema = yup.object({
   areaId: yup.string().required('El área es obligatoria.'),
@@ -42,10 +43,10 @@ const adminCrearOTSchema = yup.object({
   stoppageType: yup.string().required('El tipo de parada es obligatorio.'),
   shiftId: yup.string().required('El turno es obligatorio.'),
   maintenanceType: yup.string().required('El tipo de mantenimiento es obligatorio.'),
-  scheduledDate: yup.string().when('maintenanceType', {
+  scheduledDate: yup.string().default('').when('maintenanceType', {
     is: 'CORRECTIVE_SCHEDULED',
     then: (schema) => schema.required('La fecha programada es obligatoria para correctivo programado.'),
-    otherwise: (schema) => schema.notRequired().default(''),
+    otherwise: (schema) => schema.notRequired(),
   }),
   workType: yup.string().required('El tipo de trabajo es obligatorio.'),
   leadTechnicianId: yup.string().required('El técnico líder es obligatorio.'),
@@ -118,17 +119,16 @@ export default function AdminCrearOTPage() {
     ? unmaskFragment(SubAreaBasicFragmentDoc, subAreasData.subAreasByArea)
     : [];
   const shifts = shiftsData?.shiftsActive || [];
-  const activeTechnicians = techData?.techniciansActive ? unmaskFragment(TechnicianBasicFragmentDoc, techData.techniciansActive) : [];
+  const activeTechnicians = useMemo(() => techData?.techniciansActive ? unmaskFragment(TechnicianBasicFragmentDoc, techData.techniciansActive) : [], [techData?.techniciansActive]);
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    // setError,  // ya no se usa (validación rígida eliminada)
     formState: { errors, isSubmitting },
-  } = useForm<any>({
-    resolver: yupResolver(adminCrearOTSchema),
+  } = useForm<AdminCrearOTFormValues>({
+    resolver: yupResolver(adminCrearOTSchema) as never,
     defaultValues: {
       areaId: '',
       subAreaId: '',
@@ -156,15 +156,16 @@ export default function AdminCrearOTPage() {
   const maintenanceType = watch('maintenanceType');
   const description = watch('description');
 
-  const availableMachines = machinesByAreaData?.machinesByArea
+  const availableMachines = useMemo(() => machinesByAreaData?.machinesByArea
     ? unmaskFragment(MachineBasicFragmentDoc, machinesByAreaData.machinesByArea)
-    : [];
+    : [], [machinesByAreaData?.machinesByArea]);
 
   const showSubAreas = !!areaId && subAreasLoaded && hasSubAreas;
   const showMachine = !!areaId && availableMachines.length > 0;
 
   const techOptions = React.useMemo(
-    () => activeTechnicians.map((tech) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    () => activeTechnicians.map((tech: any) => {
       const user = unmaskFragment(UserBasicFragmentDoc, tech.user);
       const position = unmaskFragment(PositionBasicFragmentDoc, tech.position);
       return { value: user.id, label: `${user.fullName} - ${position.name}` };
@@ -173,7 +174,8 @@ export default function AdminCrearOTPage() {
   );
 
   const machineOptions = React.useMemo(
-    () => availableMachines.map((m) => ({ value: m.id, label: `${m.name} [${m.code}]` })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    () => availableMachines.map((m: any) => ({ value: m.id, label: `${m.name} [${m.code}]` })),
     [availableMachines],
   );
 
@@ -241,7 +243,7 @@ export default function AdminCrearOTPage() {
         },
       });
 
-      const newWorkOrderId = (createResp.data as any)?.createWorkOrder?.id;
+      const newWorkOrderId = (createResp.data as unknown as { createWorkOrder?: { id?: string } })?.createWorkOrder?.id;
       if (!newWorkOrderId) throw new Error("No se pudo obtener el ID de la OT");
 
       // 2. Asignar Detalles
@@ -264,7 +266,7 @@ export default function AdminCrearOTPage() {
 
       // 3. Subir Foto
       if (photoFile) {
-        const mockPath = `uploads/${newWorkOrderId}/${photoFile.name}`;
+        const uploadedPhoto = await uploadFileToBackend(photoFile);
         await uploadPhoto({
           variables: {
             input: {
@@ -272,7 +274,7 @@ export default function AdminCrearOTPage() {
               fileName: photoFile.name,
               mimeType: photoFile.type,
               photoType: 'BEFORE',
-              filePath: mockPath,
+              filePath: uploadedPhoto.url,
             }
           }
         });
@@ -281,9 +283,9 @@ export default function AdminCrearOTPage() {
       setSuccess(true);
       setTimeout(() => navigate('/admin/ordenes'), 1500);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setFormError(err.message || 'Error al crear la orden de trabajo');
+      setFormError(err instanceof Error ? err.message : 'Error al crear la orden de trabajo');
     }
   };
 
@@ -322,7 +324,7 @@ export default function AdminCrearOTPage() {
           <CardDescription>Los campos marcados con * son obligatorios</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit as never)} className="space-y-4">
             {formError && (
               <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
                 {formError}
@@ -537,7 +539,7 @@ export default function AdminCrearOTPage() {
                 {auxiliaryTechnicians.map((auxTechId, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <Combobox
-                      options={techOptions.filter((o) => o.value !== watch('leadTechnicianId'))}
+                      options={techOptions.filter((o: { value: string }) => o.value !== watch('leadTechnicianId'))}
                       value={auxTechId}
                       onValueChange={(v) => handleUpdateAuxiliaryTech(index, v)}
                       placeholder="Seleccionar técnico de apoyo"

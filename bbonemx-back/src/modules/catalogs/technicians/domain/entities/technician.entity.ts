@@ -25,10 +25,18 @@ export class Technician extends BaseEntity {
   @Column({ type: 'text' })
   allergies: string;
 
-  @Column({ name: 'emergency_contact_name', type: 'varchar', length: 200 })
+  @Column({
+    name: 'emergency_contact_name',
+    type: 'varchar',
+    length: 200,
+  })
   emergencyContactName: string;
 
-  @Column({ name: 'emergency_contact_phone', type: 'varchar', length: 20 })
+  @Column({
+    name: 'emergency_contact_phone',
+    type: 'varchar',
+    length: 20,
+  })
   emergencyContactPhone: string;
 
   @Column({

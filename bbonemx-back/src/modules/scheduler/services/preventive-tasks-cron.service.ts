@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { PreventiveTasksService } from '../../preventive-tasks';
 
@@ -30,8 +30,8 @@ export class PreventiveTasksCronService implements OnModuleInit {
     if (!this.isEnabled) return;
 
     try {
-      const job = new CronJob(this.cronExpression, async () => {
-        this.handleCron();
+      const job = new CronJob(this.cronExpression, () => {
+        void this.handleCron();
       });
 
       this.schedulerRegistry.addCronJob(this.jobName, job);
@@ -39,9 +39,10 @@ export class PreventiveTasksCronService implements OnModuleInit {
       this.logger.log(
         `Preventive tasks cron job started with cron expression ${this.cronExpression}`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error as Error;
       this.logger.error(
-        `Error starting preventive tasks cron job: ${error.message}`,
+        `Error starting preventive tasks cron job: ${err.message}`,
       );
     }
   }
@@ -61,10 +62,11 @@ export class PreventiveTasksCronService implements OnModuleInit {
       if (result.generated > 0) {
         this.logger.log(`Task IDs processed: ${result.tasks.join(', ')}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error as Error;
       this.logger.error(
-        `Preventive tasks cron failed: ${error.message}`,
-        error.stack,
+        `Preventive tasks cron failed: ${err.message}`,
+        err.stack,
       );
     }
   }
@@ -79,10 +81,11 @@ export class PreventiveTasksCronService implements OnModuleInit {
         `Preventive tasks WO generation completed: ${result.generated} WOs generated in ${duration}ms`,
       );
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error as Error;
       this.logger.error(
-        `Preventive tasks WO generation failed: ${error.message}`,
-        error.stack,
+        `Preventive tasks WO generation failed: ${err.message}`,
+        err.stack,
       );
       throw error;
     }
@@ -114,10 +117,11 @@ export class PreventiveTasksCronService implements OnModuleInit {
   pause(): void {
     try {
       const job = this.schedulerRegistry.getCronJob(this.jobName);
-      job.stop();
+      void job.stop();
       this.logger.log('Preventive tasks cron job paused');
-    } catch (error) {
-      this.logger.error(`Failed to pause cron job: ${error.message}`);
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to pause cron job: ${err.message}`);
     }
   }
 
@@ -126,8 +130,9 @@ export class PreventiveTasksCronService implements OnModuleInit {
       const job = this.schedulerRegistry.getCronJob(this.jobName);
       job.start();
       this.logger.log('Preventive tasks cron job resumed');
-    } catch (error) {
-      this.logger.error(`Failed to resume cron job: ${error.message}`);
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(`Failed to resume cron job: ${err.message}`);
     }
   }
 }

@@ -17,7 +17,6 @@ export class UserRole extends BaseEntity {
   roleId: string;
 
   @ManyToOne(() => Role, (role) => role.userRoles, {
-    eager: true,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'role_id' })

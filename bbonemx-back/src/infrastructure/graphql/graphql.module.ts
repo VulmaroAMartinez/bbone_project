@@ -3,14 +3,16 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { join } from 'path';
+import { verify } from 'jsonwebtoken';
 import { IGqlContext } from '../../common/types';
+import type { Context } from 'graphql-ws';
 import {
-  FieldNode,
   FragmentDefinitionNode,
   GraphQLError,
   OperationDefinitionNode,
   SelectionNode,
   ValidationRule,
+  Kind,
 } from 'graphql';
 
 const MAX_QUERY_DEPTH = 12;
@@ -24,7 +26,7 @@ function calculateDepth(
   let maxDepth = currentDepth;
 
   for (const selection of selectionSet) {
-    if (selection.kind === 'Field') {
+    if (selection.kind === Kind.FIELD) {
       const field = selection;
       if (!field.selectionSet) continue;
       maxDepth = Math.max(
@@ -38,7 +40,7 @@ function calculateDepth(
       continue;
     }
 
-    if (selection.kind === 'FragmentSpread') {
+    if (selection.kind === Kind.FRAGMENT_SPREAD) {
       const fragment = fragments[selection.name.value];
       if (!fragment) continue;
       maxDepth = Math.max(
@@ -52,7 +54,7 @@ function calculateDepth(
       continue;
     }
 
-    if (selection.kind === 'InlineFragment') {
+    if (selection.kind === Kind.INLINE_FRAGMENT) {
       maxDepth = Math.max(
         maxDepth,
         calculateDepth(
@@ -74,7 +76,7 @@ function countFields(
   let count = 0;
 
   for (const selection of selectionSet) {
-    if (selection.kind === 'Field') {
+    if (selection.kind === Kind.FIELD) {
       count += 1;
       if (selection.selectionSet) {
         count += countFields(selection.selectionSet.selections, fragments);
@@ -82,7 +84,7 @@ function countFields(
       continue;
     }
 
-    if (selection.kind === 'FragmentSpread') {
+    if (selection.kind === Kind.FRAGMENT_SPREAD) {
       const fragment = fragments[selection.name.value];
       if (fragment) {
         count += countFields(fragment.selectionSet.selections, fragments);
@@ -90,7 +92,7 @@ function countFields(
       continue;
     }
 
-    if (selection.kind === 'InlineFragment') {
+    if (selection.kind === Kind.INLINE_FRAGMENT) {
       count += countFields(selection.selectionSet.selections, fragments);
     }
   }
@@ -103,7 +105,7 @@ const queryLimitsRule: ValidationRule = (context) => {
     .getDocument()
     .definitions.filter(
       (definition): definition is FragmentDefinitionNode =>
-        definition.kind === 'FragmentDefinition',
+        definition.kind === Kind.FRAGMENT_DEFINITION,
     )
     .reduce<Record<string, FragmentDefinitionNode>>((acc, fragment) => {
       acc[fragment.name.value] = fragment;
@@ -146,60 +148,74 @@ const queryLimitsRule: ValidationRule = (context) => {
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        // Code First: genera schema automáticamente desde decoradores
-        autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-
-        // Ordenar schema alfabéticamente
+        // Evitar escribir dentro de `src/` en runtime (p.ej. Docker).
+        // `graphql.autoSchemaFile` viene de config y por defecto es `schema.gql`.
+        autoSchemaFile: join(
+          process.cwd(),
+          configService.get<string>('graphql.autoSchemaFile') ?? 'schema.gql',
+        ),
         sortSchema: true,
-
-        // Playground para desarrollo
         playground: configService.get<boolean>('graphql.playground'),
-
-        // Introspection para herramientas como GraphQL Playground
         introspection: configService.get<boolean>('graphql.introspection'),
-
-        // Debug mode
         debug: configService.get<boolean>('graphql.debug'),
+        context: ({ req, res }: { req: unknown; res: unknown }): IGqlContext =>
+          ({ req, res }) as unknown as IGqlContext,
 
-        // Contexto disponible en todos los resolvers
-        context: ({ req, res }): IGqlContext => ({ req, res }),
-
-        // Configuración de subscriptions (para notificaciones en tiempo real)
         subscriptions: {
           'graphql-ws': {
-            onConnect: (context: any) => {
-              // Aquí se puede validar el token JWT para subscriptions
-              // const { connectionParams } = context;
-              // return { user: validateToken(connectionParams.authorization) };
+            onConnect: (context: Context) => {
+              const secret = configService.getOrThrow<string>('jwt.secret');
+
+              const connParams = context.connectionParams as
+                | { authorization?: string }
+                | undefined;
+              const paramToken =
+                typeof connParams?.authorization === 'string'
+                  ? connParams.authorization.replace(/^Bearer\s+/i, '')
+                  : null;
+
+              const extra = context.extra as
+                | { request?: { headers?: Record<string, string> } }
+                | undefined;
+              const cookieHeader = extra?.request?.headers?.cookie ?? '';
+              const cookieToken = cookieHeader
+                .split('; ')
+                .find((c: string) => c.startsWith('access_token='))
+                ?.split('=')[1];
+
+              const token = paramToken ?? cookieToken;
+              if (!token) {
+                throw new Error('Token de acceso no proporcionado');
+              }
+
+              try {
+                verify(token, secret);
+              } catch {
+                throw new Error('Token de acceso inválido');
+              }
             },
           },
-          'subscriptions-transport-ws': true, // Legacy support
+          'subscriptions-transport-ws': true,
         },
 
-        // Formateo de errores
         formatError: (error) => {
-          // En producción, ocultar detalles internos
           const isProduction =
             configService.get('app.nodeEnv') === 'production';
 
           if (isProduction) {
-            // Eliminar stack trace y detalles sensibles
             return {
               message: error.message,
               extensions: {
-                code: error.extensions?.code || 'INTERNAL_SERVER_ERROR',
+                code: error.extensions?.code ?? 'INTERNAL_SERVER_ERROR',
               },
             };
           }
 
-          // En desarrollo, mostrar todo
           return error;
         },
 
-        // Configuración de caché
         cache: 'bounded',
 
-        // Límites de seguridad
         validationRules: [queryLimitsRule],
       }),
     }),

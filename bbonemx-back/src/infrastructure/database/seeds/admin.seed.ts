@@ -5,8 +5,7 @@ import { getRoleByName } from './roles.seed';
 import { getDepartmentByName } from './departments.seed';
 
 const ADMIN_USER = {
-  employeeNumber: 'ADMIN001',
-  password: 'Admin123!',
+  employeeNumber: '00001',
   firstName: 'Administrador',
   lastName: 'Sistema',
   email: 'admin@bbonemx.com',
@@ -36,11 +35,18 @@ export async function seedAdmin(dataSource: DataSource): Promise<void> {
   );
 
   if (!maintenanceDepartment) {
-    throw new Error('El departamento MAINTENANCE no existe');
+    throw new Error('El departamento de mantenimiento no existe');
+  }
+
+  const seedPassword =
+    process.env.ADMIN_SEED_PASSWORD ?? process.env.SEED_ADMIN_PASSWORD;
+
+  if (!seedPassword) {
+    throw new Error('Contraseña requerida para crear administrador');
   }
 
   const saltRounds = 10;
-  const hashedPassword = await bcrypt.hash(ADMIN_USER.password, saltRounds);
+  const hashedPassword = await bcrypt.hash(seedPassword, saltRounds);
 
   const admin = userRepository.create({
     employeeNumber: ADMIN_USER.employeeNumber,

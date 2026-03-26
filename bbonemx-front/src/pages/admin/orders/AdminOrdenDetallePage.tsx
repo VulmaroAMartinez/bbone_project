@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 
 import {
   GetTechniciansDocument,
@@ -27,6 +27,7 @@ import {
   RESUME_WORK_ORDER_MUTATION,
   ASSIGN_WORK_ORDER_MUTATION,
 } from '@/lib/graphql/operations/work-orders';
+import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,7 @@ import {
   CheckCircle,
   Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const MAINTENANCE_TYPES: { value: MaintenanceType; label: string }[] = [
   { value: 'CORRECTIVE_EMERGENT', label: 'Correctivo Emergente' },
@@ -149,7 +151,7 @@ function AdminOrdenDetallePage() {
   const [resumeOrder, { loading: resuming }] = useMutation(RESUME_WORK_ORDER_MUTATION);
   const [signWorkOrder] = useMutation(SIGN_WORK_ORDER_MUTATION);
 
-  const workOrderRaw = (data as any)?.workOrder;
+  const workOrderRaw = (data as unknown as { workOrder?: Record<string, unknown> })?.workOrder;
   const order = unmaskFragment(WorkOrderItemFragmentDoc, workOrderRaw);
 
   const area = unmaskFragment(AreaBasicFragmentDoc, order?.area);
@@ -195,8 +197,8 @@ function AdminOrdenDetallePage() {
         stoppageType: order.stopType || undefined,
         shiftId: order.assignedShiftId || '',
         maintenanceType: order.maintenanceType || undefined,
-        scheduledDate: (order as any).scheduledDate ? new Date((order as any).scheduledDate).toISOString().split('T')[0] : '',
-        workType: (order as any).workType || undefined,
+        scheduledDate: (order as unknown as { scheduledDate?: string })?.scheduledDate ? new Date((order as unknown as { scheduledDate: string }).scheduledDate).toISOString().split('T')[0] : '',
+        workType: (order as unknown as { workType?: WorkTypeValue })?.workType || undefined,
         machineId: order.machineId || '',
         leadTechnicianId: unmaskFragment(UserBasicFragmentDoc, leadTechRel?.technician)?.id || '',
       });
@@ -265,10 +267,8 @@ function AdminOrdenDetallePage() {
 
       setManageOpen(false);
       refetch();
-    } catch (err: any) {
-      console.error('Error updating order:', err);
-      const errorMessage = err.graphQLErrors?.[0]?.message || err.message || "Error al actualizar la orden.";
-      alert(errorMessage);
+    } catch {
+      toast.error('Error al actualizar la orden');
     }
   };
 
@@ -277,30 +277,29 @@ function AdminOrdenDetallePage() {
     try {
       await resumeOrder({ variables: { id: order.id } });
       refetch();
-    } catch (err: any) {
-      console.error('Error resuming order:', err);
-      const errorMessage = err.graphQLErrors?.[0]?.message || err.message || "Error al reanudar la orden.";
-      alert(errorMessage);
+    } catch {
+      toast.error('Error al resumir la orden');
     }
   }
 
-  const handleSaveSignature = async (_dataURL: string) => {
+  const handleSaveSignature = async (dataURL: string) => {
+    void dataURL;
     try {
       const mockPath = `signatures/${order?.id}/${user?.id}_sig.png`;
+
+      if (!order?.id) throw new Error("Order ID is missing");
 
       await signWorkOrder({
         variables: {
           input: {
             signatureImagePath: mockPath,
-            workOrderId: order?.id!,
+            workOrderId: order.id,
           }
         }
       });
       await refetch();
-    } catch (error: any) {
-      console.error('Error saving signature:', error);
-      const errorMessage = error.graphQLErrors?.[0]?.message || error.message || "Error al guardar la firma.";
-      alert(errorMessage);
+    } catch {
+      toast.error('Error guardando la firma');
     }
   }
 
@@ -312,7 +311,6 @@ function AdminOrdenDetallePage() {
         <div className="text-center">
           <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
           <h3 className="mt-4 text-lg font-semibold text-foreground">Orden no encontrada</h3>
-          <p className="mt-2 text-sm text-muted-foreground">{error?.message || 'La orden de trabajo no existe'}</p>
           <Button className="mt-4 bg-transparent" variant="outline" onClick={handleBack}>
             Volver
           </Button>
@@ -329,13 +327,13 @@ function AdminOrdenDetallePage() {
   const showScheduledDate = mgmt.maintenanceType === 'CORRECTIVE_SCHEDULED';
 
   // Firmas
-  const signatures: WorkOrderSignature[] = workOrderRaw.signatures || [];
+  const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
   const adminSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN');
   const needsMySignature = (isCompleted || isTemporaryRepair) && !adminSignature;
 
   // Fotos
-  const photoBefore = workOrderRaw.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
-  const photoAfter = workOrderRaw.photos?.find((p: WorkOrderPhoto) => p.photoType === 'AFTER');
+  const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
+  const photoAfter = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'AFTER');
   const isProcessing = updating || assigning;
 
   return (
@@ -378,14 +376,14 @@ function AdminOrdenDetallePage() {
       </div>
 
       {/* Banner de Pausa */}
-      {order.status === 'PAUSED' && workOrderRaw.pauseReason && (
+      {order.status === 'PAUSED' && (workOrderRaw as { pauseReason?: string })?.pauseReason && (
         <Card className="bg-amber-500/10 border-amber-500/30">
           <CardContent>
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-amber-700">Orden en pausa</p>
-                <p className="text-sm text-amber-600/80 mt-1">Razón: {workOrderRaw.pauseReason}</p>
+                <p className="text-sm text-amber-600/80 mt-1">Razón: {(workOrderRaw as { pauseReason?: string }).pauseReason}</p>
               </div>
             </div>
           </CardContent>
@@ -428,7 +426,7 @@ function AdminOrdenDetallePage() {
                   Evidencia inicial (Antes)
                 </p>
                 <img
-                  src={`/${photoBefore.filePath}`}
+                  src={resolveBackendAssetUrl(photoBefore.filePath)}
                   alt="Antes"
                   width={800}
                   height={256}
@@ -485,7 +483,7 @@ function AdminOrdenDetallePage() {
         </Card>
 
         {/* Reporte de cierre técnico */}
-        {workOrderRaw.endDate && (
+        {(workOrderRaw as { endDate?: string })?.endDate && (
           <Card className="bg-card shadow-sm border-primary/20">
             <CardHeader className="border-b border-border/50">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -495,45 +493,46 @@ function AdminOrdenDetallePage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               {(order.stopType === 'BREAKDOWN' || order.stopType === 'OTHER') && (() => {
-                const hasBreakdownContent = workOrderRaw.cause || workOrderRaw.actionTaken || workOrderRaw.toolsUsed;
+                const raw = workOrderRaw as { cause?: string; actionTaken?: string; toolsUsed?: string };
+                const hasBreakdownContent = raw.cause || raw.actionTaken || raw.toolsUsed;
                 const showBox = order.stopType === 'BREAKDOWN' || (order.stopType === 'OTHER' && hasBreakdownContent);
                 if (!showBox) return null;
                 return (
                   <div className="grid md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-lg border border-border/50">
-                    {workOrderRaw.cause && (
+                    {raw.cause && (
                       <div>
                         <p className="text-muted-foreground font-medium mb-1">
                           Causa Raíz
                         </p>
-                        <p>{workOrderRaw.cause}</p>
+                        <p>{raw.cause}</p>
                       </div>
                     )}
-                    {workOrderRaw.actionTaken && (
+                    {raw.actionTaken && (
                       <div>
                         <p className="text-muted-foreground font-medium mb-1">
                           Acción Realizada
                         </p>
-                        <p>{workOrderRaw.actionTaken}</p>
+                        <p>{raw.actionTaken}</p>
                       </div>
                     )}
-                    {workOrderRaw.toolsUsed && (
+                    {raw.toolsUsed && (
                       <div className="md:col-span-2">
                         <p className="text-muted-foreground font-medium mb-1">
                           Herramientas / Materiales
                         </p>
-                        <p>{workOrderRaw.toolsUsed}</p>
+                        <p>{raw.toolsUsed}</p>
                       </div>
                     )}
                   </div>
                 );
               })()}
-              {workOrderRaw.observations && (
+              {(workOrderRaw as { observations?: string })?.observations && (
                 <div>
                   <p className="text-muted-foreground font-medium mb-1">
                     Observaciones Generales
                   </p>
                   <p className="bg-muted p-3 rounded-md">
-                    {workOrderRaw.observations}
+                    {(workOrderRaw as { observations?: string }).observations}
                   </p>
                 </div>
               )}
@@ -543,7 +542,7 @@ function AdminOrdenDetallePage() {
                     Evidencia Final (Después)
                   </p>
                   <img
-                    src={`/${photoAfter.filePath}`}
+                    src={resolveBackendAssetUrl(photoAfter.filePath)}
                     alt="Después"
                     width={800}
                     height={192}
@@ -574,37 +573,37 @@ function AdminOrdenDetallePage() {
                   label="Creada"
                   date={order.createdAt}
                 />
-                {workOrderRaw.startDate && (
+                {(workOrderRaw as { startDate?: string })?.startDate && (
                   <TimelineItem
                     icon={<Play className="text-chart-3" />}
                     label="Iniciada"
-                    date={workOrderRaw.startDate}
+                    date={(workOrderRaw as { startDate: string }).startDate}
                   />
                 )}
-                {workOrderRaw.endDate && (
+                {(workOrderRaw as { endDate?: string })?.endDate && (
                   <>
                     <TimelineItem
                       icon={<CheckCircle className="text-success" />}
                       label="Finalizada"
-                      date={workOrderRaw.endDate}
+                      date={(workOrderRaw as { endDate: string }).endDate}
                     />
-                    {workOrderRaw.functionalTimeMinutes > 0 && (
+                    {(workOrderRaw as { functionalTimeMinutes?: number })?.functionalTimeMinutes ? (
                       <div className="p-2 bg-primary/10 rounded border border-primary/20 text-center">
                         <p className="text-xs font-semibold text-primary uppercase tracking-wider">
                           Tiempo Funcional
                         </p>
                         <p className="text-lg font-bold text-primary">
-                          {formatMinutesToHm(workOrderRaw.functionalTimeMinutes)}
+                          {formatMinutesToHm((workOrderRaw as { functionalTimeMinutes: number }).functionalTimeMinutes)}
                         </p>
                       </div>
-                    )}
-                    {workOrderRaw.downtimeMinutes != null && (
+                    ) : null}
+                    {(workOrderRaw as { downtimeMinutes?: number })?.downtimeMinutes != null && (
                       <div className="p-2 bg-destructive/10 rounded border border-destructive/20 text-center">
                         <p className="text-xs font-semibold text-destructive uppercase tracking-wider">
                           Tiempo Muerto
                         </p>
                         <p className="text-lg font-bold text-destructive">
-                          {workOrderRaw.downtimeMinutes}{' '}
+                          {(workOrderRaw as { downtimeMinutes: number }).downtimeMinutes}{' '}
                           <span className="text-sm font-normal">min</span>
                         </p>
                       </div>

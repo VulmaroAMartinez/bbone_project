@@ -128,20 +128,6 @@ export function MaintenanceTypeBadge({ type, size = 'md' }: MaintenanceTypeBadge
   );
 }
 
-// Función auxiliar para obtener label de estado
-export function getStatusLabel(status: WorkOrderStatus): string {
-  return statusConfig[status]?.label || status;
-}
-
-// Función auxiliar para obtener label de prioridad
-export function getPriorityLabel(priority: WorkOrderPriority): string {
-  return priorityConfig[priority]?.label || priority;
-}
-
-// Función auxiliar para obtener label de tipo de mantenimiento
-export function getMaintenanceTypeLabel(type: MaintenanceType): string {
-  return maintenanceTypeConfig[type]?.label || type;
-}
 
 // Configuración de tipos de parada
 const stopTypeConfig: Record<StopType, { label: string; className: string }> = {
@@ -178,6 +164,4 @@ export function StopTypeBadge({ stopType, size = 'md' }: StopTypeBadgeProps) {
 }
 
 /** Returns the Spanish label for a given stop type. */
-export function getStopTypeLabel(stopType: StopType): string {
-  return stopTypeConfig[stopType]?.label ?? stopType;
-}
+// Nota: helpers de label se removieron porque no se usan fuera de este módulo.

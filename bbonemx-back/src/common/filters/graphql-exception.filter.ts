@@ -1,5 +1,5 @@
-import { Catch, ArgumentsHost, HttpException, Logger } from '@nestjs/common';
-import { GqlArgumentsHost, GqlExceptionFilter } from '@nestjs/graphql';
+import { Catch, HttpException, Logger } from '@nestjs/common';
+import { GqlExceptionFilter } from '@nestjs/graphql';
 import { GraphQLError } from 'graphql';
 
 /**
@@ -10,10 +10,7 @@ import { GraphQLError } from 'graphql';
 export class GraphqlExceptionFilter implements GqlExceptionFilter {
   private readonly logger = new Logger(GraphqlExceptionFilter.name);
 
-  catch(exception: unknown, host: ArgumentsHost) {
-    const gqlHost = GqlArgumentsHost.create(host);
-    const context = gqlHost.getContext();
-
+  catch(exception: unknown) {
     // Log del error para debugging
     this.logger.error(
       `GraphQL Error: ${exception instanceof Error ? exception.message : 'Unknown error'}`,
@@ -32,8 +29,9 @@ export class GraphqlExceptionFilter implements GqlExceptionFilter {
       if (typeof response === 'string') {
         message = response;
       } else if (typeof response === 'object' && response !== null) {
-        message = (response as any).message || message;
-        code = (response as any).error || this.getCodeFromStatus(statusCode);
+        const resObj = response as Record<string, unknown>;
+        message = (resObj.message as string) || message;
+        code = (resObj.error as string) || this.getCodeFromStatus(statusCode);
       }
     } else if (exception instanceof GraphQLError) {
       message = exception.message;

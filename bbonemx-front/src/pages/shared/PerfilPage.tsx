@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { useAuth } from '@/contexts/auth-context';
-import { useNotification } from '@/contexts/notification-context';
+import { useAuth } from '@/hooks/useAuth';
+import { useNotification } from '@/hooks/useNotification';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -124,6 +124,7 @@ function getRoleLabel(role: string): string {
     case 'ADMIN': return 'Administrador';
     case 'TECHNICIAN': return 'Técnico';
     case 'REQUESTER': return 'Solicitante';
+    case 'BOSS': return 'Jefe';
     default: return role;
   }
 }

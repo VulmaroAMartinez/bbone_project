@@ -5,9 +5,12 @@ import { OvertimeRepository } from './infrastructure/repositories';
 import { OvertimeService } from './application/services';
 import { OvertimeResolver } from './presentation/resolvers';
 import { TechniciansModule } from 'src/modules/catalogs/technicians/technicians.module';
+import { OvertimeExcelController } from './presentation/controllers/overtime-excel.controller';
+import { OvertimePdfController } from './presentation/controllers/overtime-pdf.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Overtime]), TechniciansModule],
+  controllers: [OvertimeExcelController, OvertimePdfController],
   providers: [OvertimeRepository, OvertimeService, OvertimeResolver],
   exports: [OvertimeService, TypeOrmModule],
 })
