@@ -23,7 +23,7 @@ import { BaseEntitySubscriber } from './subscribers/base-entity.subscriber';
         // Carga automática de entidades (no recomendado para producción)
         autoLoadEntities: true,
 
-        // Sincronización automática (SOLO para desarrollo)
+        // Sincronización automática (solo desarrollo local; producción/staging debe usar migraciones)
         synchronize: configService.get<boolean>('database.synchronize'),
 
         // Logging de queries
