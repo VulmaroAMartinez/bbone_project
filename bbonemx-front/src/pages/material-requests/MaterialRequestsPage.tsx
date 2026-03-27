@@ -228,13 +228,11 @@ export default function MaterialRequestsPage() {
                                                     {CATEGORY_LABELS[req.category] ?? req.category}
                                                 </Badge>
                                             </div>
-                                            {/* Service name or items count */}
+                                            {/* Servicio solicitado (para categorías de servicio) / conteo de artículos */}
                                             {req.category === 'SERVICE' || req.category === 'SERVICE_WITH_MATERIAL' ? (
-                                                req.items[0] && (
-                                                    <p className="mt-2 text-base text-foreground line-clamp-2">
-                                                        {req.items[0].customName ?? req.items[0].description ?? 'Servicio'}
-                                                    </p>
-                                                )
+                                                <p className="mt-2 text-base text-foreground line-clamp-2">
+                                                    {req.description?.trim() || '—'}
+                                                </p>
                                             ) : req.items.length > 0 && (
                                                 <div className="mt-2 flex items-center justify-between gap-2">
                                                     <p className="text-base text-foreground">

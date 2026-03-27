@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
 import { GetMachineWorkOrdersDocument } from '@/lib/graphql/generated/graphql';
-import type { WorkOrderStatus, WorkOrderPriority, MaintenanceType } from '@/lib/graphql/generated/graphql';
+import type { GetMachineWorkOrdersQuery, WorkOrderStatus, WorkOrderPriority, MaintenanceType } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,14 +24,13 @@ export default function OrdersMachinePage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const { data, loading } = useQuery(GetMachineWorkOrdersDocument, {
+    const { data, loading } = useQuery<GetMachineWorkOrdersQuery>(GetMachineWorkOrdersDocument, {
         variables: { id: id! },
         skip: !id,
         fetchPolicy: 'cache-and-network',
     });
 
-    // Uses machine(id) { workOrders } resolver — correctly filters by machine FK.
-    const workOrders = (data as unknown as { machine?: { workOrders?: Array<unknown> } })?.machine?.workOrders ?? [];
+    const workOrders = data?.machine?.workOrders ?? [];
 
     const formatDate = (dateStr?: string | null) => {
         if (!dateStr) return '—';
@@ -93,18 +92,7 @@ export default function OrdersMachinePage() {
                 </Empty>
             ) : (
                 <div className="space-y-3">
-                    {workOrders.map((woRaw: unknown) => {
-                        const wo = woRaw as {
-                            id: string;
-                            folio: string;
-                            status: string;
-                            description?: string | null;
-                            priority?: string | null;
-                            maintenanceType?: string | null;
-                            area?: { name: string } | null;
-                            requester?: { fullName: string } | null;
-                            createdAt?: string | null;
-                        };
+                    {workOrders.map((wo) => {
                         return (
                         <Card key={wo.id} className="bg-card hover:shadow-md transition-shadow">
                             <CardContent className="p-4 space-y-3">

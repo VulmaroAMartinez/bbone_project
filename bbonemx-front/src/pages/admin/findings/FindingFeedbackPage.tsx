@@ -49,7 +49,7 @@ function FindingFeedbackForm({
     isReadOnly,
     onSubmitUpdate,
 }: {
-    finding: NonNullable<ReturnType<typeof useParams<{ id: string }>>>;
+    finding: unknown;
     areas: Array<{ id: string; name: string }>;
     shifts: Array<{ id: string; name: string }>;
     machines: Array<{ id: string; name: string; code?: string | null }>;
@@ -75,6 +75,7 @@ function FindingFeedbackForm({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isReadOnly) return;
         if (!form.areaId || !form.shiftId || !form.description.trim()) {
             toast.error('Área, turno y descripción son obligatorios');
             return;
@@ -232,7 +233,7 @@ export default function FindingFeedbackPage() {
     const statusCfg = STATUS_CONFIG[finding.status] ?? STATUS_CONFIG.OPEN;
     const isReadOnly = !canEditFinding(
         (finding as unknown as { convertedToWo?: { folio: string } | null }).convertedToWo,
-    );
+    ) || finding.status === 'CONVERTED_TO_WO';
 
     // Bug 4: filter machines to the finding's current area for the machine selector.
     const findingAreaId =

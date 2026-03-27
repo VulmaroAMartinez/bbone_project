@@ -33,14 +33,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Combobox } from '@/components/ui/combobox';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -48,8 +40,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { StatusBadge, PriorityBadge, MaintenanceTypeBadge, StopTypeBadge } from '@/components/ui/status-badge';
 import { WorkOrderDetailSkeleton } from '@/components/ui/skeleton-loaders';
 import { SignatureDialog } from '@/components/ui/signature-dialog';
@@ -62,13 +52,13 @@ import {
   FileText,
   AlertTriangle,
   Settings,
-  UserPlus,
   Play,
   Pen,
   CheckCircle,
-  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+import { ManageWorkOrderDialog } from './modals/ManageWorkOrderDialog';
 
 const MAINTENANCE_TYPES: { value: MaintenanceType; label: string }[] = [
   { value: 'CORRECTIVE_EMERGENT', label: 'Correctivo Emergente' },
@@ -165,9 +155,21 @@ function AdminOrdenDetallePage() {
   const shifts = shiftsData?.shiftsActive || [];
   const technicians = unmaskFragment(TechnicianBasicFragmentDoc, techData?.techniciansActive || []);
   const machinesRaw = machinesData?.machinesWithDeleted ?? [];
-  const availableMachines = machinesRaw
-    .map((ref) => unmaskFragment(MachineBasicFragmentDoc, ref))
-    .filter((m) => m.subAreaId === subArea?.id);
+
+  const machinesAll = machinesRaw.map((ref) => unmaskFragment(MachineBasicFragmentDoc, ref));
+  const effectiveAreaId = area?.id ?? '';
+
+  const machinesInArea = effectiveAreaId
+    ? machinesAll.filter((m) => m.areaId === effectiveAreaId || m.subArea?.area?.id === effectiveAreaId)
+    : machinesAll;
+
+  const machinesInSubArea = subArea?.id
+    ? machinesAll.filter((m) => m.subAreaId === subArea.id)
+    : [];
+
+
+  const availableMachines = machinesInSubArea.length > 0 ? machinesInSubArea : machinesInArea;
+  const areaHasMachines = machinesInArea.length > 0;
 
   const techOptions = technicians.map((tech) => {
     const tUser = unmaskFragment(UserBasicFragmentDoc, tech.user);
@@ -181,10 +183,10 @@ function AdminOrdenDetallePage() {
   const handleBack = () => navigate(-1);
 
   useEffect(() => {
-    if (subArea?.id && manageOpen) {
+    if (manageOpen && area?.id) {
       getMachines();
     }
-  }, [subArea?.id, manageOpen, getMachines]);
+  }, [area?.id, manageOpen, getMachines]);
 
   const openManageDialog = () => {
     if (order) {
@@ -783,154 +785,28 @@ function AdminOrdenDetallePage() {
       </div>
 
       {/* Modal Súper-Gestionar OT */}
-      <Dialog open={manageOpen} onOpenChange={setManageOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Gestionar Orden de Trabajo</DialogTitle>
-            <DialogDescription>Define los parámetros técnicos y el equipo de trabajo.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-
-            {/* Bloque 1: Parámetros (Siempre editable) */}
-            <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/10">
-              <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">1. Parámetros Generales</h4>
-              <div className="grid gap-4 md:grid-cols-2">
-              {showMachineField && (
-                <div className="space-y-2 pb-2 border-b border-border/50 md:col-span-2">
-                  <Label htmlFor="mgmt-machine" className="text-destructive font-semibold">Equipo/Estructura Afectado (Requerido)*</Label>
-                  <Combobox
-                    options={machineOptions}
-                    value={mgmt.machineId}
-                    onValueChange={(v) => setMgmt((p) => ({ ...p, machineId: v }))}
-                    placeholder="Seleccionar Equipo/Estructura"
-                    searchPlaceholder="Buscar equipo/estructura..."
-                    emptyText="No hay equipos en esta subárea"
-                  />
-                </div>
-              )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="mgmt-priority">Prioridad</Label>
-                  <Select value={mgmt.priority ?? ''} onValueChange={(v) => setMgmt((p) => ({ ...p, priority: v as WorkOrderPriority }))}>
-                    <SelectTrigger id="mgmt-priority"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {PRIORITIES.map((p) => (<SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mgmt-stoppage">Tipo de Parada</Label>
-                  <Select value={mgmt.stoppageType ?? ''} onValueChange={(v) => setMgmt((p) => ({ ...p, stoppageType: v as StopType }))}>
-                    <SelectTrigger id="mgmt-stoppage"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {STOPPAGE_TYPES.map((s: { value: StopType; label: string }) => (
-                        <SelectItem key={s.value} value={s.value} disabled={s.value === 'BREAKDOWN' && availableMachines.length === 0}>
-                          {s.label}{s.value === 'BREAKDOWN' && availableMachines.length === 0 ? ' (sin equipos)' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="mgmt-shift">Turno</Label>
-                  <Select value={mgmt.shiftId} onValueChange={(v) => setMgmt((p) => ({ ...p, shiftId: v }))}>
-                    <SelectTrigger id="mgmt-shift"><SelectValue placeholder="Seleccionar Turno" /></SelectTrigger>
-                    <SelectContent>
-                      {shifts.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mgmt-maintenance">Tipo de Mantenimiento</Label>
-                  <Select value={mgmt.maintenanceType ?? ''} onValueChange={(v) => setMgmt((p) => ({ ...p, maintenanceType: v as MaintenanceType }))}>
-                    <SelectTrigger id="mgmt-maintenance"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {MAINTENANCE_TYPES.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="mgmt-work-type">Tipo de trabajo *</Label>
-                  <Select value={mgmt.workType ?? ''} onValueChange={(v) => setMgmt((p) => ({ ...p, workType: v as WorkTypeValue }))}>
-                    <SelectTrigger id="mgmt-work-type"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {WORK_TYPES.map((wt) => (<SelectItem key={wt.value} value={wt.value}>{wt.label}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-              </div>
-</div>
-
-              {showScheduledDate && (
-                <div className="space-y-2">
-                  <Label htmlFor="mgmt-scheduled-date">Fecha programada *</Label>
-                  <Input
-                    id="mgmt-scheduled-date"
-                    type="date"
-                    value={mgmt.scheduledDate}
-                    onChange={(e) => setMgmt((p) => ({ ...p, scheduledDate: e.target.value }))}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Bloque 2: Equipo Técnico (Condicional) */}
-            <div className={`space-y-4 p-4 rounded-lg border border-border ${!isPending ? 'opacity-50 pointer-events-none bg-muted' : 'bg-primary/5'}`}>
-              <div className="flex justify-between items-center">
-                <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">2. Asignación de Personal</h4>
-                {!isPending && <Badge variant="outline" className="text-xs">Bloqueado (Orden ya inició)</Badge>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mgmt-lead-tech">Técnico Líder *</Label>
-                <Combobox
-                  options={techOptions}
-                  value={mgmt.leadTechnicianId}
-                  onValueChange={(v) => setMgmt((p) => ({ ...p, leadTechnicianId: v }))}
-                  placeholder="Seleccionar líder"
-                  searchPlaceholder="Buscar técnico..."
-                />
-              </div>
-
-              <div className="space-y-3" role="group" aria-labelledby="mgmt-aux-tech-label">
-                <Label id="mgmt-aux-tech-label" className="text-sm">Técnicos de Apoyo (Opcional)</Label>
-                {auxiliaryTechnicians.map((auxTechId, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Combobox
-                      options={techOptions.filter((o) => o.value !== mgmt.leadTechnicianId)}
-                      value={auxTechId}
-                      onValueChange={(v) => {
-                        const updated = [...auxiliaryTechnicians];
-                        updated[index] = v;
-                        setAuxiliaryTechnicians(updated);
-                      }}
-                      placeholder="Técnico de apoyo"
-                      searchPlaceholder="Buscar técnico..."
-                      triggerClassName="flex-1"
-                    />
-                    <Button type="button" variant="ghost" size="icon" aria-label="Eliminar técnico de apoyo" className="text-destructive" onClick={() => {
-                      const updated = auxiliaryTechnicians.filter((_, i) => i !== index);
-                      setAuxiliaryTechnicians(updated);
-                    }}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button type="button" variant="outline" size="sm" onClick={() => setAuxiliaryTechnicians([...auxiliaryTechnicians, ''])} className="w-full border-dashed bg-transparent">
-                  <UserPlus className="h-4 w-4 mr-2" /> Añadir apoyo
-                </Button>
-              </div>
-            </div>
-
-          </div>
-          <DialogFooter className="sticky bottom-0 bg-background pt-2 border-t">
-            <Button variant="outline" onClick={() => setManageOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveManagement} disabled={isProcessing}>
-              {isProcessing ? 'Guardando...' : 'Guardar Cambios'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ManageWorkOrderDialog
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        showMachineField={showMachineField}
+        showScheduledDate={showScheduledDate}
+        isPending={isPending}
+        isProcessing={isProcessing}
+        mgmt={mgmt}
+        setMgmt={setMgmt}
+        auxiliaryTechnicians={auxiliaryTechnicians}
+        setAuxiliaryTechnicians={setAuxiliaryTechnicians}
+        machineOptions={machineOptions}
+        techOptions={techOptions}
+        shifts={shifts}
+        priorities={PRIORITIES}
+        stoppageTypes={STOPPAGE_TYPES}
+        maintenanceTypes={MAINTENANCE_TYPES}
+        workTypes={WORK_TYPES}
+        disableBreakdown={!areaHasMachines}
+        breakdownDisabledHint="sin equipos en el área"
+        onSave={handleSaveManagement}
+      />
 
       {/* Modal Confirmar Reanudación */}
       <Dialog open={resumeConfirmOpen} onOpenChange={setResumeConfirmOpen}>

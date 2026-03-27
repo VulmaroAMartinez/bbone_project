@@ -169,7 +169,7 @@ export default function MaterialRequestDetailPage() {
     const navigate = useNavigate();
     const [emailOpen, setEmailOpen] = useState(false);
 
-  const { data, loading } = useQuery<GetMaterialRequestQuery>(GetMaterialRequestDocument, {
+    const { data, loading } = useQuery<GetMaterialRequestQuery>(GetMaterialRequestDocument, {
         variables: { id: id! },
         skip: !id,
         fetchPolicy: 'cache-and-network',
@@ -212,15 +212,19 @@ export default function MaterialRequestDetailPage() {
     }
 
     // ── Data ──────────────────────────────────────────────────────────────────
-  const machineEntities = (request.machines ?? []).map((mrm) => mrm.machine);
+    const machineEntities = (request.machines ?? []).map((mrm) => mrm.machine);
     const areaNames = new Set(
-    machineEntities.map((m) => m?.area?.name ?? m?.subArea?.area?.name).filter(Boolean),
+        machineEntities.map((m) => m?.area?.name ?? m?.subArea?.area?.name).filter(Boolean),
     );
     const derivedAreaName = areaNames.size === 1
         ? [...areaNames][0]
         : areaNames.size > 1
             ? 'Diversas áreas'
             : null;
+
+    const isServiceOnlyCategory = request.category === 'SERVICE';
+    const showItemsCard = !isServiceOnlyCategory;
+    const showServiceCard = isServiceOnlyCategory || request.category === 'SERVICE_WITH_MATERIAL';
 
     return (
         <div className="space-y-5 pb-24">
@@ -295,7 +299,7 @@ export default function MaterialRequestDetailPage() {
 
             {/* Información general */}
             <Card>
-                <CardHeader className="pb-2">
+                <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                         <Info className="h-4 w-4 text-muted-foreground" />
                         Información de la solicitud
@@ -318,18 +322,12 @@ export default function MaterialRequestDetailPage() {
                             <p className="font-medium">{request.boss}</p>
                         </div>
                     </div>
-                    {request.suggestedSupplier && (
-                        <div className="pt-2 border-t border-border/40">
-                            <p className="text-xs text-muted-foreground mb-0.5">Proveedor sugerido</p>
-                            <p className="font-medium">{request.suggestedSupplier}</p>
-                        </div>
-                    )}
                 </CardContent>
             </Card>
 
             {/* Equipo */}
             <Card>
-                <CardHeader className="pb-2">
+                <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                         <Cog className="h-4 w-4 text-muted-foreground" />
                         Equipo / Estructura
@@ -342,7 +340,7 @@ export default function MaterialRequestDetailPage() {
                             <p className="text-sm font-medium">{derivedAreaName}</p>
                         </div>
                     )}
-    {machineEntities.map((machine, idx: number) => {
+                    {machineEntities.map((machine, idx: number) => {
                         const mArea = machine?.area?.name ?? machine?.subArea?.area?.name;
                         const mSubArea = machine?.subArea?.name;
                         return (
@@ -367,116 +365,136 @@ export default function MaterialRequestDetailPage() {
                 </CardContent>
             </Card>
 
-            {/* Artículos */}
-            <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                        Artículos solicitados
-                        <Badge variant="secondary" className="ml-auto text-xs font-normal">
-                            {request.items.length} artículo{request.items.length !== 1 ? 's' : ''}
-                        </Badge>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    {request.items.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                            Sin artículos registrados.
+            {/* Servicio */}
+            {showServiceCard && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Cog className="h-4 w-4 text-muted-foreground" />
+                            Servicio
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm">
+                        <p className="text-xs text-muted-foreground mb-0.5 font-medium">Descripción</p>
+                        <p className="text-foreground whitespace-pre-line leading-relaxed">
+                            {request.description?.trim() || 'Sin descripción.'}
                         </p>
-                    ) : (
-                        request.items.map((item, i) => {
-                            // material y sparePart son non-null en el schema pero pueden ser
-                            // objetos placeholder; verificamos el ID para saber si son reales
-                            const hasMaterialRef = !!item.materialId && item.material?.description;
-                            const hasSparePartRef = !!item.sparePartId && item.sparePart?.partNumber;
+                    </CardContent>
+                </Card>
+            )}
 
-                            return (
-                                <div
-                                    key={item.id}
-                                    className="border border-border rounded-lg p-3 space-y-2 text-sm"
-                                >
-                                    {/* Cabecera del ítem */}
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                                            Artículo {i + 1}
-                                        </span>
-                                        <span className="font-mono font-bold text-primary text-sm">
-                                            ×{item.requestedQuantity} {item.unitOfMeasure}
-                                        </span>
-                                    </div>
+            {/* Artículos (solo si la categoría requiere artículos) */}
+            {showItemsCard && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                            Artículos solicitados
+                            <Badge variant="secondary" className="ml-auto text-xs font-normal">
+                                {request.items.length} artículo{request.items.length !== 1 ? 's' : ''}
+                            </Badge>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {request.items.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                                Sin artículos registrados.
+                            </p>
+                        ) : (
+                            request.items.map((item, i) => {
+                                // material y sparePart son non-null en el schema pero pueden ser
+                                // objetos placeholder; verificamos el ID para saber si son reales
+                                const hasMaterialRef = !!item.materialId && item.material?.description;
+                                const hasSparePartRef = !!item.sparePartId && item.sparePart?.partNumber;
 
-                                    {item.description && (
-                                        <p className="text-foreground">{item.description}</p>
-                                    )}
-
-                                    {/* Referencia de catálogo */}
-                                    {(hasMaterialRef || hasSparePartRef) && (
-                                        <div className="text-xs bg-muted/40 rounded px-2 py-1.5 border border-border/50">
-                                            <span className="text-muted-foreground">
-                                                {hasMaterialRef ? 'Material: ' : 'Refacción: '}
+                                return (
+                                    <div
+                                        key={item.id}
+                                        className="border border-border rounded-lg p-3 space-y-2 text-sm"
+                                    >
+                                        {/* Cabecera del ítem */}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                                Artículo {i + 1}
                                             </span>
-                                            <span className="font-medium">
-                                                {hasMaterialRef
-                                                    ? item.material?.description ?? ''
-                                                    : item.sparePart?.partNumber ?? ''}
+                                            <span className="font-mono font-bold text-primary text-sm">
+                                                ×{item.requestedQuantity} {item.unitOfMeasure}
                                             </span>
                                         </div>
-                                    )}
 
-                                    {/* Atributos */}
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                        {item.brand && (
-                                            <div>
-                                                <span className="text-muted-foreground">Marca: </span>
-                                                {item.brand}
+                                        {item.description && (
+                                            <p className="text-foreground">{item.description}</p>
+                                        )}
+
+                                        {/* Referencia de catálogo */}
+                                        {(hasMaterialRef || hasSparePartRef) && (
+                                            <div className="text-xs bg-muted/40 rounded px-2 py-1.5 border border-border/50">
+                                                <span className="text-muted-foreground">
+                                                    {hasMaterialRef ? 'Material: ' : 'Refacción: '}
+                                                </span>
+                                                <span className="font-medium">
+                                                    {hasMaterialRef
+                                                        ? item.material?.description ?? ''
+                                                        : item.sparePart?.partNumber ?? ''}
+                                                </span>
                                             </div>
                                         )}
-                                        {item.model && (
+
+                                        {/* Atributos */}
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                            {item.brand && (
+                                                <div>
+                                                    <span className="text-muted-foreground">Marca: </span>
+                                                    {item.brand}
+                                                </div>
+                                            )}
+                                            {item.model && (
+                                                <div>
+                                                    <span className="text-muted-foreground">Modelo: </span>
+                                                    {item.model}
+                                                </div>
+                                            )}
+                                            {item.partNumber && (
+                                                <div>
+                                                    <span className="text-muted-foreground">No. Parte: </span>
+                                                    <span className="font-mono">{item.partNumber}</span>
+                                                </div>
+                                            )}
+                                            {item.sku && (
+                                                <div>
+                                                    <span className="text-muted-foreground">SKU: </span>
+                                                    <span className="font-mono">{item.sku}</span>
+                                                </div>
+                                            )}
+                                            {item.proposedMaxStock != null && (
+                                                <div>
+                                                    <span className="text-muted-foreground">Stock Máx: </span>
+                                                    {item.proposedMaxStock}
+                                                </div>
+                                            )}
+                                            {item.proposedMinStock != null && (
+                                                <div>
+                                                    <span className="text-muted-foreground">Stock Mín: </span>
+                                                    {item.proposedMinStock}
+                                                </div>
+                                            )}
                                             <div>
-                                                <span className="text-muted-foreground">Modelo: </span>
-                                                {item.model}
+                                                <span className="text-muted-foreground">Genérico: </span>
+                                                {item.isGenericAllowed ? 'Sí' : 'No'}
                                             </div>
-                                        )}
-                                        {item.partNumber && (
-                                            <div>
-                                                <span className="text-muted-foreground">No. Parte: </span>
-                                                <span className="font-mono">{item.partNumber}</span>
-                                            </div>
-                                        )}
-                                        {item.sku && (
-                                            <div>
-                                                <span className="text-muted-foreground">SKU: </span>
-                                                <span className="font-mono">{item.sku}</span>
-                                            </div>
-                                        )}
-                                        {item.proposedMaxStock != null && (
-                                            <div>
-                                                <span className="text-muted-foreground">Stock Máx: </span>
-                                                {item.proposedMaxStock}
-                                            </div>
-                                        )}
-                                        {item.proposedMinStock != null && (
-                                            <div>
-                                                <span className="text-muted-foreground">Stock Mín: </span>
-                                                {item.proposedMinStock}
-                                            </div>
-                                        )}
-                                        <div>
-                                            <span className="text-muted-foreground">Genérico: </span>
-                                            {item.isGenericAllowed ? 'Sí' : 'No'}
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </CardContent>
-            </Card>
+                                );
+                            })
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Justificación / Comentarios */}
-            {(request.justification || request.comments) && (
+            {(request.justification || request.comments || request.suggestedSupplier) && (
                 <Card>
-                    <CardHeader className="pb-2">
+                    <CardHeader>
                         <CardTitle className="text-base">Observaciones</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm">
@@ -494,6 +512,12 @@ export default function MaterialRequestDetailPage() {
                                 <p className="text-foreground whitespace-pre-line leading-relaxed">
                                     {request.comments}
                                 </p>
+                            </div>
+                        )}
+                        {request.suggestedSupplier && (
+                            <div className={(request.justification || request.comments) ? 'pt-2 border-t border-border/40' : ''}>
+                                <p className="text-xs text-muted-foreground mb-0.5">Proveedor sugerido</p>
+                                <p className="font-medium">{request.suggestedSupplier}</p>
                             </div>
                         )}
                     </CardContent>

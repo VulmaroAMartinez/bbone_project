@@ -57,6 +57,12 @@ export const GET_MACHINE_WORK_ORDERS = gql`
         startDate
         endDate
         createdAt
+        area {
+          name
+        }
+        requester {
+          fullName
+        }
       }
     }
   }

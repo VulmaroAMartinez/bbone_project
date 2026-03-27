@@ -10,6 +10,7 @@ import {
     CREATE_MATERIAL_REQUEST_MUTATION,
     UPDATE_MATERIAL_REQUEST_MUTATION,
     ADD_MATERIAL_TO_REQUEST_MUTATION,
+    REMOVE_MATERIAL_FROM_REQUEST_MUTATION,
     GET_MATERIAL_REQUEST_QUERY,
 } from '@/lib/graphql/operations/material-requests';
 import { shouldClearItemsOnCategoryChange } from '@/lib/material-requests/material-request-logic';
@@ -71,6 +72,7 @@ const SKU_CATEGORIES = new Set([
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
 const itemSchema = yup.object({
+    dbId: yup.string().default(''), // ID real en BD; vacío = item nuevo no guardado
     catalogId: yup.string().default(''),
     isManual: yup.boolean().default(false),
     customName: yup.string().trim().default(''),
@@ -110,6 +112,7 @@ const schema = yup.object({
 type FormValues = yup.InferType<typeof schema>;
 
 const EMPTY_ITEM: FormValues['items'][0] = {
+    dbId: '',
     catalogId: '',
     isManual: false,
     customName: '',
@@ -231,9 +234,16 @@ export default function CreateMaterialRequestPage() {
     type AddItemResult = Record<string, unknown>;
     type AddItemVars = { materialRequestId: string; input: Record<string, unknown> };
 
+    type RemoveItemResult = { removeMaterialFromRequest: boolean };
+    type RemoveItemVars = { materialRequestMaterialId: string };
+
     const [createRequest] = useMutation<CreateRequestResult, CreateRequestVars>(CREATE_MATERIAL_REQUEST_MUTATION);
     const [updateRequest] = useMutation<UpdateRequestResult, UpdateRequestVars>(UPDATE_MATERIAL_REQUEST_MUTATION);
     const [addItemToRequest] = useMutation<AddItemResult, AddItemVars>(ADD_MATERIAL_TO_REQUEST_MUTATION);
+    const [removeItemFromRequest] = useMutation<RemoveItemResult, RemoveItemVars>(REMOVE_MATERIAL_FROM_REQUEST_MUTATION);
+
+    // IDs de los items que ya existían en BD al cargar el formulario de edición
+    const originalItemIdsRef = useRef<string[]>([]);
 
     // ── Form ──────────────────────────────────────────────────────────────────
     const {
@@ -357,6 +367,10 @@ export default function CreateMaterialRequestPage() {
     useEffect(() => {
         if (!isEdit || !editData?.materialRequest) return;
         const req = editData.materialRequest;
+
+        // Guardar los IDs originales para detectar items eliminados al guardar
+        originalItemIdsRef.current = req.items.map((item) => item.id);
+
         reset({
             requesterId: req.requester.id,
             category: req.category,
@@ -373,6 +387,7 @@ export default function CreateMaterialRequestPage() {
             suggestedSupplier: req.suggestedSupplier ?? '',
             items: req.items.length > 0
                 ? req.items.map((item) => ({
+                    dbId: item.id,
                     catalogId: item.materialId || item.sparePartId || (item.brand || item.partNumber ? 'OTHER' : ''),
                     isManual: !item.materialId && !item.sparePartId,
                     customName: item.customName ?? '',
@@ -493,6 +508,47 @@ export default function CreateMaterialRequestPage() {
                     },
                 });
                 targetId = editId!;
+
+                // IDs de items que siguen en el formulario
+                const currentDbIds = new Set(
+                    values.items.map((item) => item.dbId).filter(Boolean),
+                );
+
+                // Eliminar los que estaban en BD pero ya no están en el formulario
+                const removedIds = originalItemIdsRef.current.filter((id) => !currentDbIds.has(id));
+                for (const itemId of removedIds) {
+                    await removeItemFromRequest({
+                        variables: { materialRequestMaterialId: itemId },
+                    });
+                }
+
+                // Agregar solo los items nuevos (sin dbId)
+                for (const item of values.items) {
+                    if (item.dbId) continue; // ya existe en BD
+                    const isFromMaterial = isMaterialCategory && item.catalogId && item.catalogId !== 'OTHER';
+                    const isFromSparePart = isSparePartCategory && item.catalogId && item.catalogId !== 'OTHER';
+
+                    await addItemToRequest({
+                        variables: {
+                            materialRequestId: targetId,
+                            input: {
+                                materialRequestId: targetId,
+                                materialId: isFromMaterial ? item.catalogId : undefined,
+                                sparePartId: isFromSparePart ? item.catalogId : undefined,
+                                customName: item.customName || undefined,
+                                brand: item.brand || undefined,
+                                model: item.model || undefined,
+                                partNumber: item.partNumber || undefined,
+                                sku: item.sku || undefined,
+                                unitOfMeasure: item.unitOfMeasure,
+                                requestedQuantity: item.requestedQuantity,
+                                proposedMaxStock: item.proposedMaxStock ?? undefined,
+                                proposedMinStock: item.proposedMinStock ?? undefined,
+                                isGenericAllowed: item.isGenericAllowed ?? false,
+                            },
+                        },
+                    });
+                }
             } else {
                 const { data: createdData } = await createRequest({
                     variables: {
