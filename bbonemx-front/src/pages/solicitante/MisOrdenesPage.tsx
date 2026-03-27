@@ -18,6 +18,7 @@ import {
   ClipboardList,
   AlertTriangle,
   ChevronRight,
+  ChevronLeft,
   Pen,
   User,
 } from 'lucide-react';
@@ -28,11 +29,14 @@ import {
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
+const PAGE_SIZE = 12;
+
 export default function MisOrdenesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusTab, setStatusTab] = useState<WorkOrderStatus | 'all'>('all');
+  const [page, setPage] = useState(1);
 
   const { data, loading, error } = useQuery(MyRequestedWorkOrdersDocument, {
     skip: !user?.id,
@@ -62,7 +66,6 @@ export default function MisOrdenesPage() {
     );
   }
 
-  // Filtrado local: solo por folio y descripción
   const filteredOrders = orders.filter((order) => {
     const term = searchTerm.toLowerCase();
     const matchesStatus =
@@ -74,6 +77,9 @@ export default function MisOrdenesPage() {
 
     return matchesStatus && matchesSearch;
   });
+
+  const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
+  const pageOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-6 pb-12">
@@ -142,7 +148,7 @@ export default function MisOrdenesPage() {
             </CardContent>
           </Card>
         ) : (
-          filteredOrders.map((order) => {
+          pageOrders.map((order) => {
             const area = order.area as unknown as { name?: string } | null;
             const subArea = order.subArea as unknown as { name?: string } | null;
             const leadTechRel = order.technicians?.find((t) => t.isLead);
@@ -202,6 +208,17 @@ export default function MisOrdenesPage() {
           })
         )}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+            <ChevronLeft className="h-4 w-4" /> Anterior
+          </Button>
+          <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+            Siguiente <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

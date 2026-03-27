@@ -111,7 +111,7 @@ export default function RequestsMachinePage() {
                     onClick={() => navigate('/maquinas')}
                     className="gap-1.5 -ml-2 text-muted-foreground"
                 >
-                    <ArrowLeft className="h-4 w-4" /> Máquinas
+                    <ArrowLeft className="h-4 w-4" /> Equipos/Estructuras
                 </Button>
 
                 <div>

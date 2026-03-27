@@ -19,9 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { FileText, MapPin, CheckCircle, Send, ArrowLeft, ImageIcon, Loader2 } from 'lucide-react';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 import { uploadFileToBackend } from '@/lib/utils/uploads';
@@ -203,19 +201,17 @@ export default function SolicitanteCrearOTPage() {
 
               {/* Area */}
               <div className="space-y-2">
-                <Label htmlFor="sol-area" className="flex items-center gap-1">
+                <Label className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" /> Area *
                 </Label>
-                <Select value={areaId} onValueChange={handleAreaChange}>
-                  <SelectTrigger id="sol-area">
-                    <SelectValue placeholder="Seleccionar area" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {areas.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  options={areas.map((a) => ({ value: a.id, label: a.name }))}
+                  value={areaId}
+                  onValueChange={handleAreaChange}
+                  placeholder="Seleccionar area"
+                  searchPlaceholder="Buscar área..."
+                  emptyText="Sin áreas"
+                />
                 {errors.areaId && (
                   <p className="text-xs text-destructive">{errors.areaId.message}</p>
                 )}
@@ -224,20 +220,15 @@ export default function SolicitanteCrearOTPage() {
               {/* Sub-área (Condicional) */}
               {isOperational && (
                 <div className="space-y-2">
-                  <Label htmlFor="sol-sub-area">Sub-área *</Label>
-                  <Select
-                    value={watch('subAreaId')}
+                  <Label>Sub-área *</Label>
+                  <Combobox
+                    options={subAreas.map((sa) => ({ value: sa.id, label: sa.name }))}
+                    value={watch('subAreaId') ?? ''}
                     onValueChange={(v) => setValue('subAreaId', v, { shouldValidate: true })}
-                  >
-                    <SelectTrigger id="sol-sub-area">
-                      <SelectValue placeholder="Seleccionar sub-área" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subAreas.length > 0 ? subAreas.map((sa) => (
-                        <SelectItem key={sa.id} value={sa.id}>{sa.name}</SelectItem>
-                      )) : <div className="p-2 text-xs text-muted-foreground">Sin sub-áreas</div>}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Seleccionar sub-área"
+                    searchPlaceholder="Buscar sub-área..."
+                    emptyText="Sin sub-áreas"
+                  />
                   {errors.subAreaId && (
                     <p className="text-xs text-destructive">{errors.subAreaId.message}</p>
                   )}

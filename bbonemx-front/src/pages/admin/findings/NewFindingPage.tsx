@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { PlusCircle, ArrowLeft, Loader2, CheckCircle, ImageIcon } from 'lucide-react';
 
 export default function NewFindingPage() {
@@ -139,16 +140,14 @@ export default function NewFindingPage() {
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <Label className="text-primary font-semibold">Área *</Label>
-                                <Select value={form.areaId} onValueChange={(v) => handleChange('areaId', v)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={areasLoading ? 'Cargando...' : 'Seleccionar área'} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {areas.map((a) => (
-                                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Combobox
+                                    options={areas.map((a) => ({ value: a.id, label: a.name }))}
+                                    value={form.areaId}
+                                    onValueChange={(v) => handleChange('areaId', v)}
+                                    placeholder={areasLoading ? 'Cargando...' : 'Seleccionar área'}
+                                    searchPlaceholder="Buscar área..."
+                                    emptyText="Sin áreas"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-primary font-semibold">Turno *</Label>

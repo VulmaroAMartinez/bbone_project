@@ -54,7 +54,7 @@ export default function AreaMachinesPage() {
                     <ArrowLeft className="h-4 w-4" /> Áreas
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Máquinas</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Equipos/Estructuras</h1>
                     {area && (
                         <p className="text-sm text-muted-foreground">
                             <Badge variant="outline" className="text-xs mr-1.5">
@@ -90,9 +90,9 @@ export default function AreaMachinesPage() {
                         <EmptyMedia variant="icon">
                             <Cog className="h-6 w-6" />
                         </EmptyMedia>
-                        <EmptyTitle>Sin máquinas</EmptyTitle>
+                        <EmptyTitle>Sin equipos</EmptyTitle>
                         <EmptyDescription>
-                            Esta área no tiene máquinas registradas.
+                            Esta área no tiene equipos registrados.
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>

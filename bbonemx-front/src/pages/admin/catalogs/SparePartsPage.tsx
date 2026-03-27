@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Edit2, Power, PowerOff, Loader2, Wrench } from 'lucide-react';
+import { Search, Plus, Edit2, Power, PowerOff, Loader2, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import SparePartFormModal from './modals/SparePartFormModal';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ export default function SparePartsPage() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [page, setPage] = useState(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingSparePart, setEditingSparePart] = useState<any>(null);
 
@@ -35,11 +36,14 @@ export default function SparePartsPage() {
         [rawSpareParts]
     );
 
+    const PAGE_SIZE = 20;
     const filteredParts = spareParts.filter(p =>
         p.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.machine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.brand?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    const totalPages = Math.ceil(filteredParts.length / PAGE_SIZE);
+    const pageParts = filteredParts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const openModal = (part: any = null) => {
@@ -79,7 +83,7 @@ export default function SparePartsPage() {
                         <Input
                             placeholder="Buscar por # Parte, Máquina o Marca..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                             className="pl-9"
                         />
                     </div>
@@ -103,7 +107,7 @@ export default function SparePartsPage() {
                                 ) : filteredParts.length === 0 ? (
                                     <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No se encontraron refacciones</td></tr>
                                 ) : (
-                                    filteredParts.map((part) => (
+                                    pageParts.map((part) => (
                                         <tr key={part.id} className="hover:bg-muted/10 transition-colors">
                                             <td className="px-4 py-3 font-mono font-medium text-foreground">{part.partNumber}</td>
                                             <td className="px-4 py-3">
@@ -143,6 +147,21 @@ export default function SparePartsPage() {
                         </table>
                     </div>
                 </CardContent>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                        <span className="text-sm text-muted-foreground">
+                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredParts.length)} de {filteredParts.length}
+                        </span>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                                <ChevronLeft className="h-4 w-4" /> Anterior
+                            </Button>
+                            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                                Siguiente <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Card>
 
             <SparePartFormModal

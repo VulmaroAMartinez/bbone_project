@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Edit2, Power, PowerOff, Loader2, Eye, Wrench, Mail, Phone } from 'lucide-react';
+import { Search, Plus, Edit2, Power, PowerOff, Loader2, Eye, Wrench, Mail, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import TechnicianFormModal from './modals/TechnicianFormModal';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ export default function TecnicosPage() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [page, setPage] = useState(1);
     type TechnicianItem = GetTechniciansDataQuery['techniciansWithDeleted'][number];
     const [editingTech, setEditingTech] = useState<TechnicianItem | null>(null);
 
@@ -32,10 +33,13 @@ export default function TecnicosPage() {
     const positions = (data?.positionsWithDeleted || []) as Array<{ id: string; name: string }>;
     const techRoleId = data?.rolesWithDeleted?.find(r => r.name === 'TECHNICIAN')?.id;
 
+    const PAGE_SIZE = 20;
     const filteredTechnicians = technicians.filter(t =>
         t.user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.user.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    const totalPages = Math.ceil(filteredTechnicians.length / PAGE_SIZE);
+    const pageTechnicians = filteredTechnicians.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const openModal = (tech: TechnicianItem | null = null) => {
         setEditingTech(tech || null);
@@ -68,7 +72,7 @@ export default function TecnicosPage() {
                 <CardHeader className="py-4">
                     <div className="relative max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Buscar por Nombre o Número de Nómina..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+                        <Input placeholder="Buscar por Nombre o Número de Nómina..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} className="pl-9" />
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -89,7 +93,7 @@ export default function TecnicosPage() {
                                     <tr><td colSpan={6} className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></td></tr>
                                 ) : filteredTechnicians.length === 0 ? (
                                     <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No se encontraron técnicos</td></tr>
-                                ) : filteredTechnicians.map((tech) => (
+                                ) : pageTechnicians.map((tech) => (
                                     <tr key={tech.id} className="hover:bg-muted/10 transition-colors">
                                         <td className="px-4 py-3 font-mono font-medium text-primary">{tech.user.employeeNumber}</td>
                                         <td className="px-4 py-3 text-foreground">
@@ -131,6 +135,21 @@ export default function TecnicosPage() {
                         </table>
                     </div>
                 </CardContent>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                        <span className="text-sm text-muted-foreground">
+                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredTechnicians.length)} de {filteredTechnicians.length}
+                        </span>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                                <ChevronLeft className="h-4 w-4" /> Anterior
+                            </Button>
+                            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                                Siguiente <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Card>
 
             <TechnicianFormModal

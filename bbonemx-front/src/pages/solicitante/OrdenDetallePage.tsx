@@ -176,7 +176,7 @@ export default function OrdenDetallePage() {
             )}
             {machine && (
               <div className="flex justify-between items-center py-1">
-                <span className="text-muted-foreground flex items-center gap-1"><Wrench className="h-3 w-3" /> Maquina</span>
+                <span className="text-muted-foreground flex items-center gap-1"><Wrench className="h-3 w-3" /> Equipo/Estructura</span>
                 <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{machine?.name}</span>
               </div>
             )}

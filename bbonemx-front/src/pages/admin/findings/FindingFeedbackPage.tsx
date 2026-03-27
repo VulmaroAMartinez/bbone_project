@@ -17,6 +17,7 @@ import {
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
+import { canEditFinding, filterMachinesByArea, buildMachineLabel } from '@/lib/findings/finding-logic';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Combobox } from '@/components/ui/combobox';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     OPEN: { label: 'Abierto', className: 'bg-yellow-100 text-yellow-700' },
@@ -44,6 +46,7 @@ function FindingFeedbackForm({
     shifts,
     machines,
     updating,
+    isReadOnly,
     onSubmitUpdate,
 }: {
     finding: NonNullable<ReturnType<typeof useParams<{ id: string }>>>;
@@ -51,6 +54,7 @@ function FindingFeedbackForm({
     shifts: Array<{ id: string; name: string }>;
     machines: Array<{ id: string; name: string; code?: string | null }>;
     updating: boolean;
+    isReadOnly: boolean;
     onSubmitUpdate: (input: UpdateFindingInput) => Promise<void>;
 }) {
     const navigate = useNavigate();
@@ -98,7 +102,11 @@ function FindingFeedbackForm({
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                     <Label>Área *</Label>
-                    <Select value={form.areaId} onValueChange={(v) => handleChange('areaId', v)}>
+                    <Select
+                        value={form.areaId}
+                        onValueChange={(v) => handleChange('areaId', v)}
+                        disabled={isReadOnly}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccionar área" />
                         </SelectTrigger>
@@ -112,7 +120,11 @@ function FindingFeedbackForm({
 
                 <div className="space-y-2">
                     <Label>Turno *</Label>
-                    <Select value={form.shiftId} onValueChange={(v) => handleChange('shiftId', v)}>
+                    <Select
+                        value={form.shiftId}
+                        onValueChange={(v) => handleChange('shiftId', v)}
+                        disabled={isReadOnly}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccionar turno" />
                         </SelectTrigger>
@@ -126,23 +138,16 @@ function FindingFeedbackForm({
             </div>
 
             <div className="space-y-2">
-                <Label>Máquina Afectada (Opcional)</Label>
-                <Select
+                <Label>Equipo/Estructura Afectado (Opcional)</Label>
+                <Combobox
+                    options={[{ value: '__none__', label: 'Sin equipo' }, ...machines.map((m) => ({ value: m.id, label: buildMachineLabel(m) }))]}
                     value={form.machineId || '__none__'}
                     onValueChange={(v) => handleChange('machineId', v === '__none__' ? '' : v)}
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Sin máquina asignada" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="__none__">Sin máquina</SelectItem>
-                        {machines.map((m) => (
-                            <SelectItem key={m.id} value={m.id}>
-                                {m.name} [{m.code}]
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    placeholder="Sin equipo asignado"
+                    searchPlaceholder="Buscar equipo/estructura..."
+                    emptyText="Sin equipos"
+                    disabled={isReadOnly}
+                />
             </div>
 
             <div className="space-y-2">
@@ -152,6 +157,7 @@ function FindingFeedbackForm({
                     onChange={(e) => handleChange('description', e.target.value)}
                     placeholder="Describe el hallazgo..."
                     className="min-h-[100px]"
+                    disabled={isReadOnly}
                 />
             </div>
 
@@ -161,6 +167,7 @@ function FindingFeedbackForm({
                     value={form.photoPath}
                     onChange={(e) => handleChange('photoPath', e.target.value)}
                     placeholder="Ruta o URL de la evidencia fotográfica"
+                    disabled={isReadOnly}
                 />
             </div>
 
@@ -168,7 +175,7 @@ function FindingFeedbackForm({
                 <Button type="button" variant="outline" onClick={() => navigate(-1)} className="flex-1" disabled={updating}>
                     Cancelar
                 </Button>
-                <Button type="submit" disabled={updating} className="flex-1">
+                <Button type="submit" disabled={updating || isReadOnly} className="flex-1">
                     {updating
                         ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>
                         : <><Save className="mr-2 h-4 w-4" /> Guardar Cambios</>
@@ -223,6 +230,21 @@ export default function FindingFeedbackPage() {
     }
 
     const statusCfg = STATUS_CONFIG[finding.status] ?? STATUS_CONFIG.OPEN;
+    const isReadOnly = !canEditFinding(
+        (finding as unknown as { convertedToWo?: { folio: string } | null }).convertedToWo,
+    );
+
+    // Bug 4: filter machines to the finding's current area for the machine selector.
+    const findingAreaId =
+        (finding as unknown as { area?: { id?: string | null } | null })?.area?.id ?? '';
+    const filteredMachines = filterMachinesByArea(
+        machines as unknown as Array<{
+            id: string;
+            area?: { id: string; name: string } | null;
+            subArea?: { id: string; name: string; area?: { id: string; name: string } | null } | null;
+        }>,
+        findingAreaId,
+    );
 
     return (
         <div className="max-w-2xl mx-auto space-y-6 pb-12">
@@ -266,8 +288,9 @@ export default function FindingFeedbackPage() {
                         finding={finding as unknown as NonNullable<ReturnType<typeof useParams<{ id: string }>>>}
                         areas={areas}
                         shifts={shifts}
-                        machines={machines as unknown as Array<{ id: string; name: string; code?: string | null }>}
+                        machines={filteredMachines as unknown as Array<{ id: string; name: string; code?: string | null }>}
                         updating={updating}
+                        isReadOnly={isReadOnly}
                         onSubmitUpdate={(input) => updateFinding({ variables: { id: id!, input } }).then(() => undefined)}
                     />
                 </CardContent>

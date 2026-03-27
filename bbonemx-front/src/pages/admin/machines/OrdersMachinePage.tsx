@@ -30,8 +30,8 @@ export default function OrdersMachinePage() {
         fetchPolicy: 'cache-and-network',
     });
 
-    // Query actual no devuelve machine; solo usamos workOrdersFiltered.
-    const workOrders = (data as unknown as { workOrdersFiltered?: { data?: Array<unknown> } })?.workOrdersFiltered?.data ?? [];
+    // Uses machine(id) { workOrders } resolver — correctly filters by machine FK.
+    const workOrders = (data as unknown as { machine?: { workOrders?: Array<unknown> } })?.machine?.workOrders ?? [];
 
     const formatDate = (dateStr?: string | null) => {
         if (!dateStr) return '—';
@@ -52,7 +52,7 @@ export default function OrdersMachinePage() {
                     onClick={() => navigate('/maquinas')}
                     className="gap-1.5 -ml-2 text-muted-foreground"
                 >
-                    <ArrowLeft className="h-4 w-4" /> Máquinas
+                    <ArrowLeft className="h-4 w-4" /> Equipos/Estructuras
                 </Button>
 
                 <div>

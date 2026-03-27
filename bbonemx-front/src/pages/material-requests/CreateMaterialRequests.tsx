@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
@@ -12,6 +12,7 @@ import {
     ADD_MATERIAL_TO_REQUEST_MUTATION,
     GET_MATERIAL_REQUEST_QUERY,
 } from '@/lib/graphql/operations/material-requests';
+import { shouldClearItemsOnCategoryChange } from '@/lib/material-requests/material-request-logic';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -328,13 +329,28 @@ export default function CreateMaterialRequestPage() {
         }
     }, [selectedMachines, selectedMachine, setValue]);
 
+    // Track the previous category so we can detect catalog-type switches.
+    const prevCategoryRef = useRef<string>('');
+
     useEffect(() => {
         if (!watchedCategory) return;
+
+        const prevCategory = prevCategoryRef.current;
+
         if (isService) {
+            // Switching to a service category always clears items
             remove();
+        } else if (shouldClearItemsOnCategoryChange(prevCategory, watchedCategory)) {
+            // Switching between material ↔ spare-part catalogs: stale catalogIds
+            // from the old catalog would cause backend errors, so clear and add one
+            // fresh empty item.
+            remove();
+            append({ ...EMPTY_ITEM });
         } else if (fields.length === 0) {
             append({ ...EMPTY_ITEM });
         }
+
+        prevCategoryRef.current = watchedCategory;
     }, [watchedCategory, isService, remove, fields.length, append]);
 
     // ── Pre-rellenar formulario al editar ─────────────────────────────────────

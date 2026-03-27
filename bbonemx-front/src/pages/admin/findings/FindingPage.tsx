@@ -16,13 +16,16 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
-import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle } from 'lucide-react';
+import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+
+const PAGE_SIZE = 12;
 
 export default function FindingPage() {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusTab, setStatusTab] = useState<FindingStatus | 'ALL'>('ALL');
+    const [page, setPage] = useState(1);
 
     const { data, loading, error, refetch } = useQuery(GetFindingsFilteredDocument, {
         variables: {
@@ -43,6 +46,9 @@ export default function FindingPage() {
         const term = searchTerm.toLowerCase();
         return f.folio.toLowerCase().includes(term) || f.description.toLowerCase().includes(term);
     });
+
+    const totalPages = Math.ceil(filteredFindings.length / PAGE_SIZE);
+    const pageFindings = filteredFindings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const handleConvert = async (findingId: string) => {
         try {
@@ -88,12 +94,12 @@ export default function FindingPage() {
                     <Input
                         placeholder="Buscar por folio o descripción..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                         className="pl-9"
                     />
                 </div>
 
-                <Tabs value={statusTab} onValueChange={(val) => setStatusTab(val as FindingStatus | 'ALL')} className="w-full md:w-auto">
+                <Tabs value={statusTab} onValueChange={(val) => { setStatusTab(val as FindingStatus | 'ALL'); setPage(1); }} className="w-full md:w-auto">
                     <TabsList className="w-full md:w-auto grid grid-cols-3">
                         <TabsTrigger value="ALL">Todos</TabsTrigger>
                         <TabsTrigger value="OPEN">Abiertos</TabsTrigger>
@@ -113,7 +119,7 @@ export default function FindingPage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    filteredFindings.map((finding) => {
+                    pageFindings.map((finding) => {
                         const isOpen = finding.status === 'OPEN';
                         const area = finding.area as unknown as { name?: string } | null;
                         const machine = finding.machine as unknown as { name?: string; code?: string } | null;
@@ -196,6 +202,17 @@ export default function FindingPage() {
                     })
                 )}
             </div>
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="h-4 w-4" /> Anterior
+                    </Button>
+                    <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                        Siguiente <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

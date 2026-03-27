@@ -40,7 +40,7 @@ import {
     X,
 } from 'lucide-react';
 
-const PAGE_LIMIT = 20;
+const PAGE_LIMIT = 12;
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
     OPEN: {

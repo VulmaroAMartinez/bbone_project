@@ -34,6 +34,7 @@ import {
   MapPin,
   AlertTriangle,
   ChevronRight,
+  ChevronLeft,
   Wrench,
   ClipboardList,
 } from 'lucide-react';
@@ -55,10 +56,13 @@ const PRIORITY_TABS: { value: WorkOrderPriority | 'all'; label: string }[] = [
   { value: 'LOW', label: 'Bajas' },
 ];
 
+const PAGE_SIZE = 12;
+
 function OrdenesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<WorkOrderStatus | 'all'>(
     (searchParams.get('status') as WorkOrderStatus) || 'all'
   );
@@ -68,6 +72,7 @@ function OrdenesPage() {
 
   const handleStatusChange = (val: WorkOrderStatus | 'all') => {
     setStatusFilter(val);
+    setPage(1);
     if (val !== 'all') {
       setSearchParams({ status: val });
     } else {
@@ -101,6 +106,9 @@ function OrdenesPage() {
       machine?.code?.toLowerCase().includes(term)
     );
   });
+
+  const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
+  const pageOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (loading && !data) return <WorkOrderListSkeleton count={5} />;
 
@@ -141,9 +149,9 @@ function OrdenesPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="orders-search"
-                placeholder="Buscar por folio, descripcion o maquina..."
+                placeholder="Buscar por folio, descripcion o equipo..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                 className="pl-9"
               />
             </div>
@@ -158,7 +166,7 @@ function OrdenesPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={priorityFilter} onValueChange={(val) => setPriorityFilter(val as WorkOrderPriority | 'all')}>                <SelectTrigger className="w-[160px]">
+              <Select value={priorityFilter} onValueChange={(val) => { setPriorityFilter(val as WorkOrderPriority | 'all'); setPage(1); }}>                <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Prioridad" />
               </SelectTrigger>
                 <SelectContent>
@@ -167,7 +175,7 @@ function OrdenesPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={shiftFilter} onValueChange={setShiftFilter}>
+              <Select value={shiftFilter} onValueChange={(v) => { setShiftFilter(v); setPage(1); }}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Turno" />
                 </SelectTrigger>
@@ -194,7 +202,7 @@ function OrdenesPage() {
             </CardContent>
           </Card>
         ) : (
-          filteredOrders.map((order) => {
+          pageOrders.map((order) => {
             const area = unmaskFragment(AreaBasicFragmentDoc, order.area);
             const machine = unmaskFragment(MachineBasicFragmentDoc, order.machine);
 
@@ -250,6 +258,17 @@ function OrdenesPage() {
               </Card>
             );
           })
+        )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+              <ChevronLeft className="h-4 w-4" /> Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+              Siguiente <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
     </div>

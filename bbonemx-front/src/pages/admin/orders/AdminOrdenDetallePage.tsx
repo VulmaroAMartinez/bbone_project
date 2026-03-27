@@ -473,7 +473,7 @@ function AdminOrdenDetallePage() {
                 )}
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Máquina</span>
+                <span className="text-muted-foreground">Equipo/Estructura</span>
                 <span className="font-medium">
                   {machine ? `${machine.name} [${machine.code}]` : '--'}
                 </span>
@@ -795,9 +795,23 @@ function AdminOrdenDetallePage() {
             <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/10">
               <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">1. Parámetros Generales</h4>
               <div className="grid gap-4 md:grid-cols-2">
+              {showMachineField && (
+                <div className="space-y-2 pb-2 border-b border-border/50 md:col-span-2">
+                  <Label htmlFor="mgmt-machine" className="text-destructive font-semibold">Equipo/Estructura Afectado (Requerido)*</Label>
+                  <Combobox
+                    options={machineOptions}
+                    value={mgmt.machineId}
+                    onValueChange={(v) => setMgmt((p) => ({ ...p, machineId: v }))}
+                    placeholder="Seleccionar Equipo/Estructura"
+                    searchPlaceholder="Buscar equipo/estructura..."
+                    emptyText="No hay equipos en esta subárea"
+                  />
+                </div>
+              )}
+
                 <div className="space-y-2">
                   <Label htmlFor="mgmt-priority">Prioridad</Label>
-                  <Select value={mgmt.priority} onValueChange={(v) => setMgmt((p) => ({ ...p, priority: v as WorkOrderPriority }))}>
+                  <Select value={mgmt.priority ?? ''} onValueChange={(v) => setMgmt((p) => ({ ...p, priority: v as WorkOrderPriority }))}>
                     <SelectTrigger id="mgmt-priority"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
                       {PRIORITIES.map((p) => (<SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>))}
@@ -806,17 +820,18 @@ function AdminOrdenDetallePage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="mgmt-stoppage">Tipo de Parada</Label>
-                  <Select value={mgmt.stoppageType} onValueChange={(v) => setMgmt((p) => ({ ...p, stoppageType: v as StopType }))}>
+                  <Select value={mgmt.stoppageType ?? ''} onValueChange={(v) => setMgmt((p) => ({ ...p, stoppageType: v as StopType }))}>
                     <SelectTrigger id="mgmt-stoppage"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
                       {STOPPAGE_TYPES.map((s: { value: StopType; label: string }) => (
                         <SelectItem key={s.value} value={s.value} disabled={s.value === 'BREAKDOWN' && availableMachines.length === 0}>
-                          {s.label}{s.value === 'BREAKDOWN' && availableMachines.length === 0 ? ' (sin máquinas)' : ''}
+                          {s.label}{s.value === 'BREAKDOWN' && availableMachines.length === 0 ? ' (sin equipos)' : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="mgmt-shift">Turno</Label>
                   <Select value={mgmt.shiftId} onValueChange={(v) => setMgmt((p) => ({ ...p, shiftId: v }))}>
@@ -828,7 +843,7 @@ function AdminOrdenDetallePage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="mgmt-maintenance">Tipo de Mantenimiento</Label>
-                  <Select value={mgmt.maintenanceType} onValueChange={(v) => setMgmt((p) => ({ ...p, maintenanceType: v as MaintenanceType }))}>
+                  <Select value={mgmt.maintenanceType ?? ''} onValueChange={(v) => setMgmt((p) => ({ ...p, maintenanceType: v as MaintenanceType }))}>
                     <SelectTrigger id="mgmt-maintenance"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
                       {MAINTENANCE_TYPES.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
@@ -837,7 +852,7 @@ function AdminOrdenDetallePage() {
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="mgmt-work-type">Tipo de trabajo *</Label>
-                  <Select value={mgmt.workType} onValueChange={(v) => setMgmt((p) => ({ ...p, workType: v as WorkTypeValue }))}>
+                  <Select value={mgmt.workType ?? ''} onValueChange={(v) => setMgmt((p) => ({ ...p, workType: v as WorkTypeValue }))}>
                     <SelectTrigger id="mgmt-work-type"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
                       {WORK_TYPES.map((wt) => (<SelectItem key={wt.value} value={wt.value}>{wt.label}</SelectItem>))}
@@ -854,20 +869,6 @@ function AdminOrdenDetallePage() {
                     type="date"
                     value={mgmt.scheduledDate}
                     onChange={(e) => setMgmt((p) => ({ ...p, scheduledDate: e.target.value }))}
-                  />
-                </div>
-              )}
-
-              {showMachineField && (
-                <div className="space-y-2 pt-2 border-t border-border/50">
-                  <Label htmlFor="mgmt-machine" className="text-destructive font-semibold">Máquina Afectada (Requerido)*</Label>
-                  <Combobox
-                    options={machineOptions}
-                    value={mgmt.machineId}
-                    onValueChange={(v) => setMgmt((p) => ({ ...p, machineId: v }))}
-                    placeholder="Seleccionar Máquina"
-                    searchPlaceholder="Buscar máquina..."
-                    emptyText="No hay máquinas en esta subárea"
                   />
                 </div>
               )}

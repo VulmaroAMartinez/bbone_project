@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Edit2, Power, PowerOff, Loader2 } from 'lucide-react';
+import { Search, Plus, Edit2, Power, PowerOff, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import MaterialFormModal from './modals/MaterialFormModal';
 import { toast } from 'sonner';
 
@@ -22,16 +22,20 @@ export default function MaterialsPage() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [page, setPage] = useState(1);
     type MaterialItem = GetMaterialsQuery['materialsWithDeleted'][number];
     const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
 
     const materials = data?.materialsWithDeleted || [];
 
+    const PAGE_SIZE = 20;
     const filteredMaterials = materials.filter(m =>
         m.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         m.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         m.partNumber?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    const totalPages = Math.ceil(filteredMaterials.length / PAGE_SIZE);
+    const pageMaterials = filteredMaterials.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const openModal = (material: MaterialItem | null = null) => {
         setEditingMaterial(material);
@@ -70,7 +74,7 @@ export default function MaterialsPage() {
                         <Input
                             placeholder="Buscar por descripción, SKU o # de parte..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                             className="pl-9"
                         />
                     </div>
@@ -94,7 +98,7 @@ export default function MaterialsPage() {
                                 ) : filteredMaterials.length === 0 ? (
                                     <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No se encontraron materiales</td></tr>
                                 ) : (
-                                    filteredMaterials.map((mat) => (
+                                    pageMaterials.map((mat) => (
                                         <tr key={mat.id} className="hover:bg-muted/10 transition-colors">
                                             <td className="px-4 py-3 font-medium text-foreground max-w-[200px] truncate">{mat.description}</td>
                                             <td className="px-4 py-3 hidden sm:table-cell">
@@ -135,6 +139,21 @@ export default function MaterialsPage() {
                         </table>
                     </div>
                 </CardContent>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                        <span className="text-sm text-muted-foreground">
+                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredMaterials.length)} de {filteredMaterials.length}
+                        </span>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                                <ChevronLeft className="h-4 w-4" /> Anterior
+                            </Button>
+                            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                                Siguiente <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Card>
 
             <MaterialFormModal

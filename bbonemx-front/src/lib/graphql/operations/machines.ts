@@ -44,13 +44,10 @@ export const GET_MACHINE_SPARE_PARTS = gql`
 `;
 
 export const GET_MACHINE_WORK_ORDERS = gql`
-  query GetMachineWorkOrders($id: String!) {
-    workOrdersFiltered(
-      filters: { search: $id }
-      pagination: { page: 1, limit: 50 }
-      sort: { field: CREATED_AT, order: DESC }
-    ) {
-      data {
+  query GetMachineWorkOrders($id: ID!) {
+    machine(id: $id) {
+      id
+      workOrders {
         id
         folio
         description
@@ -61,7 +58,6 @@ export const GET_MACHINE_WORK_ORDERS = gql`
         endDate
         createdAt
       }
-      total
     }
   }
 `;

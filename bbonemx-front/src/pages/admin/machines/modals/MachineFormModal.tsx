@@ -192,15 +192,15 @@ export function MachineFormModal({ open, onOpenChange, machine, areas, onSuccess
 
       if (machine) {
         await updateMachine({ variables: { id: machine.id, input: payload } });
-        toast.success('Máquina actualizada correctamente');
+        toast.success('Equipo actualizado correctamente');
       } else {
         await createMachine({ variables: { input: payload } });
-        toast.success('Máquina creada correctamente');
+        toast.success('Equipo creado correctamente');
       }
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error al guardar la máquina');
+      toast.error(err instanceof Error ? err.message : 'Error al guardar el equipo');
     } finally {
       setIsSaving(false);
     }
@@ -215,11 +215,11 @@ export function MachineFormModal({ open, onOpenChange, machine, areas, onSuccess
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Máquina' : 'Nueva Máquina'}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Equipo/Estructura' : 'Nuevo Equipo/Estructura'}</DialogTitle>
           <DialogDescription>
             {isEditing
               ? `Modificando ${machine!.code} - ${machine!.name}`
-              : 'Completa los datos para registrar una máquina.'}
+              : 'Completa los datos para registrar un equipo/estructura.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -327,7 +327,7 @@ export function MachineFormModal({ open, onOpenChange, machine, areas, onSuccess
             </h4>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label>Foto de máquina</Label>
+                <Label>Foto del equipo</Label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -339,7 +339,7 @@ export function MachineFormModal({ open, onOpenChange, machine, areas, onSuccess
                   <div className="relative rounded-lg border border-border overflow-hidden">
                     <img
                       src={photoPreview}
-                      alt="Foto de máquina"
+                      alt="Foto del equipo"
                       className="w-full h-40 object-cover"
                     />
                     <div className="absolute top-2 right-2 flex gap-1">

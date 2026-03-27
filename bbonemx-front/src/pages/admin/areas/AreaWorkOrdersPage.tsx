@@ -36,7 +36,7 @@ import {
     ChevronRight,
 } from 'lucide-react';
 
-const PAGE_LIMIT = 20;
+const PAGE_LIMIT = 12;
 
 export default function AreaWorkOrdersPage() {
     const { id } = useParams<{ id: string }>();

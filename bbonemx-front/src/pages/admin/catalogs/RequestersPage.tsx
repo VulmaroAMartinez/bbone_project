@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Edit2, Power, PowerOff, Loader2, UserRound, Mail, Phone } from 'lucide-react';
+import { Search, Plus, Edit2, Power, PowerOff, Loader2, UserRound, Mail, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
 import RequesterFormModal from './modals/RequesterFormModal';
 import { toast } from 'sonner';
 
@@ -22,6 +22,7 @@ export default function RequestersPage() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [page, setPage] = useState(1);
     type RequesterItem = GetRequestersDataQuery['usersWithDeleted'][number];
     const [editingRequester, setEditingRequester] = useState<RequesterItem | null>(null);
 
@@ -34,11 +35,14 @@ export default function RequestersPage() {
         ? allUsers.filter((u) => u.roleIds.includes(requesterRoleId))
         : [];
 
+    const PAGE_SIZE = 20;
     const filteredRequesters = requesters.filter(r =>
         r.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.employeeNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (r.department && r.department.name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+    const totalPages = Math.ceil(filteredRequesters.length / PAGE_SIZE);
+    const pageRequesters = filteredRequesters.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const openModal = (user: RequesterItem | null = null) => {
         setEditingRequester(user);
@@ -71,7 +75,7 @@ export default function RequestersPage() {
                 <CardHeader className="py-4">
                     <div className="relative max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Buscar por Nombre, Num. Empleado o Depto..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+                        <Input placeholder="Buscar por Nombre, Num. Empleado o Depto..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} className="pl-9" />
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -92,7 +96,7 @@ export default function RequestersPage() {
                                     <tr><td colSpan={6} className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></td></tr>
                                 ) : filteredRequesters.length === 0 ? (
                                     <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No se encontraron solicitantes</td></tr>
-                                ) : filteredRequesters.map((req) => (
+                                ) : pageRequesters.map((req) => (
                                     <tr key={req.id} className="hover:bg-muted/10 transition-colors">
                                         <td className="px-4 py-3 font-mono font-medium text-primary">{req.employeeNumber}</td>
                                         <td className="px-4 py-3 text-foreground">
@@ -126,6 +130,21 @@ export default function RequestersPage() {
                         </table>
                     </div>
                 </CardContent>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                        <span className="text-sm text-muted-foreground">
+                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredRequesters.length)} de {filteredRequesters.length}
+                        </span>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                                <ChevronLeft className="h-4 w-4" /> Anterior
+                            </Button>
+                            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                                Siguiente <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Card>
 
             <RequesterFormModal

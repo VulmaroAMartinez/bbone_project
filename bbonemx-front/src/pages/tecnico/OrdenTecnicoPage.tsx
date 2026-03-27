@@ -383,7 +383,7 @@ export default function TecnicoOrdenPage() {
             {machine && (
               <div className="flex justify-between items-center py-1">
                 <span className="text-muted-foreground flex items-center gap-2">
-                  <Wrench className="h-4 w-4" /> Máquina
+                  <Wrench className="h-4 w-4" /> Equipo/Estructura
                 </span>
                 <span className="font-mono bg-muted px-2 py-1 rounded">{machine.code}</span>
               </div>

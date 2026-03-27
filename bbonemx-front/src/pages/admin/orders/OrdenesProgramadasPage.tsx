@@ -13,13 +13,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar, ChevronRight, MapPin, UserPlus, AlertTriangle } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, MapPin, UserPlus, AlertTriangle } from 'lucide-react';
+
+const PAGE_SIZE = 12;
 
 function OrdenesProgramadasPage() {
   const navigate = useNavigate();
   const [scheduledFrom, setScheduledFrom] = useState('');
   const [scheduledTo, setScheduledTo] = useState('');
   const [shiftId, setShiftId] = useState('all');
+  const [page, setPage] = useState(1);
 
   const { data: shiftsData } = useQuery(GetShiftsDocument);
   const { data, loading, error } = useQuery(GET_SCHEDULED_WORK_ORDERS_QUERY, {
@@ -39,6 +42,8 @@ function OrdenesProgramadasPage() {
     () => [...orders].sort((a, b) => new Date(a.scheduledDate || a.createdAt).getTime() - new Date(b.scheduledDate || b.createdAt).getTime()),
     [orders],
   );
+  const totalPages = Math.ceil(sortedOrders.length / PAGE_SIZE);
+  const pageOrders = sortedOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (error) {
     return (
@@ -66,11 +71,11 @@ function OrdenesProgramadasPage() {
         <CardContent className="pt-6 grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
             <label htmlFor="scheduled-from" className="text-sm">Fecha desde</label>
-            <Input id="scheduled-from" type="date" value={scheduledFrom} onChange={(e) => setScheduledFrom(e.target.value)} />
+            <Input id="scheduled-from" type="date" value={scheduledFrom} onChange={(e) => { setScheduledFrom(e.target.value); setPage(1); }} />
           </div>
           <div className="space-y-2">
             <label htmlFor="scheduled-to" className="text-sm">Fecha hasta</label>
-            <Input id="scheduled-to" type="date" value={scheduledTo} onChange={(e) => setScheduledTo(e.target.value)} />
+            <Input id="scheduled-to" type="date" value={scheduledTo} onChange={(e) => { setScheduledTo(e.target.value); setPage(1); }} />
           </div>
           <div className="space-y-2">
             <label htmlFor="scheduled-shift" className="text-sm">Turno</label>
@@ -93,7 +98,7 @@ function OrdenesProgramadasPage() {
             <CardContent className="py-10 text-center text-muted-foreground">No hay órdenes programadas con los filtros seleccionados.</CardContent>
           </Card>
         )}
-        {sortedOrders.map((order) => {
+        {pageOrders.map((order) => {
           const area = unmaskFragment(AreaBasicFragmentDoc, order.area);
           const leadTechRel = order.technicians?.find((t) => t.isLead);
           const leadTech = unmaskFragment(UserBasicFragmentDoc, leadTechRel?.technician);
@@ -115,6 +120,17 @@ function OrdenesProgramadasPage() {
             </Card>
           );
         })}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+              <ChevronLeft className="h-4 w-4" /> Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+              Siguiente <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

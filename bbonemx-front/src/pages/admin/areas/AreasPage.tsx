@@ -50,6 +50,8 @@ import {
     AlertTriangle,
     Info,
     X,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 
 import { AreaFormModal } from './modals/AreaFormModal';
@@ -85,6 +87,7 @@ export default function AreasPage() {
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState<AreaType | 'all'>('all');
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+    const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
     const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
@@ -154,7 +157,12 @@ export default function AreasPage() {
         setSearch('');
         setFilterType('all');
         setFilterStatus('all');
+        setPage(1);
     };
+
+    const PAGE_SIZE = 20;
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const pageAreas = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const hasFilters = search || filterType !== 'all' || filterStatus !== 'all';
 
@@ -183,7 +191,7 @@ export default function AreasPage() {
                     <Input
                         placeholder="Buscar por nombre o descripción..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         className="pl-9 pr-9"
                     />
                     {search && (
@@ -199,7 +207,7 @@ export default function AreasPage() {
                 <div className="flex gap-2">
                     <Select
                         value={filterType}
-                        onValueChange={(v) => setFilterType(v as AreaType | 'all')}
+                        onValueChange={(v) => { setFilterType(v as AreaType | 'all'); setPage(1); }}
                     >
                         <SelectTrigger className="flex-1 h-8 text-xs">
                             <SelectValue placeholder="Tipo" />
@@ -214,7 +222,7 @@ export default function AreasPage() {
 
                     <Select
                         value={filterStatus}
-                        onValueChange={(v) => setFilterStatus(v as 'all' | 'active' | 'inactive')}
+                        onValueChange={(v) => { setFilterStatus(v as 'all' | 'active' | 'inactive'); setPage(1); }}
                     >
                         <SelectTrigger className="flex-1 h-8 text-xs">
                             <SelectValue placeholder="Estado" />
@@ -277,7 +285,7 @@ export default function AreasPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/50">
-                                    {filtered.map((area) => (
+                                    {pageAreas.map((area) => (
                                         <tr key={area.id} className="hover:bg-muted/10 transition-colors">
                                             <td className="px-4 py-3 font-medium text-foreground">
                                                 <div className="flex items-center gap-2 min-w-0">
@@ -356,6 +364,21 @@ export default function AreasPage() {
                                 </tbody>
                             </table>
                         </div>
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                                <span className="text-sm text-muted-foreground">
+                                    {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length}
+                                </span>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                                        <ChevronLeft className="h-4 w-4" /> Anterior
+                                    </Button>
+                                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                                        Siguiente <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}

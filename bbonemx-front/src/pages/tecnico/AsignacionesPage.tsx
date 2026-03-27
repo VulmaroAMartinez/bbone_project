@@ -15,13 +15,17 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusBadge, PriorityBadge, MaintenanceTypeBadge } from '@/components/ui/status-badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
 import {
-  Search, ClipboardList, Clock, CheckCircle, Wrench, AlertTriangle, Pause, MapPin, ChevronRight
+  Search, ClipboardList, Clock, CheckCircle, Wrench, AlertTriangle, Pause, MapPin, ChevronRight, ChevronLeft
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+const PAGE_SIZE = 12;
 
 export default function AsignacionesPage() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusTab, setStatusTab] = useState<WorkOrderStatus | 'all'>('all');
+  const [page, setPage] = useState(1);
 
   const { data, loading, error } = useQuery(MyAssignedWorkOrdersDocument, {
     fetchPolicy: 'cache-and-network',
@@ -43,7 +47,7 @@ export default function AsignacionesPage() {
     );
   }
 
-  // Filtrado local super rápido
+  // Filtrado local
   const filteredOrders = orders.filter((order) => {
     const machine = order.machine as unknown as { code?: string; name?: string } | null;
 
@@ -56,6 +60,9 @@ export default function AsignacionesPage() {
 
     return matchesStatus && matchesSearch;
   });
+
+  const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
+  const pageOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Contadores para las tarjetas de estadísticas
   const pendingCount = orders.filter((o) => o.status === 'PENDING').length;
@@ -107,7 +114,7 @@ export default function AsignacionesPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por folio, descripción o máquina..."
+            placeholder="Buscar por folio, descripción o equipo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
@@ -139,7 +146,7 @@ export default function AsignacionesPage() {
             </CardContent>
           </Card>
         ) : (
-          filteredOrders.map((order) => {
+          pageOrders.map((order) => {
             const area = order.area as unknown as { name?: string } | null;
             const machine = order.machine as unknown as { name?: string; code?: string } | null;
 
@@ -186,6 +193,17 @@ export default function AsignacionesPage() {
           })
         )}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+            <ChevronLeft className="h-4 w-4" /> Anterior
+          </Button>
+          <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+            Siguiente <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

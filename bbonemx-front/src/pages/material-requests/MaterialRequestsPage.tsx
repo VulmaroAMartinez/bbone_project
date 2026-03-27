@@ -22,7 +22,13 @@ import {
     EmptyTitle,
     EmptyDescription,
 } from '@/components/ui/empty';
-import { Search, Plus, Package, Calendar, User, Cog, X } from 'lucide-react';
+import { Search, Plus, Package, Calendar, User, Cog, X, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 import {
     CATEGORY_LABELS,
@@ -45,6 +51,8 @@ export default function MaterialRequestsPage() {
     const [search, setSearch] = useState('');
     const [filterPriority, setFilterPriority] = useState('all');
     const [filterCategory, setFilterCategory] = useState('all');
+    const [viewingItemsReq, setViewingItemsReq] = useState<typeof requests[0] | null>(null);
+    const [page, setPage] = useState(1);
 
     const requests = useMemo(() => data?.materialRequestsWithDeleted ?? [], [data?.materialRequestsWithDeleted]);
 
@@ -69,9 +77,15 @@ export default function MaterialRequestsPage() {
         setSearch('');
         setFilterPriority('all');
         setFilterCategory('all');
+        setPage(1);
     };
 
+    const PAGE_SIZE = 12;
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const pageRequests = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
     return (
+        <>
         <div className="space-y-5 pb-20">
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
@@ -113,7 +127,7 @@ export default function MaterialRequestsPage() {
                     )}
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                    <Select value={filterPriority} onValueChange={setFilterPriority}>
+                    <Select value={filterPriority} onValueChange={(v) => { setFilterPriority(v); setPage(1); }}>
                         <SelectTrigger className="flex-1 min-w-[130px] h-8 text-xs">
                             <SelectValue placeholder="Prioridad" />
                         </SelectTrigger>
@@ -123,7 +137,7 @@ export default function MaterialRequestsPage() {
                             <SelectItem value="SCHEDULED">Programada</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Select value={filterCategory} onValueChange={setFilterCategory}>
+                    <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setPage(1); }}>
                         <SelectTrigger className="flex-1 min-w-[150px] h-8 text-xs">
                             <SelectValue placeholder="Categoría" />
                         </SelectTrigger>
@@ -180,7 +194,7 @@ export default function MaterialRequestsPage() {
                 </Empty>
             ) : (
                 <div className="space-y-3">
-                    {filtered.map((req) => {
+                    {pageRequests.map((req) => {
                         const machineEntities = (req.machines ?? []).map((mrm) => mrm.machine);
                         const areaNames = new Set(
                             machineEntities.map((m) => m.area?.name ?? m.subArea?.area?.name).filter(Boolean)
@@ -214,11 +228,27 @@ export default function MaterialRequestsPage() {
                                                     {CATEGORY_LABELS[req.category] ?? req.category}
                                                 </Badge>
                                             </div>
-                                            {/* Items count */}
-                                            {req.items.length > 0 && (
-                                                <p className="mt-2 text-base text-foreground line-clamp-2">
-                                                    {req.items.length} artículo{req.items.length !== 1 ? 's' : ''} solicitado{req.items.length !== 1 ? 's' : ''}
-                                                </p>
+                                            {/* Service name or items count */}
+                                            {req.category === 'SERVICE' || req.category === 'SERVICE_WITH_MATERIAL' ? (
+                                                req.items[0] && (
+                                                    <p className="mt-2 text-base text-foreground line-clamp-2">
+                                                        {req.items[0].customName ?? req.items[0].description ?? 'Servicio'}
+                                                    </p>
+                                                )
+                                            ) : req.items.length > 0 && (
+                                                <div className="mt-2 flex items-center justify-between gap-2">
+                                                    <p className="text-base text-foreground">
+                                                        {req.items.length} artículo{req.items.length !== 1 ? 's' : ''} solicitado{req.items.length !== 1 ? 's' : ''}
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                                        title="Ver detalles"
+                                                        onClick={(e) => { e.stopPropagation(); setViewingItemsReq(req); }}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
+                                                </div>
                                             )}
 
                                             {/* Metadata */}
@@ -250,8 +280,45 @@ export default function MaterialRequestsPage() {
                             </Card>
                         );
                     })}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-2">
+                            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                                <ChevronLeft className="h-4 w-4" /> Anterior
+                            </Button>
+                            <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+                            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                                Siguiente <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
+
+        {/* Dialog: detalles de artículos */}
+        <Dialog open={!!viewingItemsReq} onOpenChange={(open) => !open && setViewingItemsReq(null)}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Artículos — {viewingItemsReq?.folio}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    {viewingItemsReq?.items.map((item, idx) => (
+                        <div key={item.id} className="rounded-lg border border-border p-3 space-y-1 text-sm">
+                            <p className="font-medium">{idx + 1}. {item.customName ?? item.description ?? '—'}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+                                <span>Cantidad: <span className="text-foreground">{item.requestedQuantity}</span></span>
+                                {item.unitOfMeasure && (
+                                    <span>Unidad: <span className="text-foreground">{item.unitOfMeasure}</span></span>
+                                )}
+                                <span>Genérico: <span className="text-foreground">{item.isGenericAllowed ? 'Sí' : 'No'}</span></span>
+                            </div>
+                            {item.brand && <p className="text-muted-foreground">Marca: <span className="text-foreground">{item.brand}</span></p>}
+                            {item.partNumber && <p className="text-muted-foreground">Núm. parte: <span className="text-foreground">{item.partNumber}</span></p>}
+                        </div>
+                    ))}
+                </div>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }
