@@ -16,7 +16,7 @@ import {
   PRIORITY_LABELS,
   PRIORITY_COLORS,
   formatDate,
-} from '@/pages/material-requests/material-requests.constants';
+} from '@/components/material-requests/material-request.constants';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

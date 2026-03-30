@@ -5,15 +5,15 @@ import {
   MyAssignedWorkOrdersDocument,
   WorkOrderItemFragmentDoc,
   AreaBasicFragmentDoc,
-  MachineBasicFragmentDoc
+  MachineBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { StatusBadge, PriorityBadge, MaintenanceTypeBadge } from '@/components/ui/status-badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
-import { Clock, MapPin, AlertTriangle, CheckCircle, ArrowRight, Wrench } from 'lucide-react';
+import { WorkOrderCard } from '@/components/work-orders/WorkOrderCard';
+import { CheckCircle, ArrowRight } from 'lucide-react';
 
 function PendientesPage() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ function PendientesPage() {
   });
 
   const allAssignedOrders = unmaskFragment(WorkOrderItemFragmentDoc, data?.myAssignedWorkOrders || []);
-  const pendingOrders = allAssignedOrders.filter(o => o.status === 'PENDING');
+  const pendingOrders = allAssignedOrders.filter((o) => o.status === 'PENDING');
 
   if (loading && !data) return <WorkOrderListSkeleton count={3} />;
 
@@ -62,61 +62,27 @@ function PendientesPage() {
         {pendingOrders.map((order) => {
           const area = unmaskFragment(AreaBasicFragmentDoc, order.area);
           const machine = unmaskFragment(MachineBasicFragmentDoc, order.machine);
-          return (<Card
-            key={order.id}
-            className="bg-card border-border hover:border-primary/40 transition-colors cursor-pointer"
-            onClick={() => navigate(`/tecnico/orden/${order.id}`)}
-          >
-            <CardHeader>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-lg font-mono">{order.folio}</CardTitle>
-                    <StatusBadge status={order.status} />
-                    {order.priority && <PriorityBadge priority={order.priority} />}
-                    {order.maintenanceType && (
-                      <MaintenanceTypeBadge type={order.maintenanceType} size="sm" />
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">{order.description}</p>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                {order.area && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {area?.name}
-                  </span>
-                )}
-                {machine && (
-                  <span className="flex items-center gap-1">
-                    <Wrench className="h-4 w-4" />
-                    {machine?.name}
-                  </span>
-                )}
-
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  {new Date(order.createdAt).toLocaleDateString('es-MX')}
-                </span>
-
-                {order.priority === 'CRITICAL' && (
-                  <span className="flex items-center gap-1 text-destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    Urgente
-                  </span>
-                )}
-              </div>
-              <div className="mt-4 flex justify-end">
+          return (
+            <WorkOrderCard
+              key={order.id}
+              id={order.id}
+              folio={order.folio}
+              status={order.status}
+              priority={order.priority}
+              maintenanceType={order.maintenanceType}
+              description={order.description}
+              createdAt={order.createdAt}
+              area={area}
+              machine={machine}
+              onClick={() => navigate(`/tecnico/orden/${order.id}`)}
+              action={
                 <Button size="sm" className="gap-2">
                   Ir al área de trabajo
                   <ArrowRight className="h-4 w-4" />
                 </Button>
-              </div>
-            </CardContent>
-          </Card>)
+              }
+            />
+          );
         })}
       </div>
     </div>

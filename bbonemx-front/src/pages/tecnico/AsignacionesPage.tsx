@@ -6,16 +6,26 @@ import {
   MyAssignedWorkOrdersDocument,
   type WorkOrderStatus,
   WorkOrderItemFragmentDoc,
+  AreaBasicFragmentDoc,
+  MachineBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
-import { useFragment } from '@/lib/graphql/generated/fragment-masking';
+import { useFragment, useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StatusBadge, PriorityBadge, MaintenanceTypeBadge } from '@/components/ui/status-badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
+import { WorkOrderCard } from '@/components/work-orders/WorkOrderCard';
 import {
-  Search, ClipboardList, Clock, CheckCircle, Wrench, AlertTriangle, Pause, MapPin, ChevronRight, ChevronLeft
+  Search,
+  ClipboardList,
+  Clock,
+  CheckCircle,
+  Wrench,
+  AlertTriangle,
+  Pause,
+  ChevronRight,
+  ChevronLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -47,28 +57,27 @@ export default function AsignacionesPage() {
     );
   }
 
-  // Filtrado local
   const filteredOrders = orders.filter((order) => {
-    const machine = order.machine as unknown as { code?: string; name?: string } | null;
-
+    const machine = unmaskFragment(MachineBasicFragmentDoc, order.machine);
     const matchesStatus = statusTab === 'all' || order.status === statusTab;
-    const matchesSearch = !searchTerm ||
+    const matchesSearch =
+      !searchTerm ||
       order.folio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       machine?.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       machine?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-
     return matchesStatus && matchesSearch;
   });
 
   const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
   const pageOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // Contadores para las tarjetas de estadísticas
   const pendingCount = orders.filter((o) => o.status === 'PENDING').length;
   const progressCount = orders.filter((o) => o.status === 'IN_PROGRESS').length;
   const pausedCount = orders.filter((o) => o.status === 'PAUSED').length;
-  const completedandTemporaryRepairCount = orders.filter((o) => o.status === 'COMPLETED' || o.status === 'TEMPORARY_REPAIR').length;
+  const completedandTemporaryRepairCount = orders.filter(
+    (o) => o.status === 'COMPLETED' || o.status === 'TEMPORARY_REPAIR'
+  ).length;
 
   return (
     <div className="space-y-6 pb-12">
@@ -125,11 +134,11 @@ export default function AsignacionesPage() {
           <Tabs value={statusTab} onValueChange={(val) => setStatusTab(val as WorkOrderStatus | 'all')} className="w-max">
             <TabsList>
               <TabsTrigger value="all">Todas</TabsTrigger>
-              <TabsTrigger value={'PENDING'}>Pendientes</TabsTrigger>
-              <TabsTrigger value={'IN_PROGRESS'}>En Progreso</TabsTrigger>
-              <TabsTrigger value={'PAUSED'}>En Pausa</TabsTrigger>
-              <TabsTrigger value={'COMPLETED'}>Completadas</TabsTrigger>
-              <TabsTrigger value={'TEMPORARY_REPAIR'}>Reparación Temporal</TabsTrigger>
+              <TabsTrigger value="PENDING">Pendientes</TabsTrigger>
+              <TabsTrigger value="IN_PROGRESS">En Progreso</TabsTrigger>
+              <TabsTrigger value="PAUSED">En Pausa</TabsTrigger>
+              <TabsTrigger value="COMPLETED">Completadas</TabsTrigger>
+              <TabsTrigger value="TEMPORARY_REPAIR">Reparación Temporal</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -147,59 +156,33 @@ export default function AsignacionesPage() {
           </Card>
         ) : (
           pageOrders.map((order) => {
-            const area = order.area as unknown as { name?: string } | null;
-            const machine = order.machine as unknown as { name?: string; code?: string } | null;
-
+            const area = unmaskFragment(AreaBasicFragmentDoc, order.area);
+            const machine = unmaskFragment(MachineBasicFragmentDoc, order.machine);
             return (
-              <Card
+              <WorkOrderCard
                 key={order.id}
-                className="bg-card border-border hover:border-primary/50 hover:shadow-md transition-all shadow-sm group cursor-pointer"
+                id={order.id}
+                folio={order.folio}
+                status={order.status}
+                priority={order.priority}
+                maintenanceType={order.maintenanceType}
+                description={order.description}
+                createdAt={order.createdAt}
+                area={area}
+                machine={machine}
                 onClick={() => navigate(`/tecnico/orden/${order.id}`)}
-              >
-                <CardContent className="py-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="font-mono text-sm font-bold text-primary group-hover:text-primary/80 transition-colors">{order.folio}</span>
-                        <StatusBadge status={order.status} />
-                        {order.priority && <PriorityBadge priority={order.priority} size="sm" />}
-                        {order.maintenanceType && <MaintenanceTypeBadge type={order.maintenanceType} size="sm" />}
-                      </div>
-                      <p className="text-sm text-foreground line-clamp-2">{order.description}</p>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-muted-foreground">
-                        {area?.name && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {area.name}
-                          </span>
-                        )}
-                        {machine?.name && machine?.code && (
-                          <span className="flex items-center gap-1 font-medium text-foreground/70">
-                            <Wrench className="h-3 w-3" />
-                            {machine.name} [{machine.code}]
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(order.createdAt).toLocaleDateString('es-MX')}
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 hidden md:block" />
-                  </div>
-                </CardContent>
-              </Card>
+              />
             );
           })
         )}
       </div>
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             <ChevronLeft className="h-4 w-4" /> Anterior
           </Button>
           <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
-          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
             Siguiente <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

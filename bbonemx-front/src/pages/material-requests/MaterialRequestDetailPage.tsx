@@ -40,7 +40,7 @@ import {
     IMPORTANCE_LABELS,
     PRIORITY_COLORS,
     IMPORTANCE_COLORS,
-} from './material-requests.constants';
+} from '@/components/material-requests/material-request.constants';
 
 // ─── Email modal ─────────────────────────────────────────────────────────────
 
