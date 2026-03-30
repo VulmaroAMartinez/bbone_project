@@ -9,7 +9,11 @@ import { CreateSubAreaInput, UpdateSubAreaInput } from '../dto';
 import { AreasService } from 'src/modules/catalogs/areas/application/services';
 import { AreaType } from 'src/common';
 
-const AREA_TYPES_WITH_SUBAREAS = [AreaType.OPERATIONAL, AreaType.PRODUCTION, AreaType.SERVICE];
+const AREA_TYPES_WITH_SUBAREAS = [
+  AreaType.OPERATIONAL,
+  AreaType.PRODUCTION,
+  AreaType.SERVICE,
+];
 
 @Injectable()
 export class SubAreasService {

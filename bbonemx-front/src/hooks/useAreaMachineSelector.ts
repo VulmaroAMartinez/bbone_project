@@ -4,7 +4,7 @@ import {
     GetSubAreasByAreaDocument,
     GetMachinesByAreaDocument,
 } from '@/lib/graphql/generated/graphql';
-import { deriveAreaHasMachines } from '@/lib/area-machine-selector/area-machine-logic';
+import { deriveAreaHasMachines } from '@/lib/logic/area-machine-logic';
 
 export function useAreaMachineSelector() {
     const [selectedAreaId, setSelectedAreaId] = useState('');

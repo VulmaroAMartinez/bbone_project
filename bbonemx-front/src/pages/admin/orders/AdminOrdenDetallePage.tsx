@@ -27,7 +27,7 @@ import {
   RESUME_WORK_ORDER_MUTATION,
   ASSIGN_WORK_ORDER_MUTATION,
 } from '@/lib/graphql/operations/work-orders';
-import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
+import { resolveBackendAssetUrl, uploadFileToBackend, dataUrlToFile } from '@/lib/utils/uploads';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -285,21 +285,22 @@ function AdminOrdenDetallePage() {
   }
 
   const handleSaveSignature = async (dataURL: string) => {
-    void dataURL;
     try {
-      const mockPath = `signatures/${order?.id}/${user?.id}_sig.png`;
-
       if (!order?.id) throw new Error("Order ID is missing");
+      const file = await dataUrlToFile(dataURL, `signature_${order.id}_${user?.id}.png`);
+      const uploadRes = await uploadFileToBackend(file);
 
       await signWorkOrder({
         variables: {
           input: {
-            signatureImagePath: mockPath,
+            signatureImagePath: uploadRes.url,
             workOrderId: order.id,
           }
         }
       });
       await refetch();
+      setIsSignModalOpen(false);
+      toast.success('Firma guardada exitosamente');
     } catch {
       toast.error('Error guardando la firma');
     }
@@ -698,14 +699,13 @@ function AdminOrdenDetallePage() {
             </CardContent>
           </Card>
         </div>
-
         {(isTemporaryRepair || isCompleted || signatures.length > 0) && (
           <Card className="bg-card shadow-sm lg:col-span-2">
             <CardHeader className="border-b border-border/50 pb-3 flex flex-row justify-between items-center">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Pen className="h-5 w-5 text-primary" /> Conformidad y Firmas
               </CardTitle>
-              {order.isFullySigned && (
+              {signatures.length > 0 && (
                 <Badge variant="default" className="bg-success">
                   Completamente Firmada
                 </Badge>
@@ -719,10 +719,10 @@ function AdminOrdenDetallePage() {
                   </p>
                   {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER') ? (
                     <img
-                      src={
+                      src={resolveBackendAssetUrl(
                         signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER')
                           ?.signatureImagePath
-                      }
+                      )}
                       alt="Firma"
                       width={192}
                       height={48}
@@ -740,10 +740,10 @@ function AdminOrdenDetallePage() {
                   </p>
                   {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN') ? (
                     <img
-                      src={
+                      src={resolveBackendAssetUrl(
                         signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN')
                           ?.signatureImagePath
-                      }
+                      )}
                       alt="Firma"
                       width={192}
                       height={48}
@@ -761,7 +761,7 @@ function AdminOrdenDetallePage() {
                   </p>
                   {adminSignature ? (
                     <img
-                      src={adminSignature.signatureImagePath}
+                      src={resolveBackendAssetUrl(adminSignature.signatureImagePath)}
                       alt="Firma admin"
                       width={192}
                       height={48}

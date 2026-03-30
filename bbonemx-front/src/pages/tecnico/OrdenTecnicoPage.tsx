@@ -14,7 +14,7 @@ import {
   MachineBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
-import type { GetWorkOrderByIdQuery } from '@/lib/graphql/generated/graphql';
+import type { GetWorkOrderByIdQuery, WorkOrderPhoto, WorkOrderSignature } from '@/lib/graphql/generated/graphql';
 
 import {
   ADD_WORK_ORDER_SPARE_PART_MUTATION,
@@ -43,7 +43,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { resolveBackendAssetUrl, uploadFileToBackend } from '@/lib/utils/uploads';
+import { resolveBackendAssetUrl, uploadFileToBackend, dataUrlToFile } from '@/lib/utils/uploads';
 
 import { PauseModal } from './modals/PauseModal';
 import { CompleteModal, type CloseFormValues } from './modals/CompleteModal';
@@ -77,22 +77,21 @@ export default function TecnicoOrdenPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   // ─── Fragment masking
-  const workOrderRaw = data?.workOrder;
+  const workOrderRaw = (data as unknown as { workOrder?: Record<string, unknown> })?.workOrder;
   const order = useFragment(WorkOrderItemFragmentDoc, workOrderRaw);
   const area = useFragment(AreaBasicFragmentDoc, order?.area);
   const machine = useFragment(MachineBasicFragmentDoc, order?.machine);
 
   const isAveria = order?.stopType === 'BREAKDOWN';
   const isProcessing = starting || pausing || completing;
-  const isClosed =
-    order?.status === 'COMPLETED' || order?.status === 'TEMPORARY_REPAIR';
+  const isClosed = order?.status === 'COMPLETED' || order?.status === 'TEMPORARY_REPAIR';
 
-  const photoBefore = workOrderRaw?.photos?.find((p) => p.photoType === 'BEFORE');
-  const photoAfterServer = workOrderRaw?.photos?.find((p) => p.photoType === 'AFTER');
-  const signatures = workOrderRaw?.signatures ?? [];
-  const techSignature = signatures.find(
-    (s) => s.signer?.role?.name === 'TECHNICIAN' || s.signer?.roles?.some((r: { name: string }) => r.name === 'TECHNICIAN'),
-  );
+  
+  const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
+  const photoAfterServer = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'AFTER');
+  
+  const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
+  const techSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN' || s.signer.roles?.some((r: { name: string }) => r.name === 'BOSS'));
   const needsMySignature = isClosed && !techSignature;
 
   // ─── Handlers
@@ -206,11 +205,12 @@ export default function TecnicoOrdenPage() {
   };
 
   const handleSaveSignature = async (dataUrl: string) => {
-    void dataUrl;
     try {
-      const mockPath = `signatures/${order?.id}/${currentUser?.id}_tech_sig.png`;
+      const file = await dataUrlToFile(dataUrl, `signature_${order?.id}_${currentUser?.id}.png`);
+      const uploadRes = await uploadFileToBackend(file);
+      
       await signWorkOrder({
-        variables: { input: { workOrderId: order!.id, signatureImagePath: mockPath } },
+        variables: { input: { workOrderId: order!.id, signatureImagePath: uploadRes.url } },
       });
       await refetch();
       toast.success('Firma guardada');
@@ -335,7 +335,7 @@ export default function TecnicoOrdenPage() {
               <div>
                 <p className="font-medium text-amber-700">Orden Pausada</p>
                 <p className="text-sm text-amber-600/80 mt-1">
-                  Motivo: {workOrderRaw.pauseReason}
+                  Motivo: {(workOrderRaw as { pauseReason?: string })?.pauseReason}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Solicite al Administrador que reanude esta orden cuando esté listo.
@@ -424,7 +424,7 @@ export default function TecnicoOrdenPage() {
               <span>Iniciada</span>
               <span>
                 {workOrderRaw.startDate
-                  ? new Date(workOrderRaw.startDate).toLocaleString('es-MX', {
+                  ? new Date(order.createdAt).toLocaleString('es-MX', {
                       dateStyle: 'short',
                       timeStyle: 'short',
                     })
@@ -435,7 +435,7 @@ export default function TecnicoOrdenPage() {
               <span>Finalizada</span>
               <span>
                 {workOrderRaw.endDate
-                  ? new Date(workOrderRaw.endDate).toLocaleString('es-MX', {
+                  ? new Date((workOrderRaw as { endDate: string }).endDate).toLocaleString('es-MX', {
                       dateStyle: 'short',
                       timeStyle: 'short',
                     })
@@ -521,89 +521,79 @@ export default function TecnicoOrdenPage() {
       </div>
 
       {/* Reporte técnico (readonly cuando está cerrada) */}
-      {isClosed && closureData && (
-        <Card className="bg-card shadow-sm border-border">
-          <CardHeader className="pb-3 border-b border-border/50">
-            <CardTitle className="text-base flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-success" /> Reporte Técnico de Cierre
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-5 space-y-4 text-sm">
-            {closureData.breakdownDescription && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Descripción de la falla</p>
-                <p>{closureData.breakdownDescription}</p>
-              </div>
-            )}
-            {closureData.cause && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Causa raíz</p>
-                <p>{closureData.cause}</p>
-              </div>
-            )}
-            {closureData.actionTaken && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Acción realizada</p>
-                <p>{closureData.actionTaken}</p>
-              </div>
-            )}
-            {closureData.toolsUsed && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Herramienta utilizada</p>
-                <p>{closureData.toolsUsed}</p>
-              </div>
-            )}
-            {closureData.downtimeMinutes != null && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Tiempo muerto</p>
-                <p>{closureData.downtimeMinutes} min</p>
-              </div>
-            )}
-            {closureData.observations && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Observaciones</p>
-                <p>{closureData.observations}</p>
-              </div>
-            )}
-            {closureData.spareParts && closureData.spareParts.length > 0 && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Refacciones utilizadas</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {closureData.spareParts.map((sp) => (
-                    <Badge key={sp.id} variant="secondary" className="text-xs">
-                      {sp.sparePart.brand} {sp.sparePart.model} ({sp.sparePart.partNumber})
-                    </Badge>
-                  ))}
+      {(workOrderRaw as { endDate?: string })?.endDate && (
+          <Card className="bg-card shadow-sm border-primary/20">
+            <CardHeader className="border-b border-border/50">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Wrench className="h-5 w-5 text-primary" /> Reporte de Cierre
+                Técnico
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              {(order.stopType === 'BREAKDOWN' || order.stopType === 'OTHER') && (() => {
+                const raw = workOrderRaw as { cause?: string; actionTaken?: string; toolsUsed?: string };
+                const hasBreakdownContent = raw.cause || raw.actionTaken || raw.toolsUsed;
+                const showBox = order.stopType === 'BREAKDOWN' || (order.stopType === 'OTHER' && hasBreakdownContent);
+                if (!showBox) return null;
+                return (
+                  <div className="grid md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-lg border border-border/50">
+                    {raw.cause && (
+                      <div>
+                        <p className="text-muted-foreground font-medium mb-1">
+                          Causa Raíz
+                        </p>
+                        <p>{raw.cause}</p>
+                      </div>
+                    )}
+                    {raw.actionTaken && (
+                      <div>
+                        <p className="text-muted-foreground font-medium mb-1">
+                          Acción Realizada
+                        </p>
+                        <p>{raw.actionTaken}</p>
+                      </div>
+                    )}
+                    {raw.toolsUsed && (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground font-medium mb-1">
+                          Herramientas / Materiales
+                        </p>
+                        <p>{raw.toolsUsed}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              {(workOrderRaw as { observations?: string })?.observations && (
+                <div>
+                  <p className="text-muted-foreground font-medium mb-1">
+                    Observaciones Generales
+                  </p>
+                  <p className="bg-muted p-3 rounded-md">
+                    {(workOrderRaw as { observations?: string }).observations}
+                  </p>
                 </div>
-              </div>
-            )}
-            {closureData.customSparePart && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Refacción (otra)</p>
-                <p>{closureData.customSparePart}</p>
-              </div>
-            )}
-            {closureData.materials && closureData.materials.length > 0 && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Materiales utilizados</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {closureData.materials.map((m) => (
-                    <Badge key={m.id} variant="secondary" className="text-xs">
-                      {m.material.description}
-                    </Badge>
-                  ))}
+              )}
+              {photoAfterServer && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Evidencia Final (Después)
+                  </p>
+                  <img
+                    src={resolveBackendAssetUrl(photoAfterServer.filePath)}
+                    alt="Después"
+                    width={800}
+                    height={192}
+                    className="max-h-48 rounded-lg border border-border object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
                 </div>
-              </div>
-            )}
-            {closureData.customMaterial && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Material (otro)</p>
-                <p>{closureData.customMaterial}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              )}
+            </CardContent>
+          </Card>
+        )}
 
       {/* Firma del técnico (mostrada cuando existe) */}
       {techSignature && (
@@ -615,7 +605,7 @@ export default function TecnicoOrdenPage() {
           </CardHeader>
           <CardContent className="flex flex-col items-center">
             <img
-              src={techSignature.signatureImagePath}
+              src={resolveBackendAssetUrl(techSignature?.signatureImagePath)}
               alt="Firma Técnico"
               className="h-16 object-contain"
             />
