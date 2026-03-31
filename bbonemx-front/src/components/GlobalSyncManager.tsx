@@ -234,3 +234,9 @@ export function GlobalSyncManager(): null {
 
   return null;
 }
+
+
+export const __test__ = {
+  processTask,
+  processQueue,
+};
