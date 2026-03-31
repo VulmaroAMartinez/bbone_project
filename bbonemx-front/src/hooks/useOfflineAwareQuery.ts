@@ -45,6 +45,7 @@ export function useOfflineAwareQuery<
   // TVariables to avoid a contravariance failure: codegen emits
   // Exact<{[key:string]:never}> for no-variable queries, which is incompatible
   // with the OperationVariables default when TData is explicitly specified.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   query: TypedDocumentNode<TData, any>,
   options?: OfflineAwareOptions<TData, TVariables>,
 ): useQuery.Result<TData, TVariables, 'empty' | 'complete' | 'streaming'> & { isOffline: boolean } {

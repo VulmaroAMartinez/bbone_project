@@ -8,15 +8,18 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'prompt',
       manifestFilename: 'manifest.json',
       includeAssets: ['icons/*.png'],
-      
+
       devOptions: {
         enabled: true,
         type: 'module',
       },
-      
+
       manifest: {
         name: 'BB Maintenance - Sistema de Gestión de Mantenimiento',
         short_name: 'BB Maintenance',
@@ -38,7 +41,8 @@ export default defineConfig({
           { src: '/icons/icon-384x384.png', sizes: '384x384', type: 'image/png' },
           { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
-      } as any, 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
     }),
   ],
   resolve: {

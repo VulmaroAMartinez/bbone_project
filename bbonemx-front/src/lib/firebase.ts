@@ -48,38 +48,6 @@ export function getFirebaseMessaging(): Messaging | null {
     return null;
   }
 }
-
-/**
- * Registers the Firebase messaging service worker.
- * Firebase public config is passed via query params because files in /public
- * are served as-is and cannot read import.meta.env/process.env directly.
- */
-export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (!('serviceWorker' in navigator)) {
-    logDevWarning('SW', 'Service workers no soportados por este navegador.');
-    return null;
-  }
-
-  try {
-    const swUrl = new URL('/firebase-messaging-sw.js', window.location.origin);
-    swUrl.searchParams.set('apiKey', firebaseConfig.apiKey ?? '');
-    swUrl.searchParams.set('authDomain', firebaseConfig.authDomain ?? '');
-    swUrl.searchParams.set('projectId', firebaseConfig.projectId ?? '');
-    swUrl.searchParams.set('storageBucket', firebaseConfig.storageBucket ?? '');
-    swUrl.searchParams.set('messagingSenderId', firebaseConfig.messagingSenderId ?? '');
-    swUrl.searchParams.set('appId', firebaseConfig.appId ?? '');
-
-    const registration = await navigator.serviceWorker.register(swUrl.toString(), {
-      scope: '/',
-    });
-    logDevDebug('SW', 'Service Worker registrado correctamente.');
-    return registration;
-  } catch (error) {
-    reportError('SW', 'No se pudo registrar el Service Worker de mensajería.', error);
-    return null;
-  }
-}
-
 /**
  * Requests notification permission and gets FCM token.
  * Returns null if permission denied or Firebase not configured.
