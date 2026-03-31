@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetTechnicianDetailDocument } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,10 +10,10 @@ export default function TechnicianDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const { data, loading, error } = useQuery(GetTechnicianDetailDocument, {
+    const { data, loading, error } = useOfflineAwareQuery(GetTechnicianDetailDocument, {
         variables: { id: id ?? '' },
         skip: !id,
-        fetchPolicy: 'network-only',
+        onlinePolicy: 'network-only',
     });
 
     if (loading) {

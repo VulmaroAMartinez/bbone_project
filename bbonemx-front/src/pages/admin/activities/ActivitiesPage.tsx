@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -120,7 +121,7 @@ export default function ActivitiesPage() {
     },
   );
 
-  const { data, loading, refetch } = useQuery<GetActivitiesFilteredQuery>(GetActivitiesFilteredDocument, {
+  const { data, loading, refetch } = useOfflineAwareQuery<GetActivitiesFilteredQuery>(GetActivitiesFilteredDocument, {
     variables: {
       filters: {
         areaId: areaFilter || undefined,
@@ -132,7 +133,6 @@ export default function ActivitiesPage() {
       pagination: { page, limit },
       sort: { field: sortField, order: sortOrder },
     },
-    fetchPolicy: 'cache-and-network',
   });
 
   const [updatePriority] = useMutation(UpdateActivityPriorityDocument);

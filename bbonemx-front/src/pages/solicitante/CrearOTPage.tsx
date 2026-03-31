@@ -15,6 +15,8 @@ import {
   AreaBasicFragmentDoc,
   SubAreaBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
+import { toast } from 'sonner';
+import { fileToBase64, enqueueTask, MAX_FILE_BYTES } from '@/lib/offline-sync';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -86,12 +88,22 @@ export default function SolicitanteCrearOTPage() {
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > MAX_FILE_BYTES) {
+      toast.error(`La imagen no puede superar ${MAX_FILE_BYTES / 1_048_576} MB`);
+      e.target.value = '';
+      return;
     }
+
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setPhotoPreview(reader.result as string);
+    reader.onerror = () => {
+      reader.abort();
+      toast.error('Error al leer el archivo de imagen');
+    };
+    reader.readAsDataURL(file);
   };
 
   const removePhoto = () => {
@@ -108,6 +120,33 @@ export default function SolicitanteCrearOTPage() {
     }
 
     if (!user) return;
+
+    // ── Intercepción offline ───────────────────────────────────────────────
+    if (!navigator.onLine) {
+      try {
+        const photo = photoFile
+          ? {
+              base64: await fileToBase64(photoFile),
+              fileName: photoFile.name,
+              mimeType: photoFile.type,
+            }
+          : undefined;
+        await enqueueTask({
+          type: 'CREATE_WORK_ORDER',
+          payload: {
+            areaId: values.areaId,
+            subAreaId: values.subAreaId || undefined,
+            description: values.description.trim(),
+            photo,
+          },
+        });
+        toast.success('Guardado sin conexión. Se sincronizará automáticamente.');
+        setSubmitted(true);
+      } catch {
+        setFormError('No se pudo guardar la solicitud localmente. Intente de nuevo.');
+      }
+      return;
+    }
 
     try {
       const { data: otData } = await createWorkOrder({
@@ -138,8 +177,7 @@ export default function SolicitanteCrearOTPage() {
       }
 
       setSubmitted(true);
-    } catch (err) {
-      console.error('Error creating work order:', err);
+    } catch {
       setFormError('Error al crear la orden de trabajo. Intente de nuevo.');
     }
   };
@@ -293,6 +331,7 @@ export default function SolicitanteCrearOTPage() {
                       id="photo-upload"
                       type="file"
                       accept="image/*"
+                      capture="environment"
                       className="sr-only"
                       onChange={handlePhotoChange}
                     />

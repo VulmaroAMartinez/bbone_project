@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
     GetSparePartsDocument,
     ActivateSparePartDocument,
@@ -16,7 +17,7 @@ import SparePartFormModal from './modals/SparePartFormModal';
 import { toast } from 'sonner';
 
 export default function SparePartsPage() {
-    const { data, loading, refetch } = useQuery<GetSparePartsQuery>(GetSparePartsDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useOfflineAwareQuery<GetSparePartsQuery>(GetSparePartsDocument);
 
     const [activateSparePart] = useMutation(ActivateSparePartDocument);
     const [deactivateSparePart] = useMutation(DeactivateSparePartDocument);

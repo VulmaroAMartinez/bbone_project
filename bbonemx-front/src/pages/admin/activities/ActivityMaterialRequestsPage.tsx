@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { toast } from 'sonner';
 import {
   GetActivityMaterialRequestsDocument,
@@ -28,10 +29,9 @@ export default function ActivityMaterialRequestsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [folio, setFolio] = useState('');
 
-  const { data, loading, refetch } = useQuery(GetActivityMaterialRequestsDocument, {
+  const { data, loading, refetch } = useOfflineAwareQuery(GetActivityMaterialRequestsDocument, {
     variables: { id: id! },
     skip: !id,
-    fetchPolicy: 'cache-and-network',
   });
 
   const [addMaterialRequest, { loading: adding }] = useMutation(AddActivityMaterialRequestDocument);

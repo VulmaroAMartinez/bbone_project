@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetMaterialRequestsDocument } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,9 +37,7 @@ import { CATEGORY_LABELS } from '@/components/material-requests/material-request
 export default function MaterialRequestsPage() {
   const navigate = useNavigate();
 
-  const { data, loading } = useQuery(GetMaterialRequestsDocument, {
-    fetchPolicy: 'cache-and-network',
-  });
+  const { data, loading } = useOfflineAwareQuery(GetMaterialRequestsDocument);
 
   const [search, setSearch] = useState('');
   const [filterPriority, setFilterPriority] = useState('all');

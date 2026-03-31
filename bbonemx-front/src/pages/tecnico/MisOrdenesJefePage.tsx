@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -22,6 +22,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
 import { WorkOrderCard } from '@/components/work-orders/WorkOrderCard';
 import { Search, Plus, ClipboardList, AlertTriangle } from 'lucide-react';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 export default function MisOrdenesJefePage() {
   const { user } = useAuth();
@@ -29,16 +30,15 @@ export default function MisOrdenesJefePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusTab, setStatusTab] = useState<WorkOrderStatus | 'all'>('all');
 
-  const { data, loading, error } = useQuery(MyRequestedWorkOrdersDocument, {
+  const { data, loading, error, isOffline } = useOfflineAwareQuery(MyRequestedWorkOrdersDocument, {
     skip: !user?.id,
-    fetchPolicy: 'cache-and-network',
   });
 
   const orders = useFragment(WorkOrderItemFragmentDoc, data?.myRequestedWorkOrders || []);
 
   if (loading && !data) return <WorkOrderListSkeleton count={5} />;
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -62,6 +62,7 @@ export default function MisOrdenesJefePage() {
 
   return (
     <div className="space-y-6 pb-12">
+      {isOffline && data && <OfflineBanner />}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Mis órdenes</h1>

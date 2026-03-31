@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
     GetRequestersDataDocument,
     ActivateUserDocument,
@@ -15,7 +16,7 @@ import RequesterFormModal from './modals/RequesterFormModal';
 import { toast } from 'sonner';
 
 export default function RequestersPage() {
-    const { data, loading, refetch } = useQuery<GetRequestersDataQuery>(GetRequestersDataDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useOfflineAwareQuery<GetRequestersDataQuery>(GetRequestersDataDocument);
 
     const [activateUser] = useMutation(ActivateUserDocument);
     const [deactivateUser] = useMutation(DeactivateUserDocument);

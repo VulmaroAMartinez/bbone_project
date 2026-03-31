@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -17,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
 import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 import { toast } from 'sonner';
 
 const PAGE_SIZE = 12;
@@ -27,14 +29,13 @@ export default function FindingPage() {
     const [statusTab, setStatusTab] = useState<FindingStatus | 'ALL'>('ALL');
     const [page, setPage] = useState(1);
 
-    const { data, loading, error, refetch } = useQuery(GetFindingsFilteredDocument, {
+    const { data, loading, error, refetch, isOffline } = useOfflineAwareQuery(GetFindingsFilteredDocument, {
         variables: {
             filters: {
                 status: statusTab !== 'ALL' ? statusTab : undefined
             },
             pagination: { limit: 100, page: 1 }
         },
-        fetchPolicy: 'cache-and-network'
     });
 
     const [convertToWo, { loading: converting }] = useMutation(ConvertToWorkOrderDocument);
@@ -61,7 +62,7 @@ export default function FindingPage() {
 
     if (loading && !data) return <WorkOrderListSkeleton count={4} />;
 
-    if (error) {
+    if (error && !data) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
@@ -74,6 +75,7 @@ export default function FindingPage() {
 
     return (
         <div className="space-y-6">
+            {isOffline && data && <OfflineBanner />}
             {/* Header */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>

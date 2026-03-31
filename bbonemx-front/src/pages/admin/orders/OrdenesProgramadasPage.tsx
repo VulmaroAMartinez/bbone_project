@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 import {
   GetShiftsDocument,
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Calendar, ChevronRight, ChevronLeft, MapPin, UserPlus, AlertTriangle } from 'lucide-react';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 const PAGE_SIZE = 12;
 
@@ -25,13 +27,12 @@ function OrdenesProgramadasPage() {
   const [page, setPage] = useState(1);
 
   const { data: shiftsData } = useQuery(GetShiftsDocument);
-  const { data, loading, error } = useQuery(GET_SCHEDULED_WORK_ORDERS_QUERY, {
+  const { data, loading, error, isOffline } = useOfflineAwareQuery(GET_SCHEDULED_WORK_ORDERS_QUERY, {
     variables: {
       scheduledFrom: scheduledFrom || undefined,
       scheduledTo: scheduledTo || undefined,
       assignedShiftId: shiftId === 'all' ? undefined : shiftId,
     },
-    fetchPolicy: 'cache-and-network',
   });
 
   const orders = (((data as unknown as { workOrdersFiltered?: { data?: Array<unknown> } })?.workOrdersFiltered?.data || [])).map((ref) =>
@@ -45,7 +46,7 @@ function OrdenesProgramadasPage() {
   const totalPages = Math.ceil(sortedOrders.length / PAGE_SIZE);
   const pageOrders = sortedOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -59,6 +60,7 @@ function OrdenesProgramadasPage() {
 
   return (
     <div className="space-y-6">
+      {isOffline && data != null && <OfflineBanner />}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Órdenes de Trabajo Programadas</h1>

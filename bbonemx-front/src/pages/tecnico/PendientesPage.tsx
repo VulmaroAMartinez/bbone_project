@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -18,9 +18,7 @@ import { CheckCircle, ArrowRight } from 'lucide-react';
 function PendientesPage() {
   const navigate = useNavigate();
 
-  const { data, loading, refetch } = useQuery(MyAssignedWorkOrdersDocument, {
-    fetchPolicy: 'cache-and-network',
-  });
+  const { data, loading, refetch } = useOfflineAwareQuery(MyAssignedWorkOrdersDocument);
 
   const allAssignedOrders = unmaskFragment(WorkOrderItemFragmentDoc, data?.myAssignedWorkOrders || []);
   const pendingOrders = allAssignedOrders.filter((o) => o.status === 'PENDING');

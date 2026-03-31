@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetMachineSparePartsDocument, type MachineBasicFragment } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,10 +19,9 @@ export default function SparePartsMachinePage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const { data, loading } = useQuery(GetMachineSparePartsDocument, {
+    const { data, loading } = useOfflineAwareQuery(GetMachineSparePartsDocument, {
         variables: { id: id! },
         skip: !id,
-        fetchPolicy: 'cache-and-network',
     });
 
     const machine = (data as unknown as { machine?: MachineBasicFragment })?.machine ?? null;

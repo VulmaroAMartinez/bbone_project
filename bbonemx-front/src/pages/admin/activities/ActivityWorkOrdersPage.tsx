@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { toast } from 'sonner';
 import {
   GetActivityWorkOrdersDocument,
@@ -36,10 +37,9 @@ export default function ActivityWorkOrdersPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [folio, setFolio] = useState('');
 
-  const { data, loading, refetch } = useQuery(GetActivityWorkOrdersDocument, {
+  const { data, loading, refetch } = useOfflineAwareQuery(GetActivityWorkOrdersDocument, {
     variables: { id: id! },
     skip: !id,
-    fetchPolicy: 'cache-and-network',
   });
 
   const [addWorkOrder, { loading: adding }] = useMutation(AddActivityWorkOrderDocument);

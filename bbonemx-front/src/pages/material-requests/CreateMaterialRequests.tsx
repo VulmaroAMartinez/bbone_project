@@ -321,10 +321,9 @@ export default function CreateMaterialRequestPage() {
 
     // Etiqueta de la máquina en el select
     const machineLabel = useCallback((m: typeof machines[0]) => {
-        const areaName = m.area?.name ?? m.subArea?.area?.name ?? '';
-        const subAreaName = m.subArea ? ` - ${m.subArea.name}` : '';
-        return `${m.name} - ${areaName}${subAreaName}`;
-    }, []);
+        const suffix = m.subArea?.name ?? m.area?.name ?? '';
+        return suffix ? `${m.name} - ${suffix}` : m.name;
+    }, [machines]);
 
     // ── Auto-rellenar campos al cambiar máquina (solo si hay 1) ─────────────
     useEffect(() => {
@@ -741,7 +740,7 @@ export default function CreateMaterialRequestPage() {
 
                     {/* ── 2. Equipo o Estructura ── */}
                     <Card>
-                        <CardHeader className="pb-2">
+                        <CardHeader>
                             <CardTitle className="text-base">2. Equipo o Estructura</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">

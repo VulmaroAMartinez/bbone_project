@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useState } from 'react';
 import {
     GetFindingsByAreaDocument,
@@ -72,7 +73,7 @@ export default function AreaFindingsPage() {
         skip: !id,
     });
 
-    const { data, loading } = useQuery(GetFindingsByAreaDocument, {
+    const { data, loading } = useOfflineAwareQuery(GetFindingsByAreaDocument, {
         variables: {
             areaId: id!,
             page,
@@ -84,7 +85,6 @@ export default function AreaFindingsPage() {
             ...(dateTo ? { createdTo: new Date(dateTo + 'T23:59:59').toISOString() } : {}),
         },
         skip: !id,
-        fetchPolicy: 'cache-and-network',
     });
 
     // ─── Derived

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
     GetDepartmentsDocument,
     ActivateDepartmentDocument,
@@ -15,7 +16,7 @@ import { toast } from 'sonner';
 import DepartmentFormModal from './modals/DepartmentFormModal';
 
 export default function DepartmentsPage() {
-    const { data, loading, refetch } = useQuery<GetDepartmentsQuery>(GetDepartmentsDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useOfflineAwareQuery<GetDepartmentsQuery>(GetDepartmentsDocument);
 
     const [activateDepartment] = useMutation(ActivateDepartmentDocument);
     const [deactivateDepartment] = useMutation(DeactivateDepartmentDocument);

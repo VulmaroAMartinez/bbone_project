@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 
 import {
   MyAssignedWorkOrdersDocument,
@@ -28,6 +28,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 const PAGE_SIZE = 12;
 
@@ -37,15 +38,13 @@ export default function AsignacionesPage() {
   const [statusTab, setStatusTab] = useState<WorkOrderStatus | 'all'>('all');
   const [page, setPage] = useState(1);
 
-  const { data, loading, error } = useQuery(MyAssignedWorkOrdersDocument, {
-    fetchPolicy: 'cache-and-network',
-  });
+  const { data, loading, error, isOffline } = useOfflineAwareQuery(MyAssignedWorkOrdersDocument);
 
   const orders = useFragment(WorkOrderItemFragmentDoc, data?.myAssignedWorkOrders || []);
 
   if (loading && !data) return <WorkOrderListSkeleton count={5} />;
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -81,6 +80,7 @@ export default function AsignacionesPage() {
 
   return (
     <div className="space-y-6 pb-12">
+      {isOffline && data && <OfflineBanner />}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Mi Historial de Asignaciones</h1>
         <p className="text-muted-foreground">Todas las órdenes de trabajo que has atendido o tienes pendientes</p>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
@@ -34,6 +35,7 @@ import {
   ChevronLeft,
   ClipboardList,
 } from 'lucide-react';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 const STATUS_TABS: { value: WorkOrderStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Todas' },
@@ -77,13 +79,12 @@ function OrdenesPage() {
   };
   const [priorityFilter, setPriorityFilter] = useState<WorkOrderPriority | 'all'>('all');
 
-  const { data, loading, error } = useQuery(GetWorkOrdersFilteredDocument, {
+  const { data, loading, error, isOffline } = useOfflineAwareQuery(GetWorkOrdersFilteredDocument, {
     variables: {
       status: statusFilter !== 'all' ? statusFilter : undefined,
       priority: priorityFilter !== 'all' ? priorityFilter : undefined,
       assignedShiftId: shiftFilter !== 'all' ? shiftFilter : undefined,
     },
-    fetchPolicy: 'cache-and-network',
   });
 
   const workOrders = unmaskFragment(WorkOrderItemFragmentDoc, data?.workOrdersFiltered.data || []);
@@ -105,7 +106,7 @@ function OrdenesPage() {
 
   if (loading && !data) return <WorkOrderListSkeleton count={5} />;
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -119,6 +120,7 @@ function OrdenesPage() {
 
   return (
     <div className="space-y-6">
+      {isOffline && data && <OfflineBanner />}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">

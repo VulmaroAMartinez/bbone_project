@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useState } from 'react';
 import {
   GetWorkOrdersByAreaDocument,
@@ -37,10 +38,9 @@ export default function AreaWorkOrdersPage() {
     skip: !id,
   });
 
-  const { data, loading } = useQuery(GetWorkOrdersByAreaDocument, {
+  const { data, loading } = useOfflineAwareQuery(GetWorkOrdersByAreaDocument, {
     variables: { areaId: id!, page, limit: PAGE_LIMIT },
     skip: !id,
-    fetchPolicy: 'cache-and-network',
   });
 
   const area = areaData?.area ? unmaskFragment(AreaDetailFragmentDoc, areaData.area) : null;

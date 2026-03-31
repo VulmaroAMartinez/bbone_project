@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
     GetAreasWithDeletedDocument,
     DeactivateAreaDocument,
@@ -76,9 +77,7 @@ export default function AreasPage() {
     const navigate = useNavigate();
 
     // ─── Queries / Mutations
-    const { data, loading, refetch } = useQuery(GetAreasWithDeletedDocument, {
-        fetchPolicy: 'cache-and-network',
-    });
+    const { data, loading, refetch } = useOfflineAwareQuery(GetAreasWithDeletedDocument);
 
     const [deactivateArea] = useMutation(DeactivateAreaDocument);
     const [activateArea] = useMutation(ActivateAreaDocument);

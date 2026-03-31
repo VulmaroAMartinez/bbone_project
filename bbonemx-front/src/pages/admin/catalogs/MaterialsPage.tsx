@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
     GetMaterialsDocument,
     ActivateMaterialDocument,
@@ -15,7 +16,7 @@ import MaterialFormModal from './modals/MaterialFormModal';
 import { toast } from 'sonner';
 
 export default function MaterialsPage() {
-    const { data, loading, refetch } = useQuery<GetMaterialsQuery>(GetMaterialsDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useOfflineAwareQuery<GetMaterialsQuery>(GetMaterialsDocument);
 
     const [activateMaterial] = useMutation(ActivateMaterialDocument);
     const [deactivateMaterial] = useMutation(DeactivateMaterialDocument);

@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
     GetMachinesByAreaDocument,
     GetAreaDocument,
@@ -30,10 +31,9 @@ export default function AreaMachinesPage() {
         skip: !id,
     });
 
-    const { data, loading } = useQuery(GetMachinesByAreaDocument, {
+    const { data, loading } = useOfflineAwareQuery(GetMachinesByAreaDocument, {
         variables: { areaId: id! },
         skip: !id,
-        fetchPolicy: 'cache-and-network',
     });
 
     const area = areaData?.area ? unmaskFragment(AreaDetailFragmentDoc, areaData.area) : null;

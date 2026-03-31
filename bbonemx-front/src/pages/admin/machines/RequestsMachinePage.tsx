@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetMachineMaterialRequestsDocument } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,10 +27,9 @@ export default function RequestsMachinePage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const { data, loading } = useQuery(GetMachineMaterialRequestsDocument, {
+    const { data, loading } = useOfflineAwareQuery(GetMachineMaterialRequestsDocument, {
         variables: { id: id! },
         skip: !id,
-        fetchPolicy: 'cache-and-network',
     });
 
     const machine = data?.machine;

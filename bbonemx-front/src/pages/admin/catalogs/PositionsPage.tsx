@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
     GetPositionsDocument,
     ActivatePositionDocument,
@@ -15,7 +16,7 @@ import { toast } from 'sonner';
 import PositionFormModal from './modals/PositionFormModal';
 
 export default function PositionsPage() {
-    const { data, loading, refetch } = useQuery<GetPositionsQuery>(GetPositionsDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useOfflineAwareQuery<GetPositionsQuery>(GetPositionsDocument);
 
     const [activatePosition] = useMutation(ActivatePositionDocument);
     const [deactivatePosition] = useMutation(DeactivatePositionDocument);

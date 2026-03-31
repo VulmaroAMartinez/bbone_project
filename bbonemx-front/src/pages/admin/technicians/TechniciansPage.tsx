@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { Link } from 'react-router-dom';
 import {
     GetTechniciansDataDocument,
@@ -17,7 +18,7 @@ import TechnicianFormModal from './modals/TechnicianFormModal';
 import { toast } from 'sonner';
 
 export default function TecnicosPage() {
-    const { data, loading, refetch } = useQuery<GetTechniciansDataQuery>(GetTechniciansDataDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useOfflineAwareQuery<GetTechniciansDataQuery>(GetTechniciansDataDocument);
 
     const [activateTechnician] = useMutation(ActivateTechnicianDocument);
     const [deactivateTechnician] = useMutation(DeactivateTechnicianDocument);

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -93,9 +94,7 @@ export default function MachinesPage() {
         user?.roles?.some((r) => r.name === 'ADMIN') ?? user?.role?.name === 'ADMIN';
 
     // ─── Data fetching
-    const { data, loading, refetch } = useQuery(GetMachinesPageDataDocument, {
-        fetchPolicy: 'cache-and-network',
-    });
+    const { data, loading, refetch } = useOfflineAwareQuery(GetMachinesPageDataDocument);
 
     // ─── Mutations
     const [deactivateMachine] = useMutation(DeactivateMachineDocument);

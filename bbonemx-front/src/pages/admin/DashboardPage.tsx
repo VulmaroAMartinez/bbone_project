@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetDashboardDataDocument, GetShiftsDocument, type WorkOrderStatus } from '@/lib/graphql/generated/graphql';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -119,7 +120,7 @@ export default function DashboardPage() {
 
   const { data: shiftsData } = useQuery(GetShiftsDocument);
 
-  const { data, loading, error } = useQuery(GetDashboardDataDocument, {
+  const { data, loading, error } = useOfflineAwareQuery(GetDashboardDataDocument, {
     variables: {
       input: {
         dateFrom: currentRange.dateFrom,
@@ -129,7 +130,6 @@ export default function DashboardPage() {
         woStatuses: woStatusFilter !== 'all' ? [woStatusFilter] : undefined,
       }
     },
-    fetchPolicy: 'cache-and-network'
   });
 
   const handleRangeChange = (value: string) => {

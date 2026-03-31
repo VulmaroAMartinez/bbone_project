@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
     GetShiftsAllDocument,
     ActivateShiftDocument,
@@ -15,7 +16,7 @@ import { toast } from 'sonner';
 import ShiftFormModal from './modals/ShiftFormModal';
 
 export default function ShiftsPage() {
-    const { data, loading, refetch } = useQuery<GetShiftsAllQuery>(GetShiftsAllDocument, { fetchPolicy: 'cache-and-network' });
+    const { data, loading, refetch } = useOfflineAwareQuery<GetShiftsAllQuery>(GetShiftsAllDocument);
 
     const [activateShift] = useMutation(ActivateShiftDocument);
     const [deactivateShift] = useMutation(DeactivateShiftDocument);

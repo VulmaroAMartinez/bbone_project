@@ -6,6 +6,8 @@ import {
   Observable,
 } from '@apollo/client';
 import { ErrorLink } from '@apollo/client/link/error';
+import { RetryLink } from '@apollo/client/link/retry';
+import localforage from 'localforage';
 import {
   CombinedGraphQLErrors,
   CombinedProtocolErrors,
@@ -133,16 +135,56 @@ const httpLink = new HttpLink({
   credentials: 'include',
 });
 
+const retryLink = new RetryLink({
+  delay: { initial: 300, max: 5000, jitter: true },
+  attempts: {
+    max: 3,
+    retryIf: (error, operation) => {
+      const isMutation = operation.query.definitions.some(
+        (def) => def.kind === 'OperationDefinition' && def.operation === 'mutation',
+      );
+      return !isMutation && !!error;
+    },
+  },
+});
+
+export const cache = new InMemoryCache();
+
+const CACHE_PERSIST_KEY = 'apollo-cache-persist';
+const CACHE_MAX_BYTES = 10_485_760; // 10 MB
+
+export async function initApolloCache(): Promise<void> {
+  try {
+    const raw = await localforage.getItem<string>(CACHE_PERSIST_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as ReturnType<typeof cache.extract>;
+      cache.restore(parsed);
+    }
+  } catch (err) {
+    logDevWarning('Cache', 'Error al restaurar el cache persistido. Se continuará con cache vacío.', { err });
+    await localforage.removeItem(CACHE_PERSIST_KEY).catch(() => undefined);
+  }
+
+  setInterval(() => {
+    const serialized = JSON.stringify(cache.extract());
+    if (serialized.length <= CACHE_MAX_BYTES) {
+      localforage.setItem(CACHE_PERSIST_KEY, serialized).catch(() => undefined);
+    } else {
+      localforage.removeItem(CACHE_PERSIST_KEY).catch(() => undefined);
+    }
+  }, 30_000);
+}
+
 export const client = new ApolloClient({
-  link: ApolloLink.from([errorLink, csrfLink, httpLink]),
-  cache: new InMemoryCache(),
+  link: ApolloLink.from([errorLink, csrfLink, retryLink, httpLink]),
+  cache,
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'cache-and-network',
+      fetchPolicy: 'cache-first',
       errorPolicy: 'all',
     },
     query: {
-      fetchPolicy: 'network-only',
+      fetchPolicy: 'cache-first',
       errorPolicy: 'all',
     },
     mutate: {

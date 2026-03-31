@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetMachineWorkOrdersDocument } from '@/lib/graphql/generated/graphql';
 import type { GetMachineWorkOrdersQuery, WorkOrderStatus, WorkOrderPriority, MaintenanceType } from '@/lib/graphql/generated/graphql';
 
@@ -20,10 +20,9 @@ export default function OrdersMachinePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { data, loading } = useQuery<GetMachineWorkOrdersQuery>(GetMachineWorkOrdersDocument, {
+  const { data, loading } = useOfflineAwareQuery<GetMachineWorkOrdersQuery>(GetMachineWorkOrdersDocument, {
     variables: { id: id! },
     skip: !id,
-    fetchPolicy: 'cache-and-network',
   });
 
   const workOrders = data?.machine?.workOrders ?? [];
