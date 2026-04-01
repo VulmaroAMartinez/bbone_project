@@ -78,10 +78,10 @@ jobs:
             # echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Forzar la descarga de la nueva imagen "latest"
-            docker compose -f docker-compose.prod.yml pull
+            docker compose --env-file ./bbonemx-back/.env -f docker-compose.prod.yml pull
             
             # Levantar contenedores SIN el flag --build
-            docker compose -f docker-compose.prod.yml up -d
+            docker compose --env-file ./bbonemx-back/.env -f docker-compose.prod.yml up -d
             
             # Limpiar imágenes viejas que se quedaron sin tag en el VPS (ahorra disco)
             docker image prune -f
