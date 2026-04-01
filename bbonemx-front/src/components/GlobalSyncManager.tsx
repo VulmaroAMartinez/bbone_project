@@ -236,6 +236,7 @@ export function GlobalSyncManager(): null {
 }
 
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const __test__ = {
   processTask,
   processQueue,

@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Permite ejecución manual
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -50,7 +50,12 @@ jobs:
           build-args: |
             VITE_GRAPHQL_URL=${{ secrets.VITE_GRAPHQL_URL }}
             VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
-            # ... (agrega el resto de tus secretos de VITE aquí)
+            VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+            VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+            VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+            VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+            VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
+            VITE_FIREBASE_VAPID_KEY=${{ secrets.VITE_FIREBASE_VAPID_KEY }}
           tags: |
             ${{ env.REGISTRY }}/${{ steps.prep.outputs.image_prefix }}/frontend:latest
 
