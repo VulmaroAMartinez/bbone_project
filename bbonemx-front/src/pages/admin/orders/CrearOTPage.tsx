@@ -106,6 +106,7 @@ export default function AdminCrearOTPage() {
     isLoadingMachines,
     hasSubAreas,
     subAreasLoaded,
+    areaHasMachines,
     handleAreaChange: hookAreaChange,
     handleSubAreaChange: hookSubAreaChange,
   } = useAreaMachineSelector();
@@ -161,7 +162,9 @@ export default function AdminCrearOTPage() {
     : [], [machinesByAreaData?.machinesByArea]);
 
   const showSubAreas = !!areaId && subAreasLoaded && hasSubAreas;
-  const showMachine = !!areaId && availableMachines.length > 0;
+  // Use areaHasMachines (area-level count) so sub-area selection with 0 machines
+  // does not hide the machine field or disable the Avería option.
+  const showMachine = !!areaId && areaHasMachines;
 
   const techOptions = React.useMemo(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -197,6 +200,21 @@ export default function AdminCrearOTPage() {
     setValue('subAreaId', value, { shouldValidate: true });
     setValue('machineId', '');
     hookSubAreaChange(value);
+  };
+
+  const handleMachineChange = (machineId: string) => {
+    setValue('machineId', machineId, { shouldValidate: true });
+
+    if (!machineId) return;
+
+    const selected = availableMachines.find((m) => m.id === machineId);
+    const machineSubAreaId = selected?.subAreaId;
+
+    if (machineSubAreaId) {
+      setValue('subAreaId', machineSubAreaId, { shouldValidate: true });
+      // Keep the machine selection, but sync the hook's filtering state.
+      hookSubAreaChange(machineSubAreaId);
+    }
   };
 
   const handleAddAuxiliaryTech = () => {
@@ -333,21 +351,17 @@ export default function AdminCrearOTPage() {
 
             {/* Area */}
             <div className="space-y-2">
-              <Label htmlFor="admin-area" className="flex items-center gap-1">
+              <Label className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" /> Area *
               </Label>
-              <Select value={areaId} onValueChange={handleAreaChange}>
-                <SelectTrigger id="admin-area">
-                  <SelectValue placeholder={areasLoading ? 'Cargando areas...' : 'Seleccionar area'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {areas.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
-                      {area.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={areas.map((a) => ({ value: a.id, label: a.name }))}
+                value={areaId}
+                onValueChange={handleAreaChange}
+                placeholder={areasLoading ? 'Cargando areas...' : 'Seleccionar area'}
+                searchPlaceholder="Buscar área..."
+                emptyText="Sin áreas"
+              />
               {errors.areaId && (
                 <p className="text-xs text-destructive">{String(errors.areaId.message)}</p>
               )}
@@ -356,21 +370,31 @@ export default function AdminCrearOTPage() {
             {/* Sub-área (opcional, cuando el área tiene sub-áreas) */}
             {showSubAreas && (
               <div className="space-y-2">
-                <Label htmlFor="admin-sub-area">Sub-área (Opcional)</Label>
-                <Select value={subAreaId} onValueChange={handleSubAreaChange}>
-                  <SelectTrigger id="admin-sub-area">
-                    <SelectValue
-                      placeholder={isLoadingSubAreas ? 'Cargando...' : 'Seleccionar sub-área'}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subAreas.map((sa) => (
-                      <SelectItem key={sa.id} value={sa.id}>
-                        {sa.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Sub-área (Opcional)</Label>
+                <Combobox
+                  options={subAreas.map((sa) => ({ value: sa.id, label: sa.name }))}
+                  value={subAreaId}
+                  onValueChange={handleSubAreaChange}
+                  placeholder={isLoadingSubAreas ? 'Cargando...' : 'Seleccionar sub-área'}
+                  searchPlaceholder="Buscar sub-área..."
+                  emptyText="Sin sub-áreas"
+                />
+              </div>
+            )}
+
+            {showMachine && (
+              <div className="space-y-2">
+                <Label>
+                  Equipo/Estructura {stoppageType === 'BREAKDOWN' ? '*' : '(Opcional)'}
+                </Label>
+                <Combobox
+                  options={machineOptions}
+                  value={watch('machineId')}
+                  onValueChange={handleMachineChange}
+                  placeholder={isLoadingMachines ? 'Cargando equipos...' : 'Seleccionar equipo/estructura'}
+                  searchPlaceholder="Buscar equipo/estructura..."
+                  disabled={isLoadingMachines}
+                />
               </div>
             )}
 
@@ -419,8 +443,10 @@ export default function AdminCrearOTPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="admin-priority">Prioridad *</Label>
-                <Select value={watch('priority')} onValueChange={(v) => handleSelectChange('priority', v)}>
-                  <SelectTrigger id="admin-priority"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <Select value={watch('priority') ?? ''} onValueChange={(v) => handleSelectChange('priority', v)}>
+                  <SelectTrigger id="admin-priority" className="w-full">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
                   <SelectContent>
                     {PRIORITIES.map((p) => (
                       <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
@@ -433,17 +459,19 @@ export default function AdminCrearOTPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="admin-stoppage">Tipo de parada *</Label>
-                <Select value={watch('stoppageType')} onValueChange={(v) => {
+                <Select value={watch('stoppageType') ?? ''} onValueChange={(v) => {
                   handleSelectChange('stoppageType', v);
                   if (v === 'BREAKDOWN' && !showMachine) {
                     handleSelectChange('stoppageType', '');
                   }
                 }}>
-                  <SelectTrigger id="admin-stoppage"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectTrigger id="admin-stoppage" className="w-full">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
                   <SelectContent>
                     {STOPPAGE_TYPES.map((s) => (
                       <SelectItem key={s.value} value={s.value} disabled={s.value === 'BREAKDOWN' && !showMachine}>
-                        {s.label}{s.value === 'BREAKDOWN' && !showMachine ? ' (sin máquinas en el área)' : ''}
+                        {s.label}{s.value === 'BREAKDOWN' && !showMachine ? ' (sin equipos en el área)' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -459,7 +487,9 @@ export default function AdminCrearOTPage() {
               <div className="space-y-2">
                 <Label htmlFor="admin-shift">Turno *</Label>
                 <Select value={watch('shiftId')} onValueChange={(v) => handleSelectChange('shiftId', v)}>
-                  <SelectTrigger id="admin-shift"><SelectValue placeholder="Seleccionar turno" /></SelectTrigger>
+                  <SelectTrigger id="admin-shift" className="w-full">
+                    <SelectValue placeholder="Seleccionar turno" />
+                  </SelectTrigger>
                   <SelectContent>
                     {shifts.map((s) => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
@@ -472,8 +502,10 @@ export default function AdminCrearOTPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="admin-maintenance">Tipo de mantenimiento *</Label>
-                <Select value={watch('maintenanceType')} onValueChange={(v) => handleSelectChange('maintenanceType', v)}>
-                  <SelectTrigger id="admin-maintenance"><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
+                <Select value={watch('maintenanceType') ?? ''} onValueChange={(v) => handleSelectChange('maintenanceType', v)}>
+                  <SelectTrigger id="admin-maintenance" className="w-full">
+                    <SelectValue placeholder="Seleccionar tipo" />
+                  </SelectTrigger>
                   <SelectContent>
                     {MAINTENANCE_TYPES.map((m) => (
                       <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -488,8 +520,10 @@ export default function AdminCrearOTPage() {
 
             <div className="space-y-2">
               <Label htmlFor="admin-work-type">Tipo de trabajo *</Label>
-              <Select value={watch('workType')} onValueChange={(v) => handleSelectChange('workType', v)}>
-                <SelectTrigger id="admin-work-type"><SelectValue placeholder="Seleccionar tipo de trabajo" /></SelectTrigger>
+              <Select value={watch('workType') ?? ''} onValueChange={(v) => handleSelectChange('workType', v)}>
+                <SelectTrigger id="admin-work-type" className="w-full">
+                  <SelectValue placeholder="Seleccionar tipo de trabajo" />
+                </SelectTrigger>
                 <SelectContent>
                   {WORK_TYPES.map((wt) => (
                     <SelectItem key={wt.value} value={wt.value}>{wt.label}</SelectItem>
@@ -557,23 +591,6 @@ export default function AdminCrearOTPage() {
                 </Button>
               </div>
             </div>
-
-            {showMachine && (
-              <div className="space-y-2">
-                <Label>
-                  Máquina {stoppageType === 'BREAKDOWN' ? '*' : '(Opcional)'}
-                </Label>
-                <Combobox
-                  options={machineOptions}
-                  value={watch('machineId')}
-                  onValueChange={(v) => handleSelectChange('machineId', v)}
-                  placeholder={isLoadingMachines ? 'Cargando máquinas...' : 'Seleccionar máquina'}
-                  searchPlaceholder="Buscar máquina..."
-                  disabled={isLoadingMachines}
-                />
-              </div>
-            )}
-
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => navigate(-1)} className="flex-1" disabled={isSubmitting}>
                 Cancelar

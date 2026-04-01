@@ -1,7 +1,8 @@
 .env
-.env.*
+.env
 bbonemx-back/.env
 bbonemx-front/.env
 .cursor
 .claude
-
+.gemini
+GEMINI.md

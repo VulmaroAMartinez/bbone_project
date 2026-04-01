@@ -46,7 +46,11 @@ export function resolveProtectedRouteAccess({
       (isBoss && allowedRoles.includes('BOSS' as AllowedRole));
 
     if (!hasAccess) {
-      return redirectUnauthorizedTo;
+      // Redirect authenticated users with wrong role to / (not /login).
+      // Redirecting to /login would cause an infinite loop: LoginPage navigates
+      // back to `from`, ProtectedRoute rejects again, and the cycle repeats.
+      // Sending to / lets HomePage dispatch the user to their correct section.
+      return '/';
     }
   }
 

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useAuth } from '@/hooks/useAuth';
 
 // Imports Generados
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
 import { ChevronLeft, ChevronRight, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -54,14 +55,13 @@ export default function TechSchedulePage() {
     const weekDates = useMemo(() => getWeekDates(new Date(currentDate)), [currentDate]);
 
     // Query al Backend
-    const { data, loading, error } = useQuery(GetTechnicianWeekScheduleDocument, {
+    const { data, loading, error, isOffline } = useOfflineAwareQuery(GetTechnicianWeekScheduleDocument, {
         variables: {
             technicianId: user?.id || '',
             weekNumber,
             year
         },
         skip: !user?.id,
-        fetchPolicy: 'cache-and-network',
     });
 
     // Desenmascarar los datos de la semana
@@ -94,7 +94,7 @@ export default function TechSchedulePage() {
 
     if (loading && !data) return <WorkOrderListSkeleton count={3} />;
 
-    if (error) {
+    if (error && !data) {
         return (
             <div className="flex flex-col items-center justify-center py-16 text-center">
                 <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
@@ -106,6 +106,7 @@ export default function TechSchedulePage() {
 
     return (
         <div className="space-y-6 pb-12">
+            {isOffline && data && <OfflineBanner />}
             <div>
                 <h1 className="text-2xl font-bold text-foreground">Mi Horario de Trabajo</h1>
                 <p className="text-muted-foreground">Calendario semanal de turnos y ausencias asignadas</p>

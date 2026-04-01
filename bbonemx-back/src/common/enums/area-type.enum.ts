@@ -13,7 +13,7 @@ registerEnumType(AreaType, {
     OPERATIONAL: {
       description: 'Área operativa - Puede tener sub-áreas y máquinas',
     },
-    SERVICE: { description: 'Área de servicio - No tiene sub-áreas' },
+    SERVICE: { description: 'Área de servicio ' },
     PRODUCTION: {
       description:
         'Área de producción - Puede tener líneas (sub-áreas) y máquinas directas',

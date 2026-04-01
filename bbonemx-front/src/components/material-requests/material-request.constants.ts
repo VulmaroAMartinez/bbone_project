@@ -42,4 +42,3 @@ export function formatDate(d: string) {
     year: 'numeric',
   });
 }
-

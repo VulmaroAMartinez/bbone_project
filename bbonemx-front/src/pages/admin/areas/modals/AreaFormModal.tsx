@@ -42,7 +42,7 @@ import { Plus, Edit2, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ─── Constants ───────────────────────────────────────────
-const AREA_TYPES_WITH_SUBAREAS = ['OPERATIONAL', 'PRODUCTION'];
+const AREA_TYPES_WITH_SUBAREAS = ['OPERATIONAL', 'PRODUCTION', 'SERVICE'];
 const VIRTUAL_LIST_THRESHOLD = 30;
 const ROW_HEIGHT = 44;
 
@@ -104,7 +104,7 @@ function SubAreasEditableList({
         onEditingNameChange: (v: string) => void;
       };
       return (
-        <div style={style} className="flex items-center gap-2 px-2 py-1.5 border-b border-border/30 last:border-0">
+        <div style={style} className="flex items-center gap-2 border-b border-border/30 last:border-0">
           {isEditing ? (
             <>
               <Input
@@ -182,7 +182,7 @@ function SubAreasEditableList({
         {items.map((sa) => {
           const isEditing = editingId === sa.id;
           return (
-            <div key={sa.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/30">
+            <div key={sa.id} className="flex items-center gap-2 rounded hover:bg-muted/30">
               {isEditing ? (
                 <>
                   <Input

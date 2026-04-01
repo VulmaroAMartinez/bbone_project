@@ -10,6 +10,7 @@ import {
   SubAreaBasicFragmentDoc,
   MachineBasicFragmentDoc,
   UserBasicFragmentDoc,
+  type WorkOrderSignature,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,8 +23,8 @@ import {
   ArrowLeft, Calendar, MapPin, Clock, Wrench, FileText,
   CheckCircle, AlertTriangle, Settings, Pen, User, Building2,
 } from 'lucide-react';
-import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
-
+import { resolveBackendAssetUrl, uploadFileToBackend, dataUrlToFile } from '@/lib/utils/uploads';
+import { toast } from 'sonner';
 
 export default function OrdenDetallePage() {
   const { id } = useParams<{ id: string }>();
@@ -40,7 +41,7 @@ export default function OrdenDetallePage() {
 
   const [signWorkOrder] = useMutation(SignWorkOrderDocument);
 
-  const workOrderRaw = data?.workOrder;
+  const workOrderRaw = (data as unknown as { workOrder?: Record<string, unknown> })?.workOrder;
   const order = unmaskFragment(WorkOrderItemFragmentDoc, workOrderRaw);
 
   const area = unmaskFragment(AreaBasicFragmentDoc, order?.area);
@@ -53,24 +54,26 @@ export default function OrdenDetallePage() {
   const handleBack = () => navigate(-1);
 
   const handleSaveSignature = async (dataURL: string) => {
-    void dataURL;
     try {
-      const mockPath = `signatures/${order?.id}/${user?.id}_sig.png`;
-
       if (!order?.id) throw new Error("Order ID is missing");
+      const file = await dataUrlToFile(dataURL, `signature_${order.id}_${user?.id}.png`);
+      const uploadRes = await uploadFileToBackend(file);
 
       await signWorkOrder({
         variables: {
           input: {
-            signatureImagePath: mockPath,
+            signatureImagePath: uploadRes.url,
             workOrderId: order.id,
           }
         }
       });
 
       await refetch();
+      toast.success('Firma guardada');
+      setIsSignModalOpen(false);
     } catch (error) {
       console.error('Error saving signature:', error);
+      toast.error('Error al guardar la firma');
     }
   };
 
@@ -90,16 +93,9 @@ export default function OrdenDetallePage() {
 
 
 
-  const signatures = (workOrderRaw as { signatures?: Array<{ signer: { role?: { name?: string } }; signatureImagePath: string }> })?.signatures || [];
-  const requesterSignature = signatures.find((s) => s.signer.role?.name === 'REQUESTER');
-  const adminSignature = signatures.find((s) => s.signer.role?.name === 'ADMIN');
-  const techSignature = signatures.find((s) => s.signer.role?.name === 'TECHNICIAN');
-
-  const isCompleted = order.status === 'COMPLETED';
-  const isRequester =
-    user?.roles?.some((r: { name: string }) => r.name === 'REQUESTER') ??
-    user?.role?.name === 'REQUESTER';
-  const needsMySignature = isCompleted && isRequester && !requesterSignature;
+  const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
+  const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER');
+  const needsMySignature = (order.status === 'COMPLETED' || order.status === 'TEMPORARY_REPAIR') && !requesterSignature;
 
   const photoBefore = (workOrderRaw as { photos?: Array<{ photoType: string; filePath: string }> })?.photos?.find(p => p.photoType === 'BEFORE');
   const photoAfter = (workOrderRaw as { photos?: Array<{ photoType: string; filePath: string }> })?.photos?.find(p => p.photoType === 'AFTER');
@@ -123,7 +119,7 @@ export default function OrdenDetallePage() {
       {/* Sign prompt for solicitante */}
       {needsMySignature && (
         <Card className="bg-primary/5 border-primary/30 shadow-sm animate-in slide-in-from-top-2">
-          <CardContent className="pt-6">
+          <CardContent>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="font-semibold text-foreground flex items-center gap-2"><AlertTriangle className='h-4 w-4 text-primary' aria-hidden="true" />Firma requerida</h3>
@@ -176,7 +172,7 @@ export default function OrdenDetallePage() {
             )}
             {machine && (
               <div className="flex justify-between items-center py-1">
-                <span className="text-muted-foreground flex items-center gap-1"><Wrench className="h-3 w-3" /> Maquina</span>
+                <span className="text-muted-foreground flex items-center gap-1"><Wrench className="h-3 w-3" /> Equipo/Estructura</span>
                 <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{machine?.name}</span>
               </div>
             )}
@@ -309,7 +305,7 @@ export default function OrdenDetallePage() {
       )}
 
       {/* Signatures (when completed) */}
-      {(isCompleted || signatures.length > 0) && (
+      {(order.status === 'COMPLETED' || order.status === 'TEMPORARY_REPAIR' || signatures.length > 0) && (
         <Card className="bg-card border-border shadow-sm">
           <CardHeader className="pb-3 border-b border-border/50 flex flex-row items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
@@ -324,7 +320,7 @@ export default function OrdenDetallePage() {
               <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border bg-muted/10 h-32">
                 <p className="text-sm font-medium text-muted-foreground mb-3">Solicitante</p>
                 {requesterSignature ? (
-                  <img src={requesterSignature.signatureImagePath} alt="Firma" width={200} height={48} className="h-12 object-contain" />
+                  <img src={resolveBackendAssetUrl(requesterSignature.signatureImagePath)} alt="Firma" width={200} height={48} className="h-12 object-contain" />
                 ) : needsMySignature ? (
                   <Button variant="outline" size="sm" className="bg-background shadow-sm" onClick={() => setIsSignModalOpen(true)}>
                     <Pen className="h-3 w-3 mr-2" /> Firmar
@@ -337,8 +333,8 @@ export default function OrdenDetallePage() {
               {/* Técnico */}
               <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border bg-muted/10 h-32">
                 <p className="text-sm font-medium text-muted-foreground mb-3">Técnico</p>
-                {techSignature ? (
-                  <img src={techSignature.signatureImagePath} alt="Firma" width={200} height={48} className="h-12 object-contain" />
+                {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN') ? (
+                  <img src={resolveBackendAssetUrl(signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN')?.signatureImagePath)} alt="Firma" width={200} height={48} className="h-12 object-contain" />
                 ) : (
                   <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">Pendiente</span>
                 )}
@@ -347,8 +343,8 @@ export default function OrdenDetallePage() {
               {/* Administrador */}
               <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border bg-muted/10 h-32">
                 <p className="text-sm font-medium text-muted-foreground mb-3">Administrador</p>
-                {adminSignature ? (
-                  <img src={adminSignature.signatureImagePath} alt="Firma" width={200} height={48} className="h-12 object-contain" />
+                {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN') ? (
+                  <img src={resolveBackendAssetUrl(signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN')?.signatureImagePath)} alt="Firma" width={200} height={48} className="h-12 object-contain" />
                 ) : (
                   <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">Pendiente</span>
                 )}

@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
+import { OfflineFallback } from '@/components/ui/offline-fallback';
 
 const HOME_BY_ROLE: Record<string, string> = {
   ADMIN: '/admin/dashboard',
@@ -17,6 +18,9 @@ export default function HomePage() {
   }
 
   if (!isAuthenticated || !user) {
+    if (!navigator.onLine) {
+      return <OfflineFallback />;
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

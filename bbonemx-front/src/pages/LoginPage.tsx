@@ -30,7 +30,7 @@ const loginSchema = yup.object({
 type LoginFormValues = yup.InferType<typeof loginSchema>;
 
 function LoginPage() {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading, activeRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -52,9 +52,17 @@ function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      navigate(from, { replace: true });
+      // If activeRole is null (dual-role user whose localStorage pref was cleared on logout),
+      // navigate to / so HomePage dispatches to /seleccionar-rol.
+      // Navigating directly to `from` would cause an infinite loop: ProtectedRoute rejects
+      // the route (no activeRole) and redirects back to /login, which triggers this effect again.
+      if (!activeRole) {
+        navigate('/', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     }
-  }, [isAuthenticated, isLoading, navigate, from]);
+  }, [isAuthenticated, isLoading, navigate, from, activeRole]);
 
   const onSubmit = async (values: LoginFormValues) => {
     setFormError('');

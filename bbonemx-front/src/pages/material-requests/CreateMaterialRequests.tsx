@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
@@ -10,8 +10,10 @@ import {
     CREATE_MATERIAL_REQUEST_MUTATION,
     UPDATE_MATERIAL_REQUEST_MUTATION,
     ADD_MATERIAL_TO_REQUEST_MUTATION,
+    REMOVE_MATERIAL_FROM_REQUEST_MUTATION,
     GET_MATERIAL_REQUEST_QUERY,
 } from '@/lib/graphql/operations/material-requests';
+import { shouldClearItemsOnCategoryChange } from '@/lib/material-requests/material-request-logic';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +41,7 @@ import {
     CATEGORY_LABELS,
     PRIORITY_LABELS,
     IMPORTANCE_LABELS,
-} from './material-requests.constants';
+} from '@/components/material-requests/material-request.constants';
 
 // ─── Helpers de categoría ────────────────────────────────────────────────────
 
@@ -70,6 +72,7 @@ const SKU_CATEGORIES = new Set([
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
 const itemSchema = yup.object({
+    dbId: yup.string().default(''), // ID real en BD; vacío = item nuevo no guardado
     catalogId: yup.string().default(''),
     isManual: yup.boolean().default(false),
     customName: yup.string().trim().default(''),
@@ -109,6 +112,7 @@ const schema = yup.object({
 type FormValues = yup.InferType<typeof schema>;
 
 const EMPTY_ITEM: FormValues['items'][0] = {
+    dbId: '',
     catalogId: '',
     isManual: false,
     customName: '',
@@ -230,9 +234,16 @@ export default function CreateMaterialRequestPage() {
     type AddItemResult = Record<string, unknown>;
     type AddItemVars = { materialRequestId: string; input: Record<string, unknown> };
 
+    type RemoveItemResult = { removeMaterialFromRequest: boolean };
+    type RemoveItemVars = { materialRequestMaterialId: string };
+
     const [createRequest] = useMutation<CreateRequestResult, CreateRequestVars>(CREATE_MATERIAL_REQUEST_MUTATION);
     const [updateRequest] = useMutation<UpdateRequestResult, UpdateRequestVars>(UPDATE_MATERIAL_REQUEST_MUTATION);
     const [addItemToRequest] = useMutation<AddItemResult, AddItemVars>(ADD_MATERIAL_TO_REQUEST_MUTATION);
+    const [removeItemFromRequest] = useMutation<RemoveItemResult, RemoveItemVars>(REMOVE_MATERIAL_FROM_REQUEST_MUTATION);
+
+    // IDs de los items que ya existían en BD al cargar el formulario de edición
+    const originalItemIdsRef = useRef<string[]>([]);
 
     // ── Form ──────────────────────────────────────────────────────────────────
     const {
@@ -310,10 +321,9 @@ export default function CreateMaterialRequestPage() {
 
     // Etiqueta de la máquina en el select
     const machineLabel = useCallback((m: typeof machines[0]) => {
-        const areaName = m.area?.name ?? m.subArea?.area?.name ?? '';
-        const subAreaName = m.subArea ? ` - ${m.subArea.name}` : '';
-        return `${m.name} - ${areaName}${subAreaName}`;
-    }, []);
+        const suffix = m.subArea?.name ?? m.area?.name ?? '';
+        return suffix ? `${m.name} - ${suffix}` : m.name;
+    }, [machines]);
 
     // ── Auto-rellenar campos al cambiar máquina (solo si hay 1) ─────────────
     useEffect(() => {
@@ -328,19 +338,38 @@ export default function CreateMaterialRequestPage() {
         }
     }, [selectedMachines, selectedMachine, setValue]);
 
+    // Track the previous category so we can detect catalog-type switches.
+    const prevCategoryRef = useRef<string>('');
+
     useEffect(() => {
         if (!watchedCategory) return;
+
+        const prevCategory = prevCategoryRef.current;
+
         if (isService) {
+            // Switching to a service category always clears items
             remove();
+        } else if (shouldClearItemsOnCategoryChange(prevCategory, watchedCategory)) {
+            // Switching between material ↔ spare-part catalogs: stale catalogIds
+            // from the old catalog would cause backend errors, so clear and add one
+            // fresh empty item.
+            remove();
+            append({ ...EMPTY_ITEM });
         } else if (fields.length === 0) {
             append({ ...EMPTY_ITEM });
         }
+
+        prevCategoryRef.current = watchedCategory;
     }, [watchedCategory, isService, remove, fields.length, append]);
 
     // ── Pre-rellenar formulario al editar ─────────────────────────────────────
     useEffect(() => {
         if (!isEdit || !editData?.materialRequest) return;
         const req = editData.materialRequest;
+
+        // Guardar los IDs originales para detectar items eliminados al guardar
+        originalItemIdsRef.current = req.items.map((item) => item.id);
+
         reset({
             requesterId: req.requester.id,
             category: req.category,
@@ -357,6 +386,7 @@ export default function CreateMaterialRequestPage() {
             suggestedSupplier: req.suggestedSupplier ?? '',
             items: req.items.length > 0
                 ? req.items.map((item) => ({
+                    dbId: item.id,
                     catalogId: item.materialId || item.sparePartId || (item.brand || item.partNumber ? 'OTHER' : ''),
                     isManual: !item.materialId && !item.sparePartId,
                     customName: item.customName ?? '',
@@ -477,6 +507,47 @@ export default function CreateMaterialRequestPage() {
                     },
                 });
                 targetId = editId!;
+
+                // IDs de items que siguen en el formulario
+                const currentDbIds = new Set(
+                    values.items.map((item) => item.dbId).filter(Boolean),
+                );
+
+                // Eliminar los que estaban en BD pero ya no están en el formulario
+                const removedIds = originalItemIdsRef.current.filter((id) => !currentDbIds.has(id));
+                for (const itemId of removedIds) {
+                    await removeItemFromRequest({
+                        variables: { materialRequestMaterialId: itemId },
+                    });
+                }
+
+                // Agregar solo los items nuevos (sin dbId)
+                for (const item of values.items) {
+                    if (item.dbId) continue; // ya existe en BD
+                    const isFromMaterial = isMaterialCategory && item.catalogId && item.catalogId !== 'OTHER';
+                    const isFromSparePart = isSparePartCategory && item.catalogId && item.catalogId !== 'OTHER';
+
+                    await addItemToRequest({
+                        variables: {
+                            materialRequestId: targetId,
+                            input: {
+                                materialRequestId: targetId,
+                                materialId: isFromMaterial ? item.catalogId : undefined,
+                                sparePartId: isFromSparePart ? item.catalogId : undefined,
+                                customName: item.customName || undefined,
+                                brand: item.brand || undefined,
+                                model: item.model || undefined,
+                                partNumber: item.partNumber || undefined,
+                                sku: item.sku || undefined,
+                                unitOfMeasure: item.unitOfMeasure,
+                                requestedQuantity: item.requestedQuantity,
+                                proposedMaxStock: item.proposedMaxStock ?? undefined,
+                                proposedMinStock: item.proposedMinStock ?? undefined,
+                                isGenericAllowed: item.isGenericAllowed ?? false,
+                            },
+                        },
+                    });
+                }
             } else {
                 const { data: createdData } = await createRequest({
                     variables: {
@@ -669,7 +740,7 @@ export default function CreateMaterialRequestPage() {
 
                     {/* ── 2. Equipo o Estructura ── */}
                     <Card>
-                        <CardHeader className="pb-2">
+                        <CardHeader>
                             <CardTitle className="text-base">2. Equipo o Estructura</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">

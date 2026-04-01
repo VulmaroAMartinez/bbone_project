@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetMachineMaterialRequestsDocument } from '@/lib/graphql/generated/graphql';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,93 +14,29 @@ import {
     EmptyTitle,
     EmptyDescription,
 } from '@/components/ui/empty';
-import { ArrowLeft, Package, Calendar, Box } from 'lucide-react';
-
-// ─── Helpers de prioridad ───────────────────────────────────
-
-const priorityConfig: Record<string, { label: string; className: string }> = {
-    CRITICAL: {
-        label: 'Crítica',
-        className: 'bg-destructive/10 text-destructive border-destructive/20',
-    },
-    HIGH: {
-        label: 'Alta',
-        className: 'bg-destructive/10 text-destructive border-destructive/20',
-    },
-    MEDIUM: {
-        label: 'Media',
-        className: 'bg-chart-3/10 text-chart-3 border-chart-3/20',
-    },
-    LOW: {
-        label: 'Baja',
-        className: 'bg-primary/10 text-primary border-primary/20',
-    },
-};
-
-const importanceConfig: Record<string, { label: string; className: string }> = {
-    CRITICAL: {
-        label: 'Crítica',
-        className: 'bg-destructive/10 text-destructive border-destructive/20',
-    },
-    HIGH: {
-        label: 'Alta',
-        className: 'bg-chart-3/10 text-chart-3 border-chart-3/20',
-    },
-    MEDIUM: {
-        label: 'Media',
-        className: 'bg-chart-4/10 text-chart-4 border-chart-4/20',
-    },
-    LOW: {
-        label: 'Baja',
-        className: 'bg-muted/60 text-muted-foreground border-border',
-    },
-};
-
-function RequestPriorityBadge({ priority }: { priority: string }) {
-    const config = priorityConfig[priority] ?? priorityConfig.LOW;
-    return (
-        <span
-            className={`inline-flex items-center font-medium border rounded-full px-2 py-0.5 text-xs ${config.className}`}
-        >
-            {config.label}
-        </span>
-    );
-}
-
-function ImportanceBadge({ importance }: { importance: string }) {
-    const config = importanceConfig[importance] ?? importanceConfig.LOW;
-    return (
-        <span
-            className={`inline-flex items-center font-medium border rounded-full px-1.5 py-0.5 text-[10px] ${config.className}`}
-        >
-            {config.label}
-        </span>
-    );
-}
-
-// ─── Componente principal ───────────────────────────────────
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { ArrowLeft, Package } from 'lucide-react';
+import { MaterialRequestCard } from '@/components/material-requests/MaterialRequestCard';
 
 export default function RequestsMachinePage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const { data, loading } = useQuery(GetMachineMaterialRequestsDocument, {
+    const { data, loading } = useOfflineAwareQuery(GetMachineMaterialRequestsDocument, {
         variables: { id: id! },
         skip: !id,
-        fetchPolicy: 'cache-and-network',
     });
 
     const machine = data?.machine;
     const requests = machine?.materialRequests ?? [];
 
-    const formatDate = (dateStr?: string | null) => {
-        if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('es-MX', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-        });
-    };
+    type Request = typeof requests[0];
+    const [viewingItemsReq, setViewingItemsReq] = useState<Request | null>(null);
 
     return (
         <div className="space-y-5 pb-20">
@@ -111,7 +48,7 @@ export default function RequestsMachinePage() {
                     onClick={() => navigate('/maquinas')}
                     className="gap-1.5 -ml-2 text-muted-foreground"
                 >
-                    <ArrowLeft className="h-4 w-4" /> Máquinas
+                    <ArrowLeft className="h-4 w-4" /> Equipos/Estructuras
                 </Button>
 
                 <div>
@@ -163,95 +100,57 @@ export default function RequestsMachinePage() {
             ) : (
                 <div className="space-y-3">
                     {requests.map((req) => (
-                        <Card key={req.id} className="bg-card hover:shadow-md transition-shadow">
-                            <CardContent className="p-4 space-y-3">
-                                {/* Fila: Folio + Prioridad + Importancia */}
-                                <div className="flex items-center justify-between gap-2 flex-wrap">
-                                    <span className="font-mono font-semibold text-sm text-primary">
-                                        {req.folio}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <RequestPriorityBadge priority={req.priority} />
-                                        {req.importance && (
-                                            <ImportanceBadge importance={req.importance} />
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Texto de solicitud / comentarios */}
-                                <p className="text-sm text-foreground line-clamp-2">
-                                    {req.comments || 'Sin comentarios'}
-                                </p>
-
-                                {/* Justificación */}
-                                {req.justification && (
-                                    <p className="text-xs text-muted-foreground line-clamp-1">
-                                        <span className="font-medium">Justificación:</span> {req.justification}
-                                    </p>
-                                )}
-
-                                {/* Indicadores */}
-                                <div className="flex flex-wrap gap-1.5">
-                                    {req.suggestedSupplier && (
-                                        <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
-                                            Proveedor: {req.suggestedSupplier}
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Materiales solicitados */}
-                                {req.items && req.items.length > 0 && (
-                                    <div className="pt-2 border-t border-border/50 space-y-2">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                            Materiales ({req.items.length})
-                                        </p>
-                                        <div className="space-y-1.5">
-                                            {req.items.map((item) => (
-                                                <div
-                                                    key={item.id}
-                                                    className="flex items-start gap-2 bg-muted/30 rounded-md p-2"
-                                                >
-                                                    <Box className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs text-foreground leading-tight truncate">
-                                                            {item.description || item.material?.description}
-                                                        </p>
-                                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                                                            <span className="text-[11px] text-muted-foreground">
-                                                                Cant:{' '}
-                                                                <strong>{item.requestedQuantity}</strong>{' '}
-                                                                {item.unitOfMeasure}
-                                                            </span>
-                                                            {item.material?.partNumber && (
-                                                                <span className="text-[11px] text-muted-foreground font-mono">
-                                                                    {item.material.partNumber}
-                                                                </span>
-                                                            )}
-                                                            {item.material?.brand && (
-                                                                <span className="text-[11px] text-muted-foreground">
-                                                                    {item.material.brand}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Metadata */}
-                                <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
-                                    <span className="flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" />
-                                        {formatDate(req.createdAt)}
-                                    </span>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <MaterialRequestCard
+                            key={req.id}
+                            id={req.id}
+                            folio={req.folio}
+                            category={req.category}
+                            priority={req.priority}
+                            importance={req.importance}
+                            description={req.comments}
+                            isActive={req.isActive}
+                            createdAt={req.createdAt}
+                            items={req.items}
+                            onClick={() => navigate(`/solicitud-material/${req.id}`)}
+                            onViewItems={() => setViewingItemsReq(req)}
+                        />
                     ))}
                 </div>
             )}
+
+            {/* Dialog: detalles de artículos */}
+            <Dialog open={!!viewingItemsReq} onOpenChange={(open) => !open && setViewingItemsReq(null)}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Artículos — {viewingItemsReq?.folio}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                        {viewingItemsReq?.items.map((item, idx) => (
+                            <div key={item.id} className="rounded-lg border border-border p-3 space-y-1 text-sm">
+                                <p className="font-medium">
+                                    {idx + 1}. {item.description ?? item.material?.description ?? '—'}
+                                </p>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+                                    <span>Cantidad: <span className="text-foreground">{item.requestedQuantity}</span></span>
+                                    {item.unitOfMeasure && (
+                                        <span>Unidad: <span className="text-foreground">{item.unitOfMeasure}</span></span>
+                                    )}
+                                </div>
+                                {(item.brand ?? item.material?.brand) && (
+                                    <p className="text-muted-foreground">
+                                        Marca: <span className="text-foreground">{item.brand ?? item.material?.brand}</span>
+                                    </p>
+                                )}
+                                {(item.partNumber ?? item.material?.partNumber) && (
+                                    <p className="text-muted-foreground">
+                                        Núm. parte: <span className="text-foreground">{item.partNumber ?? item.material?.partNumber}</span>
+                                    </p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

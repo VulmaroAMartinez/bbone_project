@@ -18,7 +18,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env*
+.env
 
 # vercel
 .vercel
@@ -29,3 +29,4 @@ next-env.d.ts
 
 .claude
 
+/dev-dist

@@ -16,7 +16,17 @@
       "Bash(find /c/Users/vulma/Downloads/bbmaintenance -type f -name *mail* -o -name *email* -o -name *mailer* -o -name *smtp*)",
       "Bash(find /c/Users/vulma/Downloads/bbmaintenance/bbonemx-back -type f \\\\\\(-name *.hbs -o -name *.html -o -name *.ejs \\\\\\))",
       "Bash(grep -r \"emailService\\\\|EmailService\" /c/Users/vulma/Downloads/bbmaintenance/bbonemx-back/src --include=*.ts)",
-      "Bash(find /c/Users/vulma/Downloads/bbmaintenance/bbonemx-back -type f \\\\\\(-iname *.handlebars -o -iname *.hbs -o -iname *.ejs -o -iname *.mjml -o -iname *.pug \\\\\\))"
+      "Bash(find /c/Users/vulma/Downloads/bbmaintenance/bbonemx-back -type f \\\\\\(-iname *.handlebars -o -iname *.hbs -o -iname *.ejs -o -iname *.mjml -o -iname *.pug \\\\\\))",
+      "Bash(find /c/Users/vulma/Downloads/bbmaintenance/bbonemx-back -type f -name *area* -path */enums/* -o -type f -name *types* -path */areas*)",
+      "Bash(find /c/Users/vulma/Downloads/bbmaintenance -type f \\\\\\(-name *.test.ts -o -name *.spec.ts \\\\\\))",
+      "Bash(node --test tests/bug-fixes.test.mjs)",
+      "Bash(npm test:*)",
+      "Bash(git -C C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front diff HEAD -- src/router/protected-route.tsx)",
+      "Bash(git -C C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front diff -- src/router/protected-route.tsx)",
+      "Bash(node --experimental-vm-modules tests/bug-fixes.test.mjs)",
+      "Bash(sed -i \"s|from ''./material-requests.constants''|from ''@/components/material-requests/material-request.constants''|g\" \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/src/pages/material-requests/MaterialRequestDetailPage.tsx\" \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/src/pages/material-requests/CreateMaterialRequests.tsx\")",
+      "Bash(sed -i \"s|from ''@/pages/material-requests/material-requests.constants''|from ''@/components/material-requests/material-request.constants''|g\" \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/src/pages/admin/material-requests/MaterialRequestHistoryPage.tsx\")",
+      "Bash(ls dist/*.js dist/*.mjs)"
     ]
   }
 }

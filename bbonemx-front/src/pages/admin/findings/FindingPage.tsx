@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -16,22 +17,25 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
-import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle } from 'lucide-react';
+import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 import { toast } from 'sonner';
+
+const PAGE_SIZE = 12;
 
 export default function FindingPage() {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusTab, setStatusTab] = useState<FindingStatus | 'ALL'>('ALL');
+    const [page, setPage] = useState(1);
 
-    const { data, loading, error, refetch } = useQuery(GetFindingsFilteredDocument, {
+    const { data, loading, error, refetch, isOffline } = useOfflineAwareQuery(GetFindingsFilteredDocument, {
         variables: {
             filters: {
                 status: statusTab !== 'ALL' ? statusTab : undefined
             },
             pagination: { limit: 100, page: 1 }
         },
-        fetchPolicy: 'cache-and-network'
     });
 
     const [convertToWo, { loading: converting }] = useMutation(ConvertToWorkOrderDocument);
@@ -44,6 +48,9 @@ export default function FindingPage() {
         return f.folio.toLowerCase().includes(term) || f.description.toLowerCase().includes(term);
     });
 
+    const totalPages = Math.ceil(filteredFindings.length / PAGE_SIZE);
+    const pageFindings = filteredFindings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
     const handleConvert = async (findingId: string) => {
         try {
             await convertToWo({ variables: { id: findingId } });
@@ -55,7 +62,7 @@ export default function FindingPage() {
 
     if (loading && !data) return <WorkOrderListSkeleton count={4} />;
 
-    if (error) {
+    if (error && !data) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
@@ -68,6 +75,7 @@ export default function FindingPage() {
 
     return (
         <div className="space-y-6">
+            {isOffline && data && <OfflineBanner />}
             {/* Header */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -88,12 +96,12 @@ export default function FindingPage() {
                     <Input
                         placeholder="Buscar por folio o descripción..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                         className="pl-9"
                     />
                 </div>
 
-                <Tabs value={statusTab} onValueChange={(val) => setStatusTab(val as FindingStatus | 'ALL')} className="w-full md:w-auto">
+                <Tabs value={statusTab} onValueChange={(val) => { setStatusTab(val as FindingStatus | 'ALL'); setPage(1); }} className="w-full md:w-auto">
                     <TabsList className="w-full md:w-auto grid grid-cols-3">
                         <TabsTrigger value="ALL">Todos</TabsTrigger>
                         <TabsTrigger value="OPEN">Abiertos</TabsTrigger>
@@ -113,7 +121,7 @@ export default function FindingPage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    filteredFindings.map((finding) => {
+                    pageFindings.map((finding) => {
                         const isOpen = finding.status === 'OPEN';
                         const area = finding.area as unknown as { name?: string } | null;
                         const machine = finding.machine as unknown as { name?: string; code?: string } | null;
@@ -196,6 +204,17 @@ export default function FindingPage() {
                     })
                 )}
             </div>
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="h-4 w-4" /> Anterior
+                    </Button>
+                    <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                        Siguiente <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

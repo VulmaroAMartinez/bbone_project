@@ -1,54 +1,47 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Search,
-  Plus,
-  Clock,
-  MapPin,
-  ClipboardList,
-  AlertTriangle,
-  ChevronRight,
-  Pen,
-  User,
-} from 'lucide-react';
+import { Search, Plus, ClipboardList, AlertTriangle, ChevronRight, ChevronLeft } from 'lucide-react';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 import {
   MyRequestedWorkOrdersDocument,
   type WorkOrderStatus,
   WorkOrderItemFragmentDoc,
+  AreaBasicFragmentDoc,
+  SubAreaBasicFragmentDoc,
+  UserBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
-import { useFragment } from '@/lib/graphql/generated/fragment-masking';
+import { useFragment, useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
+import { WorkOrderCard } from '@/components/work-orders/WorkOrderCard';
+
+const PAGE_SIZE = 12;
 
 export default function MisOrdenesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusTab, setStatusTab] = useState<WorkOrderStatus | 'all'>('all');
+  const [page, setPage] = useState(1);
 
-  const { data, loading, error } = useQuery(MyRequestedWorkOrdersDocument, {
+  const { data, loading, error, isOffline } = useOfflineAwareQuery(MyRequestedWorkOrdersDocument, {
     skip: !user?.id,
-    fetchPolicy: 'cache-and-network',
   });
 
-  const orders = useFragment(
-    WorkOrderItemFragmentDoc,
-    data?.myRequestedWorkOrders || []
-  );
+  const orders = useFragment(WorkOrderItemFragmentDoc, data?.myRequestedWorkOrders || []);
 
   if (loading && !data) {
     return <WorkOrderListSkeleton count={5} />;
   }
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -62,21 +55,22 @@ export default function MisOrdenesPage() {
     );
   }
 
-  // Filtrado local: solo por folio y descripción
   const filteredOrders = orders.filter((order) => {
     const term = searchTerm.toLowerCase();
-    const matchesStatus =
-      statusTab === 'all' || order.status === statusTab;
+    const matchesStatus = statusTab === 'all' || order.status === statusTab;
     const matchesSearch =
       !searchTerm ||
       order.folio?.toLowerCase().includes(term) ||
       order.description?.toLowerCase().includes(term);
-
     return matchesStatus && matchesSearch;
   });
 
+  const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
+  const pageOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="space-y-6 pb-12">
+      {isOffline && data && <OfflineBanner />}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -86,14 +80,11 @@ export default function MisOrdenesPage() {
             Todas las órdenes de trabajo que has solicitado
           </p>
         </div>
-        <Button
-          className="gap-2"
-          onClick={() => navigate('/solicitante/crear-ot')}
-        >
+        <Button className="gap-2" onClick={() => navigate('/solicitante/crear-ot')}>
           <Plus className="h-4 w-4" />
           Nueva solicitud
         </Button>
-      </div>  
+      </div>
 
       {/* Filters & Tabs */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -110,9 +101,7 @@ export default function MisOrdenesPage() {
         <div className="overflow-x-auto pb-1 md:pb-0">
           <Tabs
             value={statusTab}
-            onValueChange={(val) =>
-              setStatusTab(val as WorkOrderStatus | 'all')
-            }
+            onValueChange={(val) => setStatusTab(val as WorkOrderStatus | 'all')}
             className="w-max"
           >
             <TabsList>
@@ -133,75 +122,47 @@ export default function MisOrdenesPage() {
           <Card className="bg-card border-border shadow-sm">
             <CardContent className="py-16 text-center animate-in fade-in">
               <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-foreground">
-                Sin resultados
-              </h3>
+              <h3 className="text-lg font-semibold text-foreground">Sin resultados</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 No se encontraron órdenes con los filtros actuales
               </p>
             </CardContent>
           </Card>
         ) : (
-          filteredOrders.map((order) => {
-            const area = order.area as unknown as { name?: string } | null;
-            const subArea = order.subArea as unknown as { name?: string } | null;
+          pageOrders.map((order) => {
+            const area = unmaskFragment(AreaBasicFragmentDoc, order.area);
+            const subArea = unmaskFragment(SubAreaBasicFragmentDoc, order.subArea);
             const leadTechRel = order.technicians?.find((t) => t.isLead);
-            const leadTechnician = leadTechRel?.technician as unknown as { firstName?: string; lastName?: string } | null;
-
+            const leadTechnician = unmaskFragment(UserBasicFragmentDoc, leadTechRel?.technician);
             return (
-              <Card
+              <WorkOrderCard
                 key={order.id}
-                className="bg-card border-border hover:border-primary/50 hover:shadow-md transition-all shadow-sm group cursor-pointer"
+                id={order.id}
+                folio={order.folio}
+                status={order.status}
+                description={order.description}
+                createdAt={order.createdAt}
+                area={area}
+                subArea={subArea}
+                leadTechnician={leadTechnician}
+                showPendingSignature
                 onClick={() => navigate(`/solicitante/ordenes/${order.id}`)}
-              >
-                <CardContent className="py-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="font-mono text-sm font-bold text-primary group-hover:text-primary/80 transition-colors">
-                          {order.folio}
-                        </span>
-                        <StatusBadge status={order.status} />
-                        {order.status === 'COMPLETED' && (
-                          <span className="flex items-center gap-1 text-xs text-primary font-medium">
-                            <Pen className="h-3 w-3" /> Firma pendiente
-                          </span>
-                        )}
-                        
-                      </div>
-                      <p className="text-sm text-foreground line-clamp-2">
-                        {order.description}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-muted-foreground">
-                        {area?.name && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {area.name}
-                            {subArea?.name ? ` - ${subArea.name}` : ''}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(order.createdAt).toLocaleDateString(
-                            'es-MX'
-                          )}
-                        </span>
-                        {leadTechnician?.firstName && leadTechnician?.lastName && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {leadTechnician.firstName} {leadTechnician.lastName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 hidden md:block" />
-                  </div>
-                </CardContent>
-              </Card>
+              />
             );
           })
         )}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            <ChevronLeft className="h-4 w-4" /> Anterior
+          </Button>
+          <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+            Siguiente <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

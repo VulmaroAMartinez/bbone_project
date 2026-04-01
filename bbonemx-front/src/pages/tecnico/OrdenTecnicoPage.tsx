@@ -12,9 +12,17 @@ import {
   WorkOrderItemFragmentDoc,
   AreaBasicFragmentDoc,
   MachineBasicFragmentDoc,
+  SubAreaBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
-import type { GetWorkOrderByIdQuery } from '@/lib/graphql/generated/graphql';
+import type {
+  WorkOrderPhoto,
+  WorkOrderSignature,
+  WorkOrderStatus,
+  CompleteWorkOrderMutation,
+} from '@/lib/graphql/generated/graphql';
+import { client } from '@/lib/graphql/client';
+import { fileToBase64, enqueueTask, MAX_FILE_BYTES } from '@/lib/offline-sync';
 
 import {
   ADD_WORK_ORDER_SPARE_PART_MUTATION,
@@ -40,10 +48,9 @@ import {
   Pause,
   ImageIcon,
   Pen,
-  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { resolveBackendAssetUrl, uploadFileToBackend } from '@/lib/utils/uploads';
+import { resolveBackendAssetUrl, uploadFileToBackend, dataUrlToFile } from '@/lib/utils/uploads';
 
 import { PauseModal } from './modals/PauseModal';
 import { CompleteModal, type CloseFormValues } from './modals/CompleteModal';
@@ -77,22 +84,22 @@ export default function TecnicoOrdenPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   // ─── Fragment masking
-  const workOrderRaw = data?.workOrder;
+  const workOrderRaw = (data as unknown as { workOrder?: Record<string, unknown> })?.workOrder;
   const order = useFragment(WorkOrderItemFragmentDoc, workOrderRaw);
   const area = useFragment(AreaBasicFragmentDoc, order?.area);
   const machine = useFragment(MachineBasicFragmentDoc, order?.machine);
+  const subArea = useFragment(SubAreaBasicFragmentDoc, order?.subArea);
 
   const isAveria = order?.stopType === 'BREAKDOWN';
   const isProcessing = starting || pausing || completing;
-  const isClosed =
-    order?.status === 'COMPLETED' || order?.status === 'TEMPORARY_REPAIR';
+  const isClosed = order?.status === 'COMPLETED' || order?.status === 'TEMPORARY_REPAIR';
 
-  const photoBefore = workOrderRaw?.photos?.find((p) => p.photoType === 'BEFORE');
-  const photoAfterServer = workOrderRaw?.photos?.find((p) => p.photoType === 'AFTER');
-  const signatures = workOrderRaw?.signatures ?? [];
-  const techSignature = signatures.find(
-    (s) => s.signer?.role?.name === 'TECHNICIAN' || s.signer?.roles?.some((r: { name: string }) => r.name === 'TECHNICIAN'),
-  );
+  
+  const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
+  const photoAfterServer = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'AFTER');
+  
+  const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
+  const techSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN' || s.signer.roles?.some((r: { name: string }) => r.name === 'BOSS'));
   const needsMySignature = isClosed && !techSignature;
 
   // ─── Handlers
@@ -126,48 +133,104 @@ export default function TecnicoOrdenPage() {
 
   const handleConfirmCompletion = async (values: CloseFormValues) => {
     if (!order) return;
+
+    // ── Campos reutilizados en ambas ramas (online / offline) ─────────────
+    const closeInput = {
+      finalStatus: values.finalStatus,
+      toolsUsed: values.toolsUsed || undefined,
+      customSparePart:
+        values.sparePartId === 'OTHER' && values.customSparePart?.trim()
+          ? values.customSparePart.trim()
+          : undefined,
+      customMaterial:
+        values.materialId === 'OTHER' && values.customMaterial?.trim()
+          ? values.customMaterial.trim()
+          : undefined,
+      ...(isAveria
+        ? {
+            breakdownDescription: values.breakdownDescription || undefined,
+            cause: values.cause || undefined,
+            actionTaken: values.actionTaken,
+            downtimeMinutes: values.downtimeMinutes ?? undefined,
+          }
+        : { observations: values.observations || undefined }),
+    };
+
+    const effectiveStatus = (values.finalStatus ?? 'COMPLETED') as WorkOrderStatus;
+    const sparePartId =
+      values.sparePartId && values.sparePartId !== 'OTHER' ? values.sparePartId : undefined;
+    const materialId =
+      values.materialId && values.materialId !== 'OTHER' ? values.materialId : undefined;
+
+    // ── Leer fragmento en cache (reutilizado en optimisticResponse y writeFragment) ──
+    const cacheId = client.cache.identify({ __typename: 'WorkOrder', id: order.id });
+    const cachedData = client.cache.readFragment({
+      id: cacheId,
+      fragment: WorkOrderItemFragmentDoc,
+      fragmentName: 'WorkOrderItem',
+    });
+
+    // ── Intercepción offline ───────────────────────────────────────────────
+    if (!navigator.onLine) {
+      try {
+        const photo = photoFile
+          ? {
+              base64: await fileToBase64(photoFile),
+              fileName: photoFile.name,
+              mimeType: photoFile.type,
+            }
+          : undefined;
+
+        await enqueueTask({
+          type: 'COMPLETE_WORK_ORDER',
+          payload: { workOrderId: order.id, input: closeInput, sparePartId, materialId, photo },
+        });
+
+        // Actualizar cache para reflejar el nuevo status inmediatamente
+        if (cachedData) {
+          client.cache.writeFragment({
+            id: cacheId,
+            fragment: WorkOrderItemFragmentDoc,
+            fragmentName: 'WorkOrderItem',
+            data: { ...cachedData, status: effectiveStatus },
+          });
+        }
+
+        setCompleteOpen(false);
+        toast.success('Cierre guardado. Se sincronizará cuando haya conexión.');
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Error al guardar el cierre localmente');
+      }
+      return;
+    }
+
+    // ── Flujo online ───────────────────────────────────────────────────────
     try {
       await completeOrder({
-        variables: {
-          id: order.id,
-          input: {
-            finalStatus: values.finalStatus,
-            toolsUsed: values.toolsUsed || undefined,
-            customSparePart: values.sparePartId === 'OTHER' && values.customSparePart?.trim()
-              ? values.customSparePart.trim()
-              : undefined,
-            customMaterial: values.materialId === 'OTHER' && values.customMaterial?.trim()
-              ? values.customMaterial.trim()
-              : undefined,
-            ...(isAveria
-              ? {
-                  breakdownDescription: values.breakdownDescription || undefined,
-                  cause: values.cause || undefined,
-                  actionTaken: values.actionTaken,
-                  downtimeMinutes: values.downtimeMinutes ?? undefined,
-                }
-              : {
-                  observations: values.observations || undefined,
-                }),
+        variables: { id: order.id, input: closeInput },
+        // optimisticResponse: actualiza el status en cache antes de que responda el servidor
+        ...(cachedData && {
+          optimisticResponse: {
+            // readFragment devuelve tipos fantasma de fragment masking ($fragmentName) que no
+            // existen en runtime; el cast a unknown→T es intencional y seguro.
+            completeWorkOrder: {
+              ...cachedData,
+              __typename: 'WorkOrder' as const,
+              status: effectiveStatus,
+            } as unknown as CompleteWorkOrderMutation['completeWorkOrder'],
           },
-        },
+        }),
       });
 
-      // Agregar refacción seleccionada del catálogo
-      if (values.sparePartId && values.sparePartId !== 'OTHER') {
+      if (sparePartId) {
         await addSparePart({
-          variables: {
-            input: { workOrderId: order.id, sparePartId: values.sparePartId, quantity: 1 },
-          },
+          variables: { input: { workOrderId: order.id, sparePartId, quantity: 1 } },
         });
       }
 
-      // Agregar material seleccionado del catálogo
-      if (values.materialId && values.materialId !== 'OTHER') {
+      if (materialId) {
         await addMaterial({
-          variables: {
-            input: { workOrderId: order.id, materialId: values.materialId, quantity: 1 },
-          },
+          variables: { input: { workOrderId: order.id, materialId, quantity: 1 } },
         });
       }
 
@@ -197,20 +260,31 @@ export default function TecnicoOrdenPage() {
 
   const handlePhotoAfter = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoAfterPreview(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > MAX_FILE_BYTES) {
+      toast.error(`La imagen no puede superar ${MAX_FILE_BYTES / 1_048_576} MB`);
+      e.target.value = '';
+      return;
     }
+
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setPhotoAfterPreview(reader.result as string);
+    reader.onerror = () => {
+      reader.abort();
+      toast.error('Error al leer el archivo de imagen');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveSignature = async (dataUrl: string) => {
-    void dataUrl;
     try {
-      const mockPath = `signatures/${order?.id}/${currentUser?.id}_tech_sig.png`;
+      const file = await dataUrlToFile(dataUrl, `signature_${order?.id}_${currentUser?.id}.png`);
+      const uploadRes = await uploadFileToBackend(file);
+      
       await signWorkOrder({
-        variables: { input: { workOrderId: order!.id, signatureImagePath: mockPath } },
+        variables: { input: { workOrderId: order!.id, signatureImagePath: uploadRes.url } },
       });
       await refetch();
       toast.success('Firma guardada');
@@ -234,25 +308,6 @@ export default function TecnicoOrdenPage() {
   }
 
   const canEdit = order.status === 'IN_PROGRESS';
-
-  // Datos de cierre técnico (readonly)
-  type WorkOrderRaw = NonNullable<GetWorkOrderByIdQuery['workOrder']>;
-  type ClosureExtras = Pick<WorkOrderRaw, 'customSparePart' | 'customMaterial' | 'spareParts' | 'materials'>;
-
-  const closureData = isClosed
-    ? {
-        breakdownDescription: workOrderRaw.breakdownDescription,
-        cause: workOrderRaw.cause,
-        actionTaken: workOrderRaw.actionTaken,
-        toolsUsed: workOrderRaw.toolsUsed,
-        downtimeMinutes: workOrderRaw.downtimeMinutes,
-        observations: workOrderRaw.observations,
-        customSparePart: (workOrderRaw as ClosureExtras).customSparePart ?? null,
-        customMaterial: (workOrderRaw as ClosureExtras).customMaterial ?? null,
-        spareParts: (workOrderRaw as ClosureExtras).spareParts ?? null,
-        materials: (workOrderRaw as ClosureExtras).materials ?? null,
-      }
-    : null;
 
   return (
     <div className="space-y-4 max-w-5xl mx-auto pb-12">
@@ -335,7 +390,7 @@ export default function TecnicoOrdenPage() {
               <div>
                 <p className="font-medium text-amber-700">Orden Pausada</p>
                 <p className="text-sm text-amber-600/80 mt-1">
-                  Motivo: {workOrderRaw.pauseReason}
+                  Motivo: {(workOrderRaw as { pauseReason?: string })?.pauseReason}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Solicite al Administrador que reanude esta orden cuando esté listo.
@@ -380,10 +435,18 @@ export default function TecnicoOrdenPage() {
                 <span className="font-medium text-right">{area.name}</span>
               </div>
             )}
+            {subArea && (
+              <div className="flex justify-between items-center py-1">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <MapPin className="h-4 w-4" /> Sub-área
+                </span>
+                <span className="font-medium text-right">{subArea.name}</span>
+              </div>
+            )}
             {machine && (
               <div className="flex justify-between items-center py-1">
                 <span className="text-muted-foreground flex items-center gap-2">
-                  <Wrench className="h-4 w-4" /> Máquina
+                  <Wrench className="h-4 w-4" /> Equipo/Estructura
                 </span>
                 <span className="font-mono bg-muted px-2 py-1 rounded">{machine.code}</span>
               </div>
@@ -424,7 +487,7 @@ export default function TecnicoOrdenPage() {
               <span>Iniciada</span>
               <span>
                 {workOrderRaw.startDate
-                  ? new Date(workOrderRaw.startDate).toLocaleString('es-MX', {
+                  ? new Date(order.createdAt).toLocaleString('es-MX', {
                       dateStyle: 'short',
                       timeStyle: 'short',
                     })
@@ -435,7 +498,7 @@ export default function TecnicoOrdenPage() {
               <span>Finalizada</span>
               <span>
                 {workOrderRaw.endDate
-                  ? new Date(workOrderRaw.endDate).toLocaleString('es-MX', {
+                  ? new Date((workOrderRaw as { endDate: string }).endDate).toLocaleString('es-MX', {
                       dateStyle: 'short',
                       timeStyle: 'short',
                     })
@@ -445,6 +508,65 @@ export default function TecnicoOrdenPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Reporte técnico (readonly cuando está cerrada) */}
+      {(workOrderRaw as { endDate?: string })?.endDate && (
+          <Card className="bg-card shadow-sm border-primary/20">
+            <CardHeader className="border-b border-border/50">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Wrench className="h-5 w-5 text-primary" /> Reporte de Cierre
+                Técnico
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              {(order.stopType === 'BREAKDOWN' || order.stopType === 'OTHER') && (() => {
+                const raw = workOrderRaw as { cause?: string; actionTaken?: string; toolsUsed?: string };
+                const hasBreakdownContent = raw.cause || raw.actionTaken || raw.toolsUsed;
+                const showBox = order.stopType === 'BREAKDOWN' || (order.stopType === 'OTHER' && hasBreakdownContent);
+                if (!showBox) return null;
+                return (
+                  <div className="grid md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-lg border border-border/50">
+                    {raw.cause && (
+                      <div>
+                        <p className="text-muted-foreground font-medium mb-1">
+                          Causa Raíz
+                        </p>
+                        <p>{raw.cause}</p>
+                      </div>
+                    )}
+                    {raw.actionTaken && (
+                      <div>
+                        <p className="text-muted-foreground font-medium mb-1">
+                          Acción Realizada
+                        </p>
+                        <p>{raw.actionTaken}</p>
+                      </div>
+                    )}
+                    {raw.toolsUsed && (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground font-medium mb-1">
+                          Herramientas / Materiales
+                        </p>
+                        <p>{raw.toolsUsed}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              {(workOrderRaw as { observations?: string })?.observations && (
+                <div>
+                  <p className="text-muted-foreground font-medium mb-1">
+                    Observaciones Generales
+                  </p>
+                  <p className="bg-muted p-3 rounded-md">
+                    {(workOrderRaw as { observations?: string }).observations}
+                  </p>
+                </div>
+              )}
+              
+            </CardContent>
+          </Card>
+        )}
 
       {/* Fotos evidencia */}
       <div className="grid gap-6 md:grid-cols-2">
@@ -520,91 +642,6 @@ export default function TecnicoOrdenPage() {
         )}
       </div>
 
-      {/* Reporte técnico (readonly cuando está cerrada) */}
-      {isClosed && closureData && (
-        <Card className="bg-card shadow-sm border-border">
-          <CardHeader className="pb-3 border-b border-border/50">
-            <CardTitle className="text-base flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-success" /> Reporte Técnico de Cierre
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-5 space-y-4 text-sm">
-            {closureData.breakdownDescription && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Descripción de la falla</p>
-                <p>{closureData.breakdownDescription}</p>
-              </div>
-            )}
-            {closureData.cause && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Causa raíz</p>
-                <p>{closureData.cause}</p>
-              </div>
-            )}
-            {closureData.actionTaken && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Acción realizada</p>
-                <p>{closureData.actionTaken}</p>
-              </div>
-            )}
-            {closureData.toolsUsed && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Herramienta utilizada</p>
-                <p>{closureData.toolsUsed}</p>
-              </div>
-            )}
-            {closureData.downtimeMinutes != null && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Tiempo muerto</p>
-                <p>{closureData.downtimeMinutes} min</p>
-              </div>
-            )}
-            {closureData.observations && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Observaciones</p>
-                <p>{closureData.observations}</p>
-              </div>
-            )}
-            {closureData.spareParts && closureData.spareParts.length > 0 && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Refacciones utilizadas</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {closureData.spareParts.map((sp) => (
-                    <Badge key={sp.id} variant="secondary" className="text-xs">
-                      {sp.sparePart.brand} {sp.sparePart.model} ({sp.sparePart.partNumber})
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {closureData.customSparePart && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Refacción (otra)</p>
-                <p>{closureData.customSparePart}</p>
-              </div>
-            )}
-            {closureData.materials && closureData.materials.length > 0 && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Materiales utilizados</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {closureData.materials.map((m) => (
-                    <Badge key={m.id} variant="secondary" className="text-xs">
-                      {m.material.description}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {closureData.customMaterial && (
-              <div>
-                <p className="text-muted-foreground text-xs mb-1">Material (otro)</p>
-                <p>{closureData.customMaterial}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Firma del técnico (mostrada cuando existe) */}
       {techSignature && (
         <Card className="bg-card border-border shadow-sm w-fit min-w-[250px]">
@@ -615,7 +652,7 @@ export default function TecnicoOrdenPage() {
           </CardHeader>
           <CardContent className="flex flex-col items-center">
             <img
-              src={techSignature.signatureImagePath}
+              src={resolveBackendAssetUrl(techSignature?.signatureImagePath)}
               alt="Firma Técnico"
               className="h-16 object-contain"
             />

@@ -1,13 +1,66 @@
-name: Deploy VPS
+name: Build, Push and Deploy
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
-  deploy:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set lowercase image prefix
+        id: prep
+        run: |
+          echo "image_prefix=$(echo '${{ env.IMAGE_PREFIX }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./bbonemx-back
+          file: ./bbonemx-back/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.prep.outputs.image_prefix }}/backend:latest
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./bbonemx-front
+          file: ./bbonemx-front/Dockerfile
+          push: true
+          build-args: |
+            VITE_GRAPHQL_URL=${{ secrets.VITE_GRAPHQL_URL }}
+            VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
+            VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+            VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+            VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+            VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+            VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
+            VITE_FIREBASE_VAPID_KEY=${{ secrets.VITE_FIREBASE_VAPID_KEY }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.prep.outputs.image_prefix }}/frontend:latest
+
+  deploy-vps:
+    needs: build-and-push # <--- ESTA ES LA CLAVE: Espera a que termine la construcción
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
@@ -20,6 +73,15 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.VPS_APP_PATH }}
-            docker compose -f docker-compose.prod.yml pull || true
-            docker compose -f docker-compose.prod.yml up -d --build
-            docker compose -f docker-compose.prod.yml ps
+            
+            # Autenticarse en GHCR en el VPS (Necesario si el repo es privado)
+            # echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Forzar la descarga de la nueva imagen "latest"
+            docker compose -f docker-compose.prod.yml pull
+            
+            # Levantar contenedores SIN el flag --build
+            docker compose -f docker-compose.prod.yml up -d
+            
+            # Limpiar imágenes viejas que se quedaron sin tag en el VPS (ahorra disco)
+            docker image prune -f

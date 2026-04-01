@@ -97,12 +97,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [logoutMutation] = useMutation(LogoutDocument);
   const client = useApolloClient();
 
-  useEffect(() => {
-    const checkAuth = async () => {
+  const checkAuth = useCallback(
+    async (policy: 'network-only' | 'cache-only') => {
       try {
         const { data } = await client.query({
           query: MeDocument,
-          fetchPolicy: 'network-only',
+          fetchPolicy: policy,
         });
 
         if (data?.me) {
@@ -110,18 +110,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(unmasked);
           setActiveRoleState(resolveActiveRole(unmasked));
         } else {
+          setUser(null);
+          setActiveRoleState(null);
           localStorage.removeItem(ACTIVE_ROLE_KEY);
         }
-      } catch (error) {
-        console.error('Error auth:', error);
-        localStorage.removeItem(ACTIVE_ROLE_KEY);
-      } finally {
-        setIsLoading(false);
+      } catch {
+        if (policy === 'cache-only') {
+          // Cache vacía = sin sesión previa almacenada
+          setUser(null);
+          setActiveRoleState(null);
+          localStorage.removeItem(ACTIVE_ROLE_KEY);
+        }
+        // network-only fallido (reconexión con error transitorio): conservar estado actual
       }
-    };
+    },
+    [client]
+  );
 
-    checkAuth();
-  }, [client]);
+  // Verificación inicial: offline → leer caché, online → verificar con servidor
+  useEffect(() => {
+    const policy = navigator.onLine ? 'network-only' : 'cache-only';
+    checkAuth(policy).finally(() => setIsLoading(false));
+  }, [checkAuth]);
+
+  // Re-verificar sesión con el servidor al recuperar conectividad
+  useEffect(() => {
+    const handleOnline = () => { checkAuth('network-only'); };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [checkAuth]);
 
   const login = useCallback(
     async (employeeNumber: string, password: string): Promise<boolean> => {

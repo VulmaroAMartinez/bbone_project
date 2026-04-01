@@ -166,7 +166,7 @@ enum AreaType {
   """
   PRODUCTION
 
-  """Área de servicio - No tiene sub-áreas"""
+  """Área de servicio """
   SERVICE
 }
 

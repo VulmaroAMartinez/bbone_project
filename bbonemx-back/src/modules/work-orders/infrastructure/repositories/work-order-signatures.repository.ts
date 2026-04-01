@@ -41,7 +41,11 @@ export class WorkOrderSignaturesRepository {
   }
 
   async create(data: Partial<WorkOrderSignature>): Promise<WorkOrderSignature> {
-    return this.repository.save(this.repository.create(data));
+    const saved = await this.repository.save(this.repository.create(data));
+    return this.repository.findOne({
+      where: { id: saved.id },
+      relations: ['signer'],
+    }) as Promise<WorkOrderSignature>;
   }
 
   async update(

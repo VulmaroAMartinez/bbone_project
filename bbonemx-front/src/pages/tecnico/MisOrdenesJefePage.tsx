@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -9,26 +9,20 @@ import {
   MyRequestedWorkOrdersDocument,
   type WorkOrderStatus,
   WorkOrderItemFragmentDoc,
+  AreaBasicFragmentDoc,
+  SubAreaBasicFragmentDoc,
+  UserBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
-import { useFragment } from '@/lib/graphql/generated/fragment-masking';
+import { useFragment, useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
-
-import {
-  Search,
-  Plus,
-  Clock,
-  MapPin,
-  ClipboardList,
-  AlertTriangle,
-  ChevronRight,
-  User,
-} from 'lucide-react';
+import { WorkOrderCard } from '@/components/work-orders/WorkOrderCard';
+import { Search, Plus, ClipboardList, AlertTriangle } from 'lucide-react';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 export default function MisOrdenesJefePage() {
   const { user } = useAuth();
@@ -36,16 +30,15 @@ export default function MisOrdenesJefePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusTab, setStatusTab] = useState<WorkOrderStatus | 'all'>('all');
 
-  const { data, loading, error } = useQuery(MyRequestedWorkOrdersDocument, {
+  const { data, loading, error, isOffline } = useOfflineAwareQuery(MyRequestedWorkOrdersDocument, {
     skip: !user?.id,
-    fetchPolicy: 'cache-and-network',
   });
 
   const orders = useFragment(WorkOrderItemFragmentDoc, data?.myRequestedWorkOrders || []);
 
   if (loading && !data) return <WorkOrderListSkeleton count={5} />;
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -69,6 +62,7 @@ export default function MisOrdenesJefePage() {
 
   return (
     <div className="space-y-6 pb-12">
+      {isOffline && data && <OfflineBanner />}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Mis órdenes</h1>
@@ -122,51 +116,23 @@ export default function MisOrdenesJefePage() {
           </Card>
         ) : (
           filteredOrders.map((order) => {
-            const area = order.area as unknown as { name?: string } | null;
-            const subArea = order.subArea as unknown as { name?: string } | null;
+            const area = unmaskFragment(AreaBasicFragmentDoc, order.area);
+            const subArea = unmaskFragment(SubAreaBasicFragmentDoc, order.subArea);
             const leadTechRel = order.technicians?.find((t) => t.isLead);
-            const leadTechnician = leadTechRel?.technician as unknown as { firstName?: string; lastName?: string } | null;
-
+            const leadTechnician = unmaskFragment(UserBasicFragmentDoc, leadTechRel?.technician);
             return (
-              <Card
+              <WorkOrderCard
                 key={order.id}
-                className="bg-card border-border hover:border-primary/50 hover:shadow-md transition-all shadow-sm group cursor-pointer"
+                id={order.id}
+                folio={order.folio}
+                status={order.status}
+                description={order.description}
+                createdAt={order.createdAt}
+                area={area}
+                subArea={subArea}
+                leadTechnician={leadTechnician}
                 onClick={() => navigate(`/tecnico/mis-ordenes/${order.id}`)}
-              >
-                <CardContent className="py-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="font-mono text-sm font-bold text-primary group-hover:text-primary/80 transition-colors">
-                          {order.folio}
-                        </span>
-                        <StatusBadge status={order.status} />
-                      </div>
-                      <p className="text-sm text-foreground line-clamp-2">{order.description}</p>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-muted-foreground">
-                        {area?.name && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {area.name}
-                            {subArea?.name ? ` - ${subArea.name}` : ''}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(order.createdAt).toLocaleDateString('es-MX')}
-                        </span>
-                        {leadTechnician?.firstName && leadTechnician?.lastName && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {leadTechnician.firstName} {leadTechnician.lastName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 hidden md:block" />
-                  </div>
-                </CardContent>
-              </Card>
+              />
             );
           })
         )}
@@ -174,4 +140,3 @@ export default function MisOrdenesJefePage() {
     </div>
   );
 }
-

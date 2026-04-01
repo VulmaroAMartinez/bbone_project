@@ -15,7 +15,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { PlusCircle, ArrowLeft, Loader2, CheckCircle, ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { uploadFileToBackend } from '@/lib/utils/uploads';
+import { fileToBase64, enqueueTask, MAX_FILE_BYTES } from '@/lib/offline-sync';
 
 export default function NewFindingPage() {
     const navigate = useNavigate();
@@ -52,12 +56,22 @@ export default function NewFindingPage() {
 
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            setPhotoFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => setPhotoPreview(reader.result as string);
-            reader.readAsDataURL(file);
+        if (!file) return;
+
+        if (file.size > MAX_FILE_BYTES) {
+            toast.error(`La imagen no puede superar ${MAX_FILE_BYTES / 1_048_576} MB`);
+            e.target.value = '';
+            return;
         }
+
+        setPhotoFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setPhotoPreview(reader.result as string);
+        reader.onerror = () => {
+            reader.abort();
+            toast.error('Error al leer el archivo de imagen');
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -65,10 +79,41 @@ export default function NewFindingPage() {
         setFormError('');
 
         if (!isValid) return setFormError('Complete los campos obligatorios: Área, Turno y Descripción');
+
+        // ── Intercepción offline ───────────────────────────────────────────
+        if (!navigator.onLine) {
+            try {
+                const photo = photoFile
+                    ? {
+                          base64: await fileToBase64(photoFile),
+                          fileName: photoFile.name,
+                          mimeType: photoFile.type,
+                      }
+                    : undefined;
+                await enqueueTask({
+                    type: 'CREATE_FINDING',
+                    payload: {
+                        areaId: form.areaId,
+                        shiftId: form.shiftId,
+                        description: form.description.trim(),
+                        photo,
+                    },
+                });
+                toast.success('Guardado sin conexión. Se sincronizará automáticamente.');
+                navigate('/hallazgos');
+            } catch {
+                setFormError('No se pudo guardar el hallazgo localmente. Intente de nuevo.');
+            }
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
-            const photoPath = photoFile ? `uploads/findings/${Date.now()}_${photoFile.name}` : 'sin-foto.jpg';
+            // ── Subir foto real al backend (flujo online) ──────────────────
+            const photoPath = photoFile
+                ? (await uploadFileToBackend(photoFile)).url
+                : 'sin-foto.jpg';
 
             const input: CreateFindingInput = {
                 areaId: form.areaId,
@@ -84,7 +129,6 @@ export default function NewFindingPage() {
             setSuccess({ folio: data?.createFinding.folio || 'N/A' });
             setTimeout(() => navigate('/hallazgos'), 2000);
         } catch (err: unknown) {
-            console.error(err);
             setFormError(err instanceof Error ? err.message : 'Error al registrar el hallazgo');
         } finally {
             setIsSubmitting(false);
@@ -139,16 +183,14 @@ export default function NewFindingPage() {
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <Label className="text-primary font-semibold">Área *</Label>
-                                <Select value={form.areaId} onValueChange={(v) => handleChange('areaId', v)}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={areasLoading ? 'Cargando...' : 'Seleccionar área'} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {areas.map((a) => (
-                                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Combobox
+                                    options={areas.map((a) => ({ value: a.id, label: a.name }))}
+                                    value={form.areaId}
+                                    onValueChange={(v) => handleChange('areaId', v)}
+                                    placeholder={areasLoading ? 'Cargando...' : 'Seleccionar área'}
+                                    searchPlaceholder="Buscar área..."
+                                    emptyText="Sin áreas"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-primary font-semibold">Turno *</Label>

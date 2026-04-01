@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { cn } from '@/lib/utils';
 import {
     GetWeekScheduleDocument,
@@ -73,9 +74,9 @@ export default function SchedulePage() {
     const [filterDay, setFilterDay] = useState<string>('ALL');
 
     // --- Queries ---
-    const { data: weekData, loading: weekLoading, refetch: refetchWeek } = useQuery(GetWeekScheduleDocument, {
+    const { data: weekData, loading: weekLoading, refetch: refetchWeek } = useOfflineAwareQuery(GetWeekScheduleDocument, {
         variables: { weekNumber, year },
-        fetchPolicy: 'network-only'
+        onlinePolicy: 'network-only',
     });
     const { data: techData, loading: techLoading } = useQuery(GetScheduleTechniciansDocument);
     const { data: absData } = useQuery(GetAbsenceReasonsActiveDocument);

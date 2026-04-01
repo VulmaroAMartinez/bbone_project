@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog'
 import { Button } from './button';
@@ -15,6 +15,13 @@ interface SignatureDialogProps {
 export function SignatureDialog({ isOpen, onClose, onSave, title = 'Firmar Orden' }: SignatureDialogProps) {
     const sigCanvas = useRef<SignatureCanvas>(null);
     const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        const canvas = sigCanvas.current?.getCanvas();
+        if (canvas) {
+            canvas.getContext('2d', { willReadFrequently: true });
+        }
+    }, [isOpen]);
 
     const handleClear = () => {
         sigCanvas.current?.clear();

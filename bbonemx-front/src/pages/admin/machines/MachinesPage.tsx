@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useMutation } from '@apollo/client/react';
+import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -23,6 +24,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import {
     Dialog,
     DialogContent,
@@ -66,9 +68,10 @@ import {
     ClipboardList,
     Package,
     Wrench,
-    MapPin,
     ArrowUpDown,
     X,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
 import { MachineFormModal } from './modals/MachineFormModal';
@@ -91,9 +94,7 @@ export default function MachinesPage() {
         user?.roles?.some((r) => r.name === 'ADMIN') ?? user?.role?.name === 'ADMIN';
 
     // ─── Data fetching
-    const { data, loading, refetch } = useQuery(GetMachinesPageDataDocument, {
-        fetchPolicy: 'cache-and-network',
-    });
+    const { data, loading, refetch } = useOfflineAwareQuery(GetMachinesPageDataDocument);
 
     // ─── Mutations
     const [deactivateMachine] = useMutation(DeactivateMachineDocument);
@@ -103,6 +104,7 @@ export default function MachinesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterAreaId, setFilterAreaId] = useState('all');
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+    const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
     const [editingMachine, setEditingMachine] = useState<MachineBasicFragment | null>(null);
@@ -137,6 +139,9 @@ export default function MachinesPage() {
     }, [machines, searchTerm, filterAreaId, filterStatus]);
 
     const hasActiveFilters = searchTerm || filterAreaId !== 'all' || filterStatus !== 'all';
+    const PAGE_SIZE = 12;
+    const totalPages = Math.ceil(filteredMachines.length / PAGE_SIZE);
+    const pageMachines = filteredMachines.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     // ─── Handlers
 
@@ -185,6 +190,7 @@ export default function MachinesPage() {
         setSearchTerm('');
         setFilterAreaId('all');
         setFilterStatus('all');
+        setPage(1);
     };
 
     // ─── Render ───────────────────────────────────────────────
@@ -194,15 +200,15 @@ export default function MachinesPage() {
             {/* Header */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Máquinas</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Equipos/Estructuras</h1>
                     <p className="text-sm text-muted-foreground">
-                        {machines.length} máquina{machines.length !== 1 ? 's' : ''} registrada
+                        {machines.length} equipo{machines.length !== 1 ? 's' : ''} registrado
                         {machines.length !== 1 ? 's' : ''}
                     </p>
                 </div>
                 {isAdmin && (
                     <Button onClick={openCreateForm} className="gap-2 w-full sm:w-auto">
-                        <Plus className="h-4 w-4" /> Nueva Máquina
+                        <Plus className="h-4 w-4" /> Nuevo Equipo
                     </Button>
                 )}
             </div>
@@ -214,29 +220,24 @@ export default function MachinesPage() {
                     <Input
                         placeholder="Buscar por nombre, código, marca..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                         className="pl-9"
                     />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Select value={filterAreaId} onValueChange={setFilterAreaId}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <MapPin className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                            <SelectValue placeholder="Área" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todas las áreas</SelectItem>
-                            {areas.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>
-                                    {a.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <Combobox
+                        options={[{ value: 'all', label: 'Todas las áreas' }, ...areas.map((a) => ({ value: a.id, label: a.name }))]}
+                        value={filterAreaId}
+                        onValueChange={(v) => { setFilterAreaId(v); setPage(1); }}
+                        placeholder="Área"
+                        searchPlaceholder="Buscar área..."
+                        emptyText="Sin áreas"
+                        triggerClassName="w-full sm:w-[180px]"
+                    />
 
                     <Select
                         value={filterStatus}
-                        onValueChange={(v) => setFilterStatus(v as 'all' | 'active' | 'inactive')}
+                        onValueChange={(v) => { setFilterStatus(v as 'all' | 'active' | 'inactive'); setPage(1); }}
                     >
                         <SelectTrigger className="w-full sm:w-[160px]">
                             <ArrowUpDown className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
@@ -284,12 +285,12 @@ export default function MachinesPage() {
                             <Cog className="h-6 w-6" />
                         </EmptyMedia>
                         <EmptyTitle>
-                            {hasActiveFilters ? 'Sin resultados' : 'Sin máquinas'}
+                            {hasActiveFilters ? 'Sin resultados' : 'Sin equipos'}
                         </EmptyTitle>
                         <EmptyDescription>
                             {hasActiveFilters
                                 ? 'Intenta ajustar los filtros de búsqueda.'
-                                : 'Aún no se ha registrado ninguna máquina.'}
+                                : 'Aún no se ha registrado ningún equipo.'}
                         </EmptyDescription>
                     </EmptyHeader>
                     {hasActiveFilters && (
@@ -299,19 +300,32 @@ export default function MachinesPage() {
                     )}
                 </Empty>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filteredMachines.map((machine) => (
-                        <MachineCard
-                            key={machine.id}
-                            machine={machine}
-                            isAdmin={isAdmin}
-                            onEdit={() => openEditForm(machine)}
-                            onToggle={() => handleToggleStatus(machine)}
-                            onViewInfo={() => openInfo(machine)}
-                            onNavigate={(path) => navigate(path)}
-                        />
-                    ))}
-                </div>
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {pageMachines.map((machine) => (
+                            <MachineCard
+                                key={machine.id}
+                                machine={machine}
+                                isAdmin={isAdmin}
+                                onEdit={() => openEditForm(machine)}
+                                onToggle={() => handleToggleStatus(machine)}
+                                onViewInfo={() => openInfo(machine)}
+                                onNavigate={(path) => navigate(path)}
+                            />
+                        ))}
+                    </div>
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-2">
+                            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                                <ChevronLeft className="h-4 w-4" /> Anterior
+                            </Button>
+                            <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
+                            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                                Siguiente <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* ─── Modal: Crear / Editar ──────────────────────────── */}
@@ -337,9 +351,9 @@ export default function MachinesPage() {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>¿Desactivar máquina?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Desactivar equipo?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            La máquina <strong>{deactivatingMachine?.name}</strong> (
+                            El equipo <strong>{deactivatingMachine?.name}</strong> (
                             {deactivatingMachine?.code}) será marcada como inactiva. Podrás
                             reactivarla más tarde.
                         </AlertDialogDescription>

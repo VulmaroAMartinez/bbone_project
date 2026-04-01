@@ -9,7 +9,11 @@ import { CreateSubAreaInput, UpdateSubAreaInput } from '../dto';
 import { AreasService } from 'src/modules/catalogs/areas/application/services';
 import { AreaType } from 'src/common';
 
-const AREA_TYPES_WITH_SUBAREAS = [AreaType.OPERATIONAL, AreaType.PRODUCTION];
+const AREA_TYPES_WITH_SUBAREAS = [
+  AreaType.OPERATIONAL,
+  AreaType.PRODUCTION,
+  AreaType.SERVICE,
+];
 
 @Injectable()
 export class SubAreasService {
@@ -50,7 +54,7 @@ export class SubAreasService {
     const area = await this.areasService.findByIdOrFail(input.areaId);
     if (!AREA_TYPES_WITH_SUBAREAS.includes(area.type)) {
       throw new BadRequestException(
-        `Solo se pueden crear sub-áreas en áreas de tipo ${AREA_TYPES_WITH_SUBAREAS.join(' o ')}. El área "${area.name}" es de tipo ${area.type}.`,
+        `El área "${area.name}" es de tipo ${area.type} y no admite sub-áreas.`,
       );
     }
     return this.subAreasRepository.create(input);
@@ -62,7 +66,7 @@ export class SubAreasService {
       const area = await this.areasService.findByIdOrFail(input.areaId);
       if (!AREA_TYPES_WITH_SUBAREAS.includes(area.type)) {
         throw new BadRequestException(
-          `Solo se pueden asociar sub-áreas a áreas de tipo ${AREA_TYPES_WITH_SUBAREAS.join(' o ')}. El área seleccionada es de tipo ${area.type}.`,
+          `El área seleccionada es de tipo ${area.type} y no admite sub-áreas.`,
         );
       }
     }

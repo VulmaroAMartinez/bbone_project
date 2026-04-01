@@ -78,6 +78,7 @@ export const GET_MATERIAL_REQUESTS_QUERY = gql`
       priority
       importance
       boss
+      description
       suggestedSupplier
       isActive
       emailSentAt
@@ -285,6 +286,12 @@ export const UPDATE_MATERIAL_REQUEST_MUTATION = gql`
       id
       folio
     }
+  }
+`;
+
+export const REMOVE_MATERIAL_FROM_REQUEST_MUTATION = gql`
+  mutation RemoveMaterialFromRequest($materialRequestMaterialId: ID!) {
+    removeMaterialFromRequest(materialRequestMaterialId: $materialRequestMaterialId)
   }
 `;
 

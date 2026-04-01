@@ -72,7 +72,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         { href: '/admin/ordenes', label: 'Órdenes', icon: ClipboardList },
         { href: '/admin/ordenes-programadas', label: 'Programadas', icon: Calendar },
         { href: '/admin/actividades', label: 'Actividades', icon: ListChecks },
-        { href: '/maquinas', label: 'Máquinas', icon: Forklift },
+        { href: '/maquinas', label: 'Equipos/Estructuras', icon: Forklift },
         { href: '/hallazgos', label: 'Hallazgos', icon: Search },
         { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
         { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },

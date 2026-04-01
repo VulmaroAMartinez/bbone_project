@@ -5,9 +5,21 @@ export type BackendUploadResponse = {
 
 const FALLBACK_API_BASE = 'http://localhost:3000';
 
-export const getApiBaseUrl = () => (
-  import.meta.env.VITE_GRAPHQL_URL?.replace('/graphql', '') ?? FALLBACK_API_BASE
-);
+const INVALID_CONFIG_MESSAGE = 'Configuración inválida: falta VITE_GRAPHQL_URL. Defínela en las variables de entorno.';
+
+export const getApiBaseUrl = () => {
+  const graphqlUrl = import.meta.env.VITE_GRAPHQL_URL?.trim();
+
+  if (graphqlUrl) {
+    return graphqlUrl.replace(/\/graphql\/?$/, '');
+  }
+
+  if (import.meta.env.DEV) {
+    return FALLBACK_API_BASE;
+  }
+
+  throw new Error(INVALID_CONFIG_MESSAGE);
+};
 
 export const resolveBackendAssetUrl = (pathOrUrl?: string | null) => {
   if (!pathOrUrl) return '';
@@ -16,6 +28,12 @@ export const resolveBackendAssetUrl = (pathOrUrl?: string | null) => {
   const apiBase = getApiBaseUrl();
   const normalizedPath = pathOrUrl.startsWith('/') ? pathOrUrl : `/${pathOrUrl}`;
   return `${apiBase}${normalizedPath}`;
+};
+
+export const dataUrlToFile = async (dataUrl: string, filename: string): Promise<File> => {
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type || 'image/png' });
 };
 
 export const uploadFileToBackend = async (file: File) => {
