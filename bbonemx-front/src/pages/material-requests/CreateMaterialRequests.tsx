@@ -13,7 +13,7 @@ import {
     REMOVE_MATERIAL_FROM_REQUEST_MUTATION,
     GET_MATERIAL_REQUEST_QUERY,
 } from '@/lib/graphql/operations/material-requests';
-import { shouldClearItemsOnCategoryChange } from '@/lib/logic/material-request-logic';
+import { shouldClearItemsOnCategoryChange } from '@/lib/material-requests/material-request-logic';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
