@@ -1,4 +1,4 @@
-import { seedDataSource } from './data-source';
+import { appDataSource as seedDataSource } from '../data-source';
 import { seedRoles } from './roles.seed';
 import { seedDepartments } from './departments.seed';
 import { seedAdmin } from './admin.seed';
