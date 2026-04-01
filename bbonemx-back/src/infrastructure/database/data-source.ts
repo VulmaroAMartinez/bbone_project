@@ -25,5 +25,3 @@ export const appDataSource = new DataSource({
   ],
   migrationsTableName: 'migrations',
 });
-
-export default appDataSource;
