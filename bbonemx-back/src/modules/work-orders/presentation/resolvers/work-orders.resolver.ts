@@ -9,6 +9,7 @@ import {
   Parent,
 } from '@nestjs/graphql';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   WorkOrdersService,
   WorkOrderPhotosService,
@@ -137,6 +138,19 @@ export class WorkOrdersResolver {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  @Mutation(() => String, {
+    name: 'exportWorkOrderPdf',
+    description: 'Exportar orden de trabajo a PDF (Base64)',
+  })
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.BOSS)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async exportWorkOrderPdf(
+    @Args('id', { type: () => ID }) id: string,
+  ): Promise<string> {
+    return this.workOrdersService.exportToPdf(id);
   }
 
   @Query(() => WorkOrderType, { name: 'workOrder', nullable: true })

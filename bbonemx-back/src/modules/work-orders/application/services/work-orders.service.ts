@@ -29,6 +29,10 @@ import {
 import { AreasService } from 'src/modules/catalogs/areas/application/services';
 import { SubAreasService } from 'src/modules/catalogs/sub-areas/application/services';
 import { TechnicianSchedulesService } from 'src/modules/technician-schedules/application/services';
+import { WorkOrderPhotosService } from './work-order-photos.service';
+import { WorkOrderSparePartsService } from './work-order-spare-parts.service';
+import { WorkOrderMaterialsService } from './work-order-materials.service';
+import { WorkOrderPdfService } from './work-order-pdf.service';
 /** Allowed status transitions */
 const VALID_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
   [WorkOrderStatus.PENDING]: [WorkOrderStatus.IN_PROGRESS],
@@ -54,6 +58,10 @@ export class WorkOrdersService {
     private readonly areasService: AreasService,
     private readonly subAreasService: SubAreasService,
     private readonly technicianSchedulesService: TechnicianSchedulesService,
+    private readonly workOrderPhotosService: WorkOrderPhotosService,
+    private readonly workOrderSparePartsService: WorkOrderSparePartsService,
+    private readonly workOrderMaterialsService: WorkOrderMaterialsService,
+    private readonly workOrderPdfService: WorkOrderPdfService,
   ) {}
 
   async findAll(): Promise<WorkOrder[]> {
@@ -434,6 +442,39 @@ export class WorkOrdersService {
 
     await this.workOrdersRepository.update(id, { status });
     return this.findByIdOrFail(id);
+  }
+
+  async exportToPdf(id: string): Promise<string> {
+    const workOrder = await this.workOrdersRepository.findByIdForPdf(id);
+    if (!workOrder) {
+      throw new NotFoundException(`Orden de trabajo con ID ${id} no encontrada`);
+    }
+
+    const signaturesCount =
+      await this.woSignaturesRepository.countByWorkOrderId(id);
+    if (signaturesCount < 3) {
+      throw new BadRequestException(
+        'La orden de trabajo debe tener al menos 3 firmas para exportar a PDF',
+      );
+    }
+
+    const [technicians, signatures, photos, spareParts, materials] =
+      await Promise.all([
+        this.woTechniciansRepository.findByWorkOrderId(id),
+        this.woSignaturesRepository.findByWorkOrderId(id),
+        this.workOrderPhotosService.findByWorkOrderId(id),
+        this.workOrderSparePartsService.findByWorkOrderId(id),
+        this.workOrderMaterialsService.findByWorkOrderId(id),
+      ]);
+
+    return this.workOrderPdfService.generatePdfBase64({
+      workOrder,
+      technicians,
+      signatures,
+      photos,
+      spareParts,
+      materials,
+    });
   }
 
   async linkFinding(workOrderId: string, findingId: string): Promise<void> {

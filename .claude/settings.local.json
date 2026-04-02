@@ -26,7 +26,10 @@
       "Bash(node --experimental-vm-modules tests/bug-fixes.test.mjs)",
       "Bash(sed -i \"s|from ''./material-requests.constants''|from ''@/components/material-requests/material-request.constants''|g\" \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/src/pages/material-requests/MaterialRequestDetailPage.tsx\" \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/src/pages/material-requests/CreateMaterialRequests.tsx\")",
       "Bash(sed -i \"s|from ''@/pages/material-requests/material-requests.constants''|from ''@/components/material-requests/material-request.constants''|g\" \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/src/pages/admin/material-requests/MaterialRequestHistoryPage.tsx\")",
-      "Bash(ls dist/*.js dist/*.mjs)"
+      "Bash(ls dist/*.js dist/*.mjs)",
+      "Bash(mkdir -p \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-back/assets\")",
+      "Bash(cp \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/src/assets/logo1.png\" \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-back/assets/logo1.png\")",
+      "Bash(node -e \"const t = require\\('@nestjs/throttler'\\); console.log\\(Object.keys\\(t\\)\\)\")"
     ]
   }
 }

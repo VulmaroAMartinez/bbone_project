@@ -89,6 +89,21 @@ export class WorkOrdersRepository {
     });
   }
 
+  async findByIdForPdf(id: string): Promise<WorkOrder | null> {
+    return this.repository.findOne({
+      where: { id, isActive: true },
+      relations: [
+        'area',
+        'subArea',
+        'requester',
+        'requester.userRoles',
+        'requester.userRoles.role',
+        'assignedShift',
+        'machine',
+      ],
+    });
+  }
+
   async findByFolio(folio: string): Promise<WorkOrder | null> {
     return this.repository.findOne({
       where: { folio, isActive: true },

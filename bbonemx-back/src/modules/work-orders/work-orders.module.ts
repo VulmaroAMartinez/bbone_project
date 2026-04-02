@@ -26,6 +26,7 @@ import {
   WorkOrderSignaturesService,
   WorkOrderSparePartsService,
   WorkOrderMaterialsService,
+  WorkOrderPdfService,
 } from './application/services';
 
 import { WorkOrdersResolver } from './presentation/resolvers';
@@ -74,6 +75,7 @@ import { TechnicianSchedulesModule } from '../technician-schedules/technician-sc
     WorkOrderSignaturesService,
     WorkOrderSparePartsService,
     WorkOrderMaterialsService,
+    WorkOrderPdfService,
     WorkOrdersResolver,
   ],
   exports: [
