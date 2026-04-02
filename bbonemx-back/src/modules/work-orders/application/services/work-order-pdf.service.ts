@@ -127,9 +127,8 @@ export class WorkOrderPdfService implements OnModuleInit {
       );
     }
 
-    const urlResolverMod = (await import(
-      'pdfmake/js/URLResolver.js'
-    )) as Record<string, unknown>;
+    const urlResolverMod =
+      (await import('pdfmake/js/URLResolver.js')) as Record<string, unknown>;
     let URLResolver = (urlResolverMod?.default ?? urlResolverMod) as
       | { default?: unknown }
       | (new (...args: unknown[]) => unknown);
@@ -247,7 +246,12 @@ export class WorkOrderPdfService implements OnModuleInit {
 
     const rightCol: any = {
       stack: [
-        { text: `Folio: ${wo.folio}`, bold: true, fontSize: 10, alignment: 'right' },
+        {
+          text: `Folio: ${wo.folio}`,
+          bold: true,
+          fontSize: 10,
+          alignment: 'right',
+        },
         {
           text: `Fecha: ${this.formatDate(wo.createdAt)}`,
           fontSize: 9,
@@ -314,7 +318,8 @@ export class WorkOrderPdfService implements OnModuleInit {
       const role = t.isLead ? 'Técnico Líder' : 'Técnico Auxiliar';
       return `${name} (${role})`;
     });
-    const techText = techLines.length > 0 ? techLines.join('\n') : 'Sin asignar';
+    const techText =
+      techLines.length > 0 ? techLines.join('\n') : 'Sin asignar';
 
     const priorityText = wo.priority
       ? (PRIORITY_LABELS[String(wo.priority)] ?? String(wo.priority))
@@ -372,13 +377,10 @@ export class WorkOrderPdfService implements OnModuleInit {
     afterPhoto: WorkOrderPhoto | undefined,
     beforeDataUrl: string | null,
     afterDataUrl: string | null,
-  ): any | null {
+  ): object | null {
     if (!beforePhoto && !afterPhoto) return null;
 
-    const buildPhotoCol = (
-      dataUrl: string | null,
-      label: string,
-    ): any => ({
+    const buildPhotoCol = (dataUrl: string | null, label: string): any => ({
       stack: [
         {
           text: label,
@@ -425,7 +427,13 @@ export class WorkOrderPdfService implements OnModuleInit {
     const addField = (label: string, value: string): void => {
       rows.push({
         columns: [
-          { text: label, bold: true, fontSize: 9, width: 160, fillColor: '#F0F4F8' },
+          {
+            text: label,
+            bold: true,
+            fontSize: 9,
+            width: 160,
+            fillColor: '#F0F4F8',
+          },
           { text: value, fontSize: 9, width: '*' },
         ],
         columnGap: 0,
@@ -523,6 +531,7 @@ export class WorkOrderPdfService implements OnModuleInit {
     }
 
     return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       stack: [this.sectionTitle('EJECUCIÓN', 12), ...rows],
     };
   }
@@ -537,8 +546,16 @@ export class WorkOrderPdfService implements OnModuleInit {
         headerRows: 1,
         widths,
         body: [
-          headers.map((h) => ({ text: h, bold: true, fontSize: 8, fillColor: '#1F4E79', color: '#FFFFFF' })),
-          ...dataRows.map((r) => r.map((cell) => ({ text: cell, fontSize: 8 }))),
+          headers.map((h) => ({
+            text: h,
+            bold: true,
+            fontSize: 8,
+            fillColor: '#1F4E79',
+            color: '#FFFFFF',
+          })),
+          ...dataRows.map((r) =>
+            r.map((cell) => ({ text: cell, fontSize: 8 })),
+          ),
         ],
       },
       layout: {
@@ -574,9 +591,12 @@ export class WorkOrderPdfService implements OnModuleInit {
           : 'N/A';
 
         const activeRoles =
-          (sig.signer as any)?.userRoles
-            ?.filter((ur: any) => ur.isActive !== false)
-            ?.map((ur: any) => ROLE_LABELS[ur.role?.name] ?? ur.role?.name)
+          sig.signer?.userRoles
+            ?.filter((ur) => ur.isActive !== false)
+            ?.map((ur) => {
+              const name = ur.role?.name;
+              return name ? (ROLE_LABELS[name] ?? name) : undefined;
+            })
             ?.filter(Boolean)
             ?.join(', ') ?? '';
 
@@ -607,7 +627,12 @@ export class WorkOrderPdfService implements OnModuleInit {
               margin: [0, 2, 0, 2],
             },
             { text: signerName, fontSize: 8, bold: true, alignment: 'center' },
-            { text: activeRoles, fontSize: 7, alignment: 'center', color: '#555555' },
+            {
+              text: activeRoles,
+              fontSize: 7,
+              alignment: 'center',
+              color: '#555555',
+            },
           ],
           width: '*',
         });
@@ -643,10 +668,7 @@ export class WorkOrderPdfService implements OnModuleInit {
     }
 
     return {
-      stack: [
-        this.sectionTitle('FIRMAS', 12),
-        { columns, columnGap: 10 },
-      ],
+      stack: [this.sectionTitle('FIRMAS', 12), { columns, columnGap: 10 }],
     };
   }
 
@@ -664,7 +686,14 @@ export class WorkOrderPdfService implements OnModuleInit {
 
   async generatePdfBase64(data: WorkOrderPdfData): Promise<string> {
     const startedAt = Date.now();
-    const { workOrder, technicians, signatures, photos, spareParts, materials } = data;
+    const {
+      workOrder,
+      technicians,
+      signatures,
+      photos,
+      spareParts,
+      materials,
+    } = data;
 
     try {
       const beforePhoto = photos.find((p) => p.photoType === PhotoType.BEFORE);
@@ -675,10 +704,16 @@ export class WorkOrderPdfService implements OnModuleInit {
         await Promise.all([
           this.readLogoDataUrl(),
           beforePhoto
-            ? this.readUploadedImageDataUrl(beforePhoto.filePath, beforePhoto.mimeType)
+            ? this.readUploadedImageDataUrl(
+                beforePhoto.filePath,
+                beforePhoto.mimeType,
+              )
             : Promise.resolve(null),
           afterPhoto
-            ? this.readUploadedImageDataUrl(afterPhoto.filePath, afterPhoto.mimeType)
+            ? this.readUploadedImageDataUrl(
+                afterPhoto.filePath,
+                afterPhoto.mimeType,
+              )
             : Promise.resolve(null),
           ...signatures.map((s) =>
             this.readUploadedImageDataUrl(s.signatureImagePath),
@@ -700,7 +735,9 @@ export class WorkOrderPdfService implements OnModuleInit {
         content.push(photoSection);
       }
 
-      content.push(this.buildSeccionEjecucion(workOrder, spareParts, materials));
+      content.push(
+        this.buildSeccionEjecucion(workOrder, spareParts, materials),
+      );
       content.push(this.buildSeccionFirmas(signatures, sigDataUrls));
 
       const docDefinition: TDocumentDefinitions = {

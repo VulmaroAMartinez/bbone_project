@@ -447,7 +447,9 @@ export class WorkOrdersService {
   async exportToPdf(id: string): Promise<string> {
     const workOrder = await this.workOrdersRepository.findByIdForPdf(id);
     if (!workOrder) {
-      throw new NotFoundException(`Orden de trabajo con ID ${id} no encontrada`);
+      throw new NotFoundException(
+        `Orden de trabajo con ID ${id} no encontrada`,
+      );
     }
 
     const signaturesCount =

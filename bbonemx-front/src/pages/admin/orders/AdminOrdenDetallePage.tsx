@@ -143,6 +143,16 @@ function AdminOrdenDetallePage() {
   const [assignOrder, { loading: assigning }] = useMutation(ASSIGN_WORK_ORDER_MUTATION);
   const [resumeOrder, { loading: resuming }] = useMutation(RESUME_WORK_ORDER_MUTATION);
   const [signWorkOrder] = useMutation(SIGN_WORK_ORDER_MUTATION);
+  const [exportPdf, { loading: exportingPdf }] = useMutation<{ exportWorkOrderPdf: string }>(
+    EXPORT_WORK_ORDER_PDF_MUTATION,
+    {
+      onCompleted: (data) => {
+        downloadPdfFromBase64(data.exportWorkOrderPdf, `OT-${order?.folio ?? 'OT'}.pdf`);
+        toast.success('PDF descargado correctamente');
+      },
+      onError: (err) => toast.error(`Error al exportar PDF: ${err.message}`),
+    },
+  );
 
   const workOrderRaw = (data as unknown as { workOrder?: Record<string, unknown> })?.workOrder;
   const order = unmaskFragment(WorkOrderItemFragmentDoc, workOrderRaw);
@@ -341,17 +351,6 @@ function AdminOrdenDetallePage() {
   const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
   const photoAfter = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'AFTER');
   const isProcessing = updating || assigning;
-
-  const [exportPdf, { loading: exportingPdf }] = useMutation<{ exportWorkOrderPdf: string }>(
-    EXPORT_WORK_ORDER_PDF_MUTATION,
-    {
-      onCompleted: (data) => {
-        downloadPdfFromBase64(data.exportWorkOrderPdf, `OT-${order?.folio ?? 'OT'}.pdf`);
-        toast.success('PDF descargado correctamente');
-      },
-      onError: (err) => toast.error(`Error al exportar PDF: ${err.message}`),
-    },
-  );
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
