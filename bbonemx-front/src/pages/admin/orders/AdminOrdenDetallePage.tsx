@@ -26,7 +26,9 @@ import {
   SIGN_WORK_ORDER_MUTATION,
   RESUME_WORK_ORDER_MUTATION,
   ASSIGN_WORK_ORDER_MUTATION,
+  EXPORT_WORK_ORDER_PDF_MUTATION,
 } from '@/lib/graphql/operations/work-orders';
+import { downloadPdfFromBase64 } from '@/lib/utils/pdf-download';
 import { resolveBackendAssetUrl, uploadFileToBackend, dataUrlToFile } from '@/lib/utils/uploads';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +57,7 @@ import {
   Play,
   Pen,
   CheckCircle,
+  FileDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -339,6 +342,17 @@ function AdminOrdenDetallePage() {
   const photoAfter = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'AFTER');
   const isProcessing = updating || assigning;
 
+  const [exportPdf, { loading: exportingPdf }] = useMutation<{ exportWorkOrderPdf: string }>(
+    EXPORT_WORK_ORDER_PDF_MUTATION,
+    {
+      onCompleted: (data) => {
+        downloadPdfFromBase64(data.exportWorkOrderPdf, `OT-${order?.folio ?? 'OT'}.pdf`);
+        toast.success('PDF descargado correctamente');
+      },
+      onError: (err) => toast.error(`Error al exportar PDF: ${err.message}`),
+    },
+  );
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
       {/* Header */}
@@ -376,6 +390,17 @@ function AdminOrdenDetallePage() {
             Firmar como Administrador
           </Button>
         )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => exportPdf({ variables: { id: order.id } })}
+          disabled={!order.isFullySigned || exportingPdf}
+          title={!order.isFullySigned ? 'Requiere 3 firmas para exportar' : 'Exportar PDF'}
+          className="gap-2 ml-auto"
+        >
+          <FileDown className="h-4 w-4" />
+          {exportingPdf ? 'Exportando...' : 'Exportar PDF'}
+        </Button>
       </div>
 
       {/* Banner de Pausa */}

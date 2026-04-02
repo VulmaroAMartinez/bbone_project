@@ -347,3 +347,8 @@ export const GET_MACHINE_SPARE_PARTS_FOR_WO = gql`
     }
   }
 `;
+export const EXPORT_WORK_ORDER_PDF_MUTATION = gql`
+  mutation ExportWorkOrderPdf($id: ID!) {
+    exportWorkOrderPdf(id: $id)
+  }
+`;

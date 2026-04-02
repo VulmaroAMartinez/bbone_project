@@ -178,7 +178,7 @@ export type AreaType =
   | 'OPERATIONAL'
   /** Área de producción - Puede tener líneas (sub-áreas) y máquinas directas */
   | 'PRODUCTION'
-  /** Área de servicio - No tiene sub-áreas */
+  /** Área de servicio  */
   | 'SERVICE';
 
 export type AssignTechnicianInput = {
@@ -882,6 +882,8 @@ export type Mutation = {
   deleteTechnicianSchedule: Scalars['Boolean']['output'];
   deleteWorkOrder: Scalars['Boolean']['output'];
   deleteWorkOrderPhoto: WorkOrderPhoto;
+  /** Exportar orden de trabajo a PDF (Base64) */
+  exportWorkOrderPdf: Scalars['String']['output'];
   generateWorkOrdersForPreventiveTask: GenerateWorkOrdersResult;
   /** Inicia sesión con número de empleado y contraseña */
   login: LoginResponse;
@@ -1279,6 +1281,11 @@ export type MutationDeleteWorkOrderArgs = {
 
 
 export type MutationDeleteWorkOrderPhotoArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationExportWorkOrderPdfArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -3875,6 +3882,13 @@ export type GetMachineSparePartsForWoQueryVariables = Exact<{
 
 export type GetMachineSparePartsForWoQuery = { __typename?: 'Query', sparePartsByMachine: Array<{ __typename?: 'SparePart', id: string, partNumber: string, brand?: string | null, model?: string | null, unitOfMeasure?: string | null, isActive: boolean }> };
 
+export type ExportWorkOrderPdfMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type ExportWorkOrderPdfMutation = { __typename?: 'Mutation', exportWorkOrderPdf: string };
+
 export const AreaBasicFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AreaBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Area"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}}]}}]} as unknown as DocumentNode<AreaBasicFragment, unknown>;
 export const RoleBasicFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"RoleBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Role"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]} as unknown as DocumentNode<RoleBasicFragment, unknown>;
 export const UserBasicFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"UserBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"employeeNumber"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"roleIds"}},{"kind":"Field","name":{"kind":"Name","value":"role"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"RoleBasic"}}]}},{"kind":"Field","name":{"kind":"Name","value":"roles"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"RoleBasic"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"RoleBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Role"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]} as unknown as DocumentNode<UserBasicFragment, unknown>;
@@ -4027,3 +4041,4 @@ export const AddWorkOrderSparePartDocument = {"kind":"Document","definitions":[{
 export const AddWorkOrderMaterialDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"AddWorkOrderMaterial"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"AddWorkOrderMaterialInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"addWorkOrderMaterial"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"quantity"}},{"kind":"Field","name":{"kind":"Name","value":"material"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"brand"}}]}}]}}]}}]} as unknown as DocumentNode<AddWorkOrderMaterialMutation, AddWorkOrderMaterialMutationVariables>;
 export const GetActiveMaterialsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetActiveMaterials"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"materialsActive"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"brand"}},{"kind":"Field","name":{"kind":"Name","value":"model"}},{"kind":"Field","name":{"kind":"Name","value":"partNumber"}},{"kind":"Field","name":{"kind":"Name","value":"unitOfMeasure"}}]}}]}}]} as unknown as DocumentNode<GetActiveMaterialsQuery, GetActiveMaterialsQueryVariables>;
 export const GetMachineSparePartsForWoDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetMachineSparePartsForWO"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"machineId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sparePartsByMachine"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"machineId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"machineId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"partNumber"}},{"kind":"Field","name":{"kind":"Name","value":"brand"}},{"kind":"Field","name":{"kind":"Name","value":"model"}},{"kind":"Field","name":{"kind":"Name","value":"unitOfMeasure"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}}]}}]}}]} as unknown as DocumentNode<GetMachineSparePartsForWoQuery, GetMachineSparePartsForWoQueryVariables>;
+export const ExportWorkOrderPdfDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ExportWorkOrderPdf"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"exportWorkOrderPdf"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<ExportWorkOrderPdfMutation, ExportWorkOrderPdfMutationVariables>;

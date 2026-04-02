@@ -31,7 +31,7 @@ export async function seedAdmin(dataSource: DataSource): Promise<void> {
 
   const maintenanceDepartment = await getDepartmentByName(
     dataSource,
-    'MAINTENANCE',
+    'Mantenimiento',
   );
 
   if (!maintenanceDepartment) {

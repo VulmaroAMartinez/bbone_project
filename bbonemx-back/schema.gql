@@ -912,6 +912,9 @@ type Mutation {
   deleteTechnicianSchedule(id: ID!): Boolean!
   deleteWorkOrder(id: ID!): Boolean!
   deleteWorkOrderPhoto(id: ID!): WorkOrderPhoto!
+
+  """Exportar orden de trabajo a PDF (Base64)"""
+  exportWorkOrderPdf(id: ID!): String!
   generateWorkOrdersForPreventiveTask: GenerateWorkOrdersResult!
 
   """Inicia sesión con número de empleado y contraseña"""
