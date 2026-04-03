@@ -151,7 +151,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <nav className="py-4 px-2">
           <div className="px-3 mb-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
