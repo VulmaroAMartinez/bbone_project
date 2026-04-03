@@ -1,7 +1,15 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
 import { OfflineFallback } from '@/components/ui/offline-fallback';
+
+function LogoutAndRedirect({ logout }: { logout: () => void }) {
+  useEffect(() => {
+    logout();
+  }, [logout]);
+  return <FullPageLoader />;
+}
 
 const HOME_BY_ROLE: Record<string, string> = {
   ADMIN: '/admin/dashboard',
@@ -10,7 +18,7 @@ const HOME_BY_ROLE: Record<string, string> = {
 };
 
 export default function HomePage() {
-  const { user, isAuthenticated, isLoading, activeRole, canSwitchRoles, isBoss } = useAuth();
+  const { user, isAuthenticated, isLoading, activeRole, canSwitchRoles, isBoss, logout } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -37,7 +45,9 @@ export default function HomePage() {
     if (isBoss) {
       return <Navigate to="/solicitud-material/nueva" replace />;
     }
-    return <Navigate to="/login" replace />;
+    // No recognized role — avoid redirect loop with LoginPage by logging out.
+    // Redirecting to /login would cause: LoginPage → / → LoginPage → loop.
+    return <LogoutAndRedirect logout={logout} />;
   }
 
   const redirectTo =

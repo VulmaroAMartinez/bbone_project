@@ -171,6 +171,7 @@ export class UsersRepository {
       const ur = this.userRoleRepository.create();
       ur.userId = userId;
       ur.roleId = role.id;
+      ur.isActive = true;
       return ur;
     });
     await this.userRoleRepository.save(userRoles);
