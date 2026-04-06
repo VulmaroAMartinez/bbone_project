@@ -63,6 +63,14 @@ export const GET_SCHEDULE_TECHNICIANS_QUERY = gql`
   }
 `;
 
+export const GET_TECH_IDS_FOR_SHIFT_QUERY = gql`
+  query GetTechIdsForShift($filters: ScheduleFiltersInput!) {
+    technicianSchedulesFiltered(filters: $filters) {
+      technicianId
+    }
+  }
+`;
+
 export const GET_ABSENCE_REASONS_ACTIVE_QUERY = gql`
   query GetAbsenceReasonsActive {
     absenceReasonsActive {

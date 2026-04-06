@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 const schema = yup.object({
     partNumber: yup.string().trim().required('El número de parte es obligatorio'),
     machineId: yup.string().required('Debe seleccionar una máquina'),
+    sku: yup.string().trim().default(''),
     brand: yup.string().trim().default(''),
     model: yup.string().trim().default(''),
     supplier: yup.string().trim().default(''),
@@ -38,6 +39,7 @@ interface SparePartFormModalProps {
     sparePart: {
         id?: string;
         partNumber?: string | null;
+        sku?: string | null;
         machine?: { id?: string | null } | null;
         brand?: string | null;
         model?: string | null;
@@ -55,7 +57,7 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
 
     const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormValues>({
         resolver: yupResolver(schema),
-        defaultValues: { partNumber: '', machineId: '', brand: '', model: '', supplier: '', unitOfMeasure: '' },
+        defaultValues: { partNumber: '', machineId: '', sku: '', brand: '', model: '', supplier: '', unitOfMeasure: '' },
     });
 
     const machineRefs = machinesData?.machinesWithDeleted ?? [];
@@ -67,13 +69,14 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
                 reset({
                     partNumber: sparePart.partNumber || '',
                     machineId: sparePart.machine?.id || '',
+                    sku: sparePart.sku || '',
                     brand: sparePart.brand || '',
                     model: sparePart.model || '',
                     supplier: sparePart.supplier || '',
                     unitOfMeasure: sparePart.unitOfMeasure || '',
                 });
             } else {
-                reset({ partNumber: '', machineId: '', brand: '', model: '', supplier: '', unitOfMeasure: '' });
+                reset({ partNumber: '', machineId: '', sku: '', brand: '', model: '', supplier: '', unitOfMeasure: '' });
             }
         }
     }, [open, sparePart, reset]);
@@ -127,10 +130,16 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
                     {/* Identificación */}
                     <div className="space-y-4 p-4 rounded-lg border border-border">
                         <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">Identificación</h4>
-                        <div className="space-y-2">
-                            <Label>Número de Parte *</Label>
-                            <Input {...register('partNumber')} placeholder="Ej: BAL-608-ZZ" />
-                            {errors.partNumber && <p className="text-xs text-destructive">{errors.partNumber.message}</p>}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Número de Parte *</Label>
+                                <Input {...register('partNumber')} placeholder="Ej: BAL-608-ZZ" />
+                                {errors.partNumber && <p className="text-xs text-destructive">{errors.partNumber.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label>SKU</Label>
+                                <Input {...register('sku')} placeholder="Ej: SKU-001" />
+                            </div>
                         </div>
                     </div>
 

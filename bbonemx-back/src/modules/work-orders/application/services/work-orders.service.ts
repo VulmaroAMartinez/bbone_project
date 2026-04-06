@@ -29,10 +29,18 @@ import {
 import { AreasService } from 'src/modules/catalogs/areas/application/services';
 import { SubAreasService } from 'src/modules/catalogs/sub-areas/application/services';
 import { TechnicianSchedulesService } from 'src/modules/technician-schedules/application/services';
+import { ShiftsService } from 'src/modules/catalogs/shifts/application/services/shifts.service';
 import { WorkOrderPhotosService } from './work-order-photos.service';
 import { WorkOrderSparePartsService } from './work-order-spare-parts.service';
 import { WorkOrderMaterialsService } from './work-order-materials.service';
 import { WorkOrderPdfService } from './work-order-pdf.service';
+/**
+ * Grupos de turnos compatibles entre sí.
+ * Los turnos dentro de un mismo grupo pueden asignarse a órdenes de trabajo del grupo.
+ * Los nombres se comparan en UPPERCASE.
+ */
+const SHIFT_GROUPS: string[][] = [['TURNO 1', 'AVANZADA']];
+
 /** Allowed status transitions */
 const VALID_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
   [WorkOrderStatus.PENDING]: [WorkOrderStatus.IN_PROGRESS],
@@ -58,6 +66,7 @@ export class WorkOrdersService {
     private readonly areasService: AreasService,
     private readonly subAreasService: SubAreasService,
     private readonly technicianSchedulesService: TechnicianSchedulesService,
+    private readonly shiftsService: ShiftsService,
     private readonly workOrderPhotosService: WorkOrderPhotosService,
     private readonly workOrderSparePartsService: WorkOrderSparePartsService,
     private readonly workOrderMaterialsService: WorkOrderMaterialsService,
@@ -498,23 +507,39 @@ export class WorkOrdersService {
     return new Date().toISOString().split('T')[0];
   }
 
+  /** Returns the list of shift names compatible with the given shift name (uppercase). */
+  private getCompatibleShiftNames(shiftName: string): string[] {
+    const upper = shiftName.toUpperCase();
+    const group = SHIFT_GROUPS.find((g) => g.includes(upper));
+    return group ?? [upper];
+  }
+
   private async ensureTechnicianAssignedToShift(
     technicianId: string,
     shiftId: string,
     scheduleDate: string,
   ): Promise<void> {
-    const schedules = await this.technicianSchedulesService.findWithFilters({
-      technicianId,
-      shiftId,
-      scheduleDate,
-      onlyWorkDays: true,
-    });
+    const selectedShift = await this.shiftsService.findByIdOrFail(shiftId);
+    const compatibleNames = this.getCompatibleShiftNames(selectedShift.name);
 
-    if (!schedules.length) {
-      throw new BadRequestException(
-        'Solo se pueden asignar técnicos que pertenezcan al turno seleccionado para la fecha indicada',
-      );
+    const allShifts = await this.shiftsService.findAllActive();
+    const compatibleShiftIds = allShifts
+      .filter((s) => compatibleNames.includes(s.name.toUpperCase()))
+      .map((s) => s.id);
+
+    for (const compatibleShiftId of compatibleShiftIds) {
+      const schedules = await this.technicianSchedulesService.findWithFilters({
+        technicianId,
+        shiftId: compatibleShiftId,
+        scheduleDate,
+        onlyWorkDays: true,
+      });
+      if (schedules.length) return;
     }
+
+    throw new BadRequestException(
+      'Solo se pueden asignar técnicos que pertenezcan al turno seleccionado para la fecha indicada',
+    );
   }
 
   /** Throws if the WO already has signatures (no edits allowed after signing) */

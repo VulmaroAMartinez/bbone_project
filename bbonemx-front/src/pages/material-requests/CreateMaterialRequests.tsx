@@ -171,6 +171,7 @@ export default function CreateMaterialRequestPage() {
         sparePartsActive: Array<{
             id: string;
             partNumber: string;
+            sku?: string | null;
             brand?: string | null;
             model?: string | null;
             unitOfMeasure?: string | null;
@@ -323,7 +324,7 @@ export default function CreateMaterialRequestPage() {
     const machineLabel = useCallback((m: typeof machines[0]) => {
         const suffix = m.subArea?.name ?? m.area?.name ?? '';
         return suffix ? `${m.name} - ${suffix}` : m.name;
-    }, [machines]);
+    }, []);
 
     // ── Auto-rellenar campos al cambiar máquina (solo si hay 1) ─────────────
     useEffect(() => {
@@ -423,7 +424,7 @@ export default function CreateMaterialRequestPage() {
                 brand: s.brand ?? '',
                 model: s.model ?? '',
                 partNumber: s.partNumber,
-                sku: '',
+                sku: s.sku ?? '',
                 unitOfMeasure: s.unitOfMeasure ?? 'pza',
             }));
         }
