@@ -24,6 +24,12 @@ export class CreateSparePartInput {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  sku?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
   brand?: string;
 
   @Field({ nullable: true })

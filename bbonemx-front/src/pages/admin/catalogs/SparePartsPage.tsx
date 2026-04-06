@@ -95,6 +95,7 @@ export default function SparePartsPage() {
                             <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-y border-border">
                                 <tr>
                                     <th className="px-4 py-3 font-semibold">No. Parte</th>
+                                    <th className="px-4 py-3 font-semibold hidden sm:table-cell">SKU</th>
                                     <th className="px-4 py-3 font-semibold">Máquina</th>
                                     <th className="px-4 py-3 font-semibold hidden md:table-cell">Marca / Modelo</th>
                                     <th className="px-4 py-3 font-semibold hidden lg:table-cell">Proveedor</th>
@@ -104,13 +105,14 @@ export default function SparePartsPage() {
                             </thead>
                             <tbody className="divide-y divide-border/50">
                                 {loading ? (
-                                    <tr><td colSpan={6} className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></td></tr>
+                                    <tr><td colSpan={7} className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></td></tr>
                                 ) : filteredParts.length === 0 ? (
-                                    <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No se encontraron refacciones</td></tr>
+                                    <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">No se encontraron refacciones</td></tr>
                                 ) : (
                                     pageParts.map((part) => (
                                         <tr key={part.id} className="hover:bg-muted/10 transition-colors">
                                             <td className="px-4 py-3 font-mono font-medium text-foreground">{part.partNumber}</td>
+                                            <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell font-mono text-xs">{(part as unknown as { sku?: string }).sku || '--'}</td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-1.5 text-primary">
                                                     <Wrench className="h-3.5 w-3.5 shrink-0" />

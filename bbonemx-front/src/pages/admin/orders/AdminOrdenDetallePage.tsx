@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
+import { useQuery, useMutation, useLazyQuery, useApolloClient } from '@apollo/client/react';
 import { useAuth } from '@/hooks/useAuth';
 
 import {
@@ -28,6 +28,7 @@ import {
   ASSIGN_WORK_ORDER_MUTATION,
   EXPORT_WORK_ORDER_PDF_MUTATION,
 } from '@/lib/graphql/operations/work-orders';
+import { GET_TECH_IDS_FOR_SHIFT_QUERY } from '@/lib/graphql/operations/scheduling';
 import { downloadPdfFromBase64 } from '@/lib/utils/pdf-download';
 import { resolveBackendAssetUrl, uploadFileToBackend, dataUrlToFile } from '@/lib/utils/uploads';
 
@@ -114,14 +115,33 @@ function formatMinutesToHm(totalMinutes: number): string {
 }
 
 
+/** Grupos de turnos compatibles. Nombres en UPPERCASE para comparación consistente. */
+const SHIFT_GROUPS: string[][] = [['TURNO 1', 'AVANZADA']];
+
+function getCompatibleShiftIds(
+  selectedShiftId: string,
+  shifts: Array<{ id: string; name: string }>,
+): string[] {
+  const selected = shifts.find((s) => s.id === selectedShiftId);
+  if (!selected) return [];
+  const upper = selected.name.toUpperCase();
+  const group = SHIFT_GROUPS.find((g) => g.includes(upper));
+  if (group) {
+    return shifts.filter((s) => group.includes(s.name.toUpperCase())).map((s) => s.id);
+  }
+  return [selectedShiftId];
+}
+
 function AdminOrdenDetallePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const apolloClient = useApolloClient();
   const [manageOpen, setManageOpen] = useState(false);
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const [resumeConfirmOpen, setResumeConfirmOpen] = useState(false);
   const [auxiliaryTechnicians, setAuxiliaryTechnicians] = useState<string[]>([]);
+  const [filteredTechIds, setFilteredTechIds] = useState<Set<string> | null>(null);
 
   const [mgmt, setMgmt] = useState({
     priority: undefined as WorkOrderPriority | undefined,
@@ -165,7 +185,7 @@ function AdminOrdenDetallePage() {
   const leadTechRel = order?.technicians?.find(t => t.isLead);
   const leadTechnician = unmaskFragment(UserBasicFragmentDoc, leadTechRel?.technician);
 
-  const shifts = shiftsData?.shiftsActive || [];
+  const shifts = useMemo(() => shiftsData?.shiftsActive || [], [shiftsData?.shiftsActive]);
   const technicians = unmaskFragment(TechnicianBasicFragmentDoc, techData?.techniciansActive || []);
   const machinesRaw = machinesData?.machinesWithDeleted ?? [];
 
@@ -184,16 +204,53 @@ function AdminOrdenDetallePage() {
   const availableMachines = machinesInSubArea.length > 0 ? machinesInSubArea : machinesInArea;
   const areaHasMachines = machinesInArea.length > 0;
 
-  const techOptions = technicians.map((tech) => {
+  const allTechOptions = technicians.map((tech) => {
     const tUser = unmaskFragment(UserBasicFragmentDoc, tech.user);
     return { value: tUser.id, label: tUser.fullName };
   });
+
+  const techOptions = filteredTechIds
+    ? allTechOptions.filter((o) => filteredTechIds.has(o.value))
+    : allTechOptions;
 
   const machineOptions = availableMachines.map((m) => ({
     value: m.id, label: `${m.name} [${m.code}]`,
   }));
 
   const handleBack = () => navigate(-1);
+
+  const fetchCompatibleTechIds = useCallback(
+    async (shiftId: string, scheduleDate: string) => {
+      const compatibleIds = getCompatibleShiftIds(shiftId, shifts);
+      type ShiftScheduleResult = { technicianSchedulesFiltered: Array<{ technicianId: string }> };
+      const results = await Promise.all(
+        compatibleIds.map((sid) =>
+          apolloClient.query<ShiftScheduleResult>({
+            query: GET_TECH_IDS_FOR_SHIFT_QUERY,
+            variables: { filters: { shiftId: sid, scheduleDate, onlyWorkDays: true } },
+            fetchPolicy: 'network-only',
+          }),
+        ),
+      );
+      const ids = new Set<string>();
+      for (const r of results) {
+        for (const s of r.data?.technicianSchedulesFiltered ?? []) {
+          ids.add(s.technicianId);
+        }
+      }
+      setFilteredTechIds(ids);
+    },
+    [apolloClient, shifts],
+  );
+
+  useEffect(() => {
+    if (!mgmt.shiftId) {
+      setFilteredTechIds(null);
+      return;
+    }
+    const date = mgmt.scheduledDate || new Date().toISOString().split('T')[0];
+    fetchCompatibleTechIds(mgmt.shiftId, date);
+  }, [mgmt.shiftId, mgmt.scheduledDate, fetchCompatibleTechIds]);
 
   useEffect(() => {
     if (manageOpen && area?.id) {
@@ -817,7 +874,16 @@ function AdminOrdenDetallePage() {
         isPending={isPending}
         isProcessing={isProcessing}
         mgmt={mgmt}
-        setMgmt={setMgmt}
+        setMgmt={(updater) => {
+          setMgmt((prev) => {
+            const next = typeof updater === 'function' ? updater(prev) : updater;
+            if (next.shiftId !== prev.shiftId) {
+              setAuxiliaryTechnicians([]);
+              return { ...next, leadTechnicianId: '' };
+            }
+            return next;
+          });
+        }}
         auxiliaryTechnicians={auxiliaryTechnicians}
         setAuxiliaryTechnicians={setAuxiliaryTechnicians}
         machineOptions={machineOptions}

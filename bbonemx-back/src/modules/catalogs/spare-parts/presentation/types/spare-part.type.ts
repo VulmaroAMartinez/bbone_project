@@ -7,6 +7,7 @@ export class SparePartType {
   @Field(() => ID) machineId: string;
   @Field(() => MachineType) machine: MachineType;
   @Field() partNumber: string;
+  @Field({ nullable: true }) sku?: string;
   @Field({ nullable: true }) brand?: string;
   @Field({ nullable: true }) model?: string;
   @Field({ nullable: true }) supplier?: string;

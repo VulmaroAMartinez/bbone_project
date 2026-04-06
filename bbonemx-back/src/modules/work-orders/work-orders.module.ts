@@ -34,6 +34,7 @@ import { AreasModule } from '../catalogs/areas/areas.module';
 import { SubAreasModule } from '../catalogs/sub-areas/sub-areas.module';
 import { UsersModule } from '../users/users.module';
 import { TechnicianSchedulesModule } from '../technician-schedules/technician-schedules.module';
+import { ShiftsModule } from '../catalogs/shifts/shifts.module';
 
 /**
  * Módulo de Órdenes de Trabajo.
@@ -61,6 +62,7 @@ import { TechnicianSchedulesModule } from '../technician-schedules/technician-sc
     SubAreasModule,
     UsersModule,
     TechnicianSchedulesModule,
+    ShiftsModule,
   ],
   providers: [
     WorkOrdersRepository,

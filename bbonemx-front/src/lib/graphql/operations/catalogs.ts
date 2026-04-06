@@ -72,6 +72,7 @@ export const GET_SPARE_PARTS_QUERY = gql`
     sparePartsWithDeleted {
       id
       partNumber
+      sku
       brand
       model
       supplier

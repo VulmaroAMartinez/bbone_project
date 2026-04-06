@@ -15,6 +15,9 @@ export class SparePart extends BaseEntity {
   partNumber: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
+  sku?: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
   brand?: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })

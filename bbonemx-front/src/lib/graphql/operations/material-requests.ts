@@ -59,6 +59,7 @@ export const GET_MATERIAL_REQUEST_FORM_DATA_QUERY = gql`
     sparePartsActive {
       id
       partNumber
+      sku
       brand
       model
       unitOfMeasure

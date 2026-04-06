@@ -424,6 +424,7 @@ input CreateSparePartInput {
   machineId: ID!
   model: String
   partNumber: String!
+  sku: String
   supplier: String
   unitOfMeasure: String
 }
@@ -1453,6 +1454,7 @@ type SparePart {
   machineId: ID!
   model: String
   partNumber: String!
+  sku: String
   supplier: String
   unitOfMeasure: String
   updatedAt: DateTime!
@@ -1746,6 +1748,7 @@ input UpdateSparePartInput {
   machineId: ID
   model: String
   partNumber: String
+  sku: String
   supplier: String
   unitOfMeasure: String
 }
