@@ -73,7 +73,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
         { href: '/admin/actividades', label: 'Actividades', icon: ListChecks },
         { href: '/maquinas', label: 'Equipos/Estructuras', icon: Forklift },
         { href: '/hallazgos', label: 'Hallazgos', icon: Search },
-        { href: '/admin/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
+        { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
         { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
         {
           label: 'Gestión de Técnicos',
@@ -92,7 +92,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
             { href: '/departamentos', label: 'Departamentos', icon: Building },
             { href: '/puestos', label: 'Puestos', icon: Briefcase },
             { href: '/solicitantes', label: 'Solicitantes', icon: Users },
-            { href: '/repuestos', label: 'Refacciones', icon: Bolt },
+            { href: '/repuestos', label: 'Repuestos', icon: Bolt },
             { href: '/materiales', label: 'Materiales', icon: Drill },
             { href: '/turnos', label: 'Turnos', icon: Clock }
           ]
