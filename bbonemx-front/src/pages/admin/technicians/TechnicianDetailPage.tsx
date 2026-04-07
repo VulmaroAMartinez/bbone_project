@@ -76,7 +76,7 @@ export default function TechnicianDetailPage() {
                         </div>
                         <div>
                             <span className="text-muted-foreground block mb-1">Fecha de Ingreso</span>
-                            <span>{new Date(tech.hireDate + 'T12:00:00').toLocaleDateString('es-MX')}</span>
+                            <span>{new Date(tech.hireDate).toLocaleDateString('es-MX', { timeZone: 'UTC' })}</span>
                         </div>
                         <div>
                             <span className="text-muted-foreground block mb-1">Periodo vacacional</span>
@@ -132,7 +132,7 @@ export default function TechnicianDetailPage() {
                             <span className="text-muted-foreground mb-1 flex items-center gap-1">
                                 <Calendar className="h-3 w-3" /> F. Nacimiento
                             </span>
-                            <span>{new Date(tech.birthDate + 'T12:00:00').toLocaleDateString('es-MX')}</span>
+                            <span>{new Date(tech.birthDate).toLocaleDateString('es-MX', { timeZone: 'UTC' })}</span>
                         </div>
                         <div>
                             <span className="text-muted-foreground block mb-1">Estado Civil / Hijos</span>

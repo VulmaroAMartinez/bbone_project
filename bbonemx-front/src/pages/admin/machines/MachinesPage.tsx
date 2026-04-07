@@ -514,7 +514,8 @@ function MachineInfoModal({ machine, open, onOpenChange }: MachineInfoModalProps
         {
             label: 'Fecha de instalación',
             value: machine.installationDate
-                ? new Date(machine.installationDate + 'T12:00:00').toLocaleDateString('es-MX', {
+                ? new Date(machine.installationDate).toLocaleDateString('es-MX', {
+                    timeZone: 'UTC',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',

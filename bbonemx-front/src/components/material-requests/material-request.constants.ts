@@ -36,9 +36,8 @@ export const IMPORTANCE_COLORS: Record<string, string> = {
 };
 
 export function formatDate(d: string) {
-  // Append T12:00:00 for date-only strings to avoid UTC offset shifting the day
-  const date = new Date(d.length === 10 ? d + 'T12:00:00' : d);
-  return date.toLocaleDateString('es-MX', {
+  return new Date(d).toLocaleDateString('es-MX', {
+    timeZone: 'UTC',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
