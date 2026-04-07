@@ -50,64 +50,57 @@ export function getFirebaseMessaging(): Messaging | null {
 }
 /**
  * Requests notification permission and gets FCM token.
- * Returns null if permission denied or Firebase not configured.
+ * Returns null if permission was denied by the user.
+ * Throws if Firebase is misconfigured or getToken fails — caller must handle.
  */
 export async function requestFcmToken(): Promise<string | null> {
   logDevDebug('Firebase', 'Iniciando solicitud de token FCM.');
 
   const fcmMessaging = getFirebaseMessaging();
   if (!fcmMessaging) {
-    logDevWarning('Firebase', 'Firebase Messaging no está disponible.', {
-      hasApiKey: !!firebaseConfig.apiKey,
-      hasProjectId: !!firebaseConfig.projectId,
-      hasMessagingSenderId: !!firebaseConfig.messagingSenderId,
-      hasAppId: !!firebaseConfig.appId,
-    });
-    return null;
+    throw new Error(
+      'Firebase Messaging no disponible. Verifica las variables VITE_FIREBASE_* del build.',
+    );
   }
 
   const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
   if (!vapidKey) {
-    logDevWarning('Firebase', 'Falta la VAPID key para solicitar el token FCM.');
+    throw new Error('Falta VITE_FIREBASE_VAPID_KEY en el build de producción.');
+  }
+
+  const permission = await Notification.requestPermission();
+  logDevDebug('Firebase', 'Resultado del permiso de notificaciones.', { permission });
+  if (permission !== 'granted') {
     return null;
   }
 
-  try {
-    const permission = await Notification.requestPermission();
-    logDevDebug('Firebase', 'Resultado del permiso de notificaciones.', { permission });
-    if (permission !== 'granted') {
-      return null;
-    }
+  const SW_TIMEOUT_MS = 10_000;
+  const swTimeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Service Worker no activado después de 10s')), SW_TIMEOUT_MS),
+  );
+  const registration = await Promise.race([navigator.serviceWorker.ready, swTimeout]);
+  logDevDebug('Firebase', 'Service Worker listo para solicitar el token FCM.', {
+    hasActiveWorker: !!registration.active,
+  });
 
-    const SW_TIMEOUT_MS = 10_000;
-    const swTimeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Service Worker no activado después de 10s')), SW_TIMEOUT_MS),
-    );
-    const registration = await Promise.race([navigator.serviceWorker.ready, swTimeout]);
-    logDevDebug('Firebase', 'Service Worker listo para solicitar el token FCM.', {
-      hasActiveWorker: !!registration.active,
-    });
+  const FCM_TIMEOUT_MS = 15_000;
+  const fcmTimeout = new Promise<never>((_, reject) =>
+    setTimeout(
+      () => reject(new Error('Tiempo de espera agotado al obtener token FCM')),
+      FCM_TIMEOUT_MS,
+    ),
+  );
+  const token = await Promise.race([
+    getToken(fcmMessaging, { vapidKey, serviceWorkerRegistration: registration }),
+    fcmTimeout,
+  ]);
 
-    const FCM_TIMEOUT_MS = 15_000;
-    const fcmTimeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Tiempo de espera agotado al obtener token FCM')), FCM_TIMEOUT_MS),
-    );
-    const token = await Promise.race([
-      getToken(fcmMessaging, { vapidKey, serviceWorkerRegistration: registration }),
-      fcmTimeout,
-    ]);
-
-    if (!token) {
-      logDevWarning('Firebase', 'Firebase no devolvió un token FCM.');
-      return null;
-    }
-
-    logDevDebug('Firebase', 'Token FCM obtenido correctamente.');
-    return token;
-  } catch (error) {
-    reportError('Firebase', 'Ocurrió un error al solicitar el token FCM.', error);
-    return null;
+  if (!token) {
+    throw new Error('Firebase no devolvió un token FCM. Verifica la configuración del proyecto.');
   }
+
+  logDevDebug('Firebase', 'Token FCM obtenido correctamente.');
+  return token;
 }
 
 export { isFirebaseConfigured };
