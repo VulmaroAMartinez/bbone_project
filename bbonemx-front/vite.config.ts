@@ -30,7 +30,7 @@ export default defineConfig({
         theme_color: '#229877',
         orientation: 'portrait-primary',
         categories: ['business', 'productivity'],
-        gcm_sender_id: '901493337912',
+        gcm_sender_id: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
         icons: [
           { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
           { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },

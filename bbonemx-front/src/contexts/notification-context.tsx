@@ -67,7 +67,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Auto-register push if permission was already granted
   useEffect(() => {
     if (isAuthenticated && pushSupported && Notification.permission === 'granted') {
-      registerPush();
+      registerPush().catch(() => {
+        // Silent — user will see the error if they retry from the profile page
+      });
     }
   }, [isAuthenticated, pushSupported]); // eslint-disable-line react-hooks/exhaustive-deps
 
