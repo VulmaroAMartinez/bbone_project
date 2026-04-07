@@ -60,19 +60,14 @@ export function usePushNotifications({ isAuthenticated }: UsePushNotificationsOp
     if (!isSupported || !isAuthenticated) return false;
 
     setIsRegistering(true);
+    // Clear stale token — requestFcmToken always unsubscribes first, so old token is invalid
+    localStorage.removeItem(FCM_TOKEN_KEY);
     try {
       const token = await requestFcmToken();
       if (!token) {
         // Permission denied by user — not an error
         setPermissionStatus(Notification.permission);
         return false;
-      }
-
-      // Avoid re-registering the same token
-      const storedToken = localStorage.getItem(FCM_TOKEN_KEY);
-      if (storedToken === token) {
-        setPermissionStatus('granted');
-        return true;
       }
 
       await registerTokenMutation({
