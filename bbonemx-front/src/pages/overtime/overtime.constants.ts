@@ -67,7 +67,8 @@ export function getReasonBadgeVariant(
 }
 
 export function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
+  // Append T12:00:00 for date-only strings to avoid UTC offset shifting the day
+  const d = new Date(dateStr.length === 10 ? dateStr + 'T12:00:00' : dateStr);
   return d.toLocaleDateString('es-MX', {
     year: 'numeric',
     month: '2-digit',

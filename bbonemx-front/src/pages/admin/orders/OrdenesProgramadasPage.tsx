@@ -112,7 +112,7 @@ function OrdenesProgramadasPage() {
                   <p className="font-semibold text-primary">{order.folio}</p>
                   <p className="text-sm line-clamp-1">{order.description}</p>
                   <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString('es-MX') : '--'}</span>
+                    <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {order.scheduledDate ? new Date(order.scheduledDate + 'T12:00:00').toLocaleDateString('es-MX') : '--'}</span>
                     <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {area?.name || '--'}</span>
                     <span className="inline-flex items-center gap-1"><UserPlus className="h-3 w-3" /> {leadTech?.fullName || 'Sin líder'}</span>
                   </div>

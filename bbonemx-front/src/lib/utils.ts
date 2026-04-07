@@ -62,6 +62,15 @@ export function getDateRange(preset: 'today' | '7d' | '30d' | 'this_month' | 'th
   return { dateFrom, dateTo, preset };
 };
 
+/**
+ * Parse a date-only string (YYYY-MM-DD) as local noon to avoid UTC midnight
+ * shifting the displayed day backwards in negative-offset timezones (e.g. Mexico UTC-6).
+ * Full ISO timestamps (with T and Z) are passed through unchanged.
+ */
+export function parseLocalDate(dateStr: string): Date {
+  return new Date(dateStr.length === 10 ? dateStr + 'T12:00:00' : dateStr);
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
