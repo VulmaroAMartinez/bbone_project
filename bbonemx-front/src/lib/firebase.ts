@@ -83,6 +83,14 @@ export async function requestFcmToken(): Promise<string | null> {
     hasActiveWorker: !!registration.active,
   });
 
+  // Clear any stale push subscription — prevents AbortError when VAPID key changed
+  // or subscription became invalid (most common cause of "push service error")
+  const existingSubscription = await registration.pushManager.getSubscription();
+  if (existingSubscription) {
+    await existingSubscription.unsubscribe();
+    logDevDebug('Firebase', 'Suscripción push anterior eliminada.');
+  }
+
   const FCM_TIMEOUT_MS = 15_000;
   const fcmTimeout = new Promise<never>((_, reject) =>
     setTimeout(
