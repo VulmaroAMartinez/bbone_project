@@ -276,9 +276,7 @@ export default function ActivitiesPage() {
 
   const formatDate = (d: string | null | undefined) => {
     if (!d) return '-';
-    // Append T12:00:00 for date-only strings to avoid UTC offset shifting the day
-    const date = new Date(d.length === 10 ? d + 'T12:00:00' : d);
-    return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return new Date(d).toLocaleDateString('es-MX', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   return (
