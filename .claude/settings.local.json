@@ -32,7 +32,10 @@
       "Bash(node -e \"const t = require\\('@nestjs/throttler'\\); console.log\\(Object.keys\\(t\\)\\)\")",
       "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.jest, null, 2\\)\\)\")",
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(git ls-tree:*)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(grep -E \"\\\\.\\(ts|sql\\)$\")"
     ]
   }
 }
