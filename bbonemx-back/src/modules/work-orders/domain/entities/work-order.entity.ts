@@ -1,10 +1,10 @@
 import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { BaseEntity } from 'src/infrastructure/database/base.entity';
-import { User } from 'src/modules/users/domain/entities';
-import { Area } from 'src/modules/catalogs/areas/domain/entities';
-import { SubArea } from 'src/modules/catalogs/sub-areas/domain/entities';
-import { Machine } from 'src/modules/catalogs/machines/domain/entities';
-import { Shift } from 'src/modules/catalogs/shifts/domain/entities';
+import { BaseEntity } from '../../../../infrastructure/database/base.entity';
+import { User } from '../../../users/domain/entities';
+import { Area } from '../../../catalogs/areas/domain/entities';
+import { SubArea } from '../../../catalogs/sub-areas/domain/entities';
+import { Machine } from '../../../catalogs/machines/domain/entities';
+import { Shift } from '../../../catalogs/shifts/domain/entities';
 import {
   WorkOrderStatus,
   WorkOrderPriority,

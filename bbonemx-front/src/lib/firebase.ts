@@ -79,15 +79,23 @@ export async function requestFcmToken(): Promise<string | null> {
       return null;
     }
 
-    const registration = await navigator.serviceWorker.ready;
+    const SW_TIMEOUT_MS = 10_000;
+    const swTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Service Worker no activado después de 10s')), SW_TIMEOUT_MS),
+    );
+    const registration = await Promise.race([navigator.serviceWorker.ready, swTimeout]);
     logDevDebug('Firebase', 'Service Worker listo para solicitar el token FCM.', {
       hasActiveWorker: !!registration.active,
     });
 
-    const token = await getToken(fcmMessaging, {
-      vapidKey,
-      serviceWorkerRegistration: registration,
-    });
+    const FCM_TIMEOUT_MS = 15_000;
+    const fcmTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Tiempo de espera agotado al obtener token FCM')), FCM_TIMEOUT_MS),
+    );
+    const token = await Promise.race([
+      getToken(fcmMessaging, { vapidKey, serviceWorkerRegistration: registration }),
+      fcmTimeout,
+    ]);
 
     if (!token) {
       logDevWarning('Firebase', 'Firebase no devolvió un token FCM.');

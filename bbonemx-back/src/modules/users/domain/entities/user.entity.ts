@@ -6,9 +6,9 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { BaseEntity } from 'src/infrastructure/database/base.entity';
-import { Role } from 'src/modules/catalogs/roles/domain/entities';
-import { Department } from 'src/modules/catalogs/departments/domain/entities';
+import { BaseEntity } from '../../../../infrastructure/database/base.entity';
+import { Role } from '../../../catalogs/roles/domain/entities';
+import { Department } from '../../../catalogs/departments/domain/entities';
 import { UserRole } from './user-role.entity';
 
 @Entity({ name: 'users' })
