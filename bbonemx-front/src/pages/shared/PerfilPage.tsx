@@ -164,13 +164,16 @@ export default function PerfilPage() {
 
   const handleTogglePush = async () => {
     if (!isPushEnabled) {
-      const success = await registerPush();
-      if (success) {
-        toast.success('Notificaciones push activadas');
-      } else if (pushPermission === 'denied') {
-        toast.error('Permiso de notificaciones bloqueado. Habilítalo desde la configuración del navegador.');
-      } else {
-        toast.error('No se pudieron activar las notificaciones push');
+      try {
+        const success = await registerPush();
+        if (success) {
+          toast.success('Notificaciones push activadas');
+        } else {
+          toast.error('Permiso de notificaciones bloqueado. Habilítalo desde la configuración del navegador.');
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Error desconocido';
+        toast.error(`No se pudieron activar las notificaciones: ${message}`);
       }
     }
   };

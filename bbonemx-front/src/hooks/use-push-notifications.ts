@@ -54,6 +54,7 @@ export function usePushNotifications({ isAuthenticated }: UsePushNotificationsOp
 
   /**
    * Request push permission, get FCM token, register with backend.
+   * Returns true on success, false if permission was denied, throws on error.
    */
   const registerPush = useCallback(async (): Promise<boolean> => {
     if (!isSupported || !isAuthenticated) return false;
@@ -62,13 +63,17 @@ export function usePushNotifications({ isAuthenticated }: UsePushNotificationsOp
     try {
       const token = await requestFcmToken();
       if (!token) {
+        // Permission denied by user — not an error
         setPermissionStatus(Notification.permission);
         return false;
       }
 
       // Avoid re-registering the same token
       const storedToken = localStorage.getItem(FCM_TOKEN_KEY);
-      if (storedToken === token) return true;
+      if (storedToken === token) {
+        setPermissionStatus('granted');
+        return true;
+      }
 
       await registerTokenMutation({
         variables: {
@@ -83,9 +88,6 @@ export function usePushNotifications({ isAuthenticated }: UsePushNotificationsOp
       localStorage.setItem(FCM_TOKEN_KEY, token);
       setPermissionStatus('granted');
       return true;
-    } catch (error) {
-      console.error('[Push] Error al registrar:', error);
-      return false;
     } finally {
       setIsRegistering(false);
     }
