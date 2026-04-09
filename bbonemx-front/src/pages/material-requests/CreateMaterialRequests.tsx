@@ -12,7 +12,10 @@ import {
     ADD_MATERIAL_TO_REQUEST_MUTATION,
     REMOVE_MATERIAL_FROM_REQUEST_MUTATION,
     GET_MATERIAL_REQUEST_QUERY,
+    ADD_MATERIAL_REQUEST_PHOTO_MUTATION,
+    REMOVE_MATERIAL_REQUEST_PHOTO_MUTATION,
 } from '@/lib/graphql/operations/material-requests';
+import { uploadFileToBackend, resolveBackendAssetUrl } from '@/lib/utils/uploads';
 import { shouldClearItemsOnCategoryChange } from '@/lib/material-requests/material-request-logic';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +38,8 @@ import {
     Loader2,
     Package,
     AlertCircle,
+    Camera,
+    X,
 } from 'lucide-react';
 
 import {
@@ -137,6 +142,20 @@ export default function CreateMaterialRequestPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [globalError, setGlobalError] = useState('');
 
+    // ── Photo state ───────────────────────────────────────────────────────────
+    type PhotoEntry = {
+        /** Local file for new uploads; undefined for existing DB photos */
+        file?: File;
+        /** Object URL for preview */
+        preview: string;
+        /** DB id — set after upload or when pre-filling from edit data */
+        dbId?: string;
+        filePath?: string;
+        fileName?: string;
+    };
+    const [photos, setPhotos] = useState<PhotoEntry[]>([]);
+    const photoInputRef = useRef<HTMLInputElement>(null);
+
     // ── Queries ──────────────────────────────────────────────────────────────
     type MaterialRequestFormData = {
         techniciansActive: Array<{
@@ -215,6 +234,12 @@ export default function CreateMaterialRequestPage() {
                 proposedMinStock?: number | null;
                 isGenericAllowed?: boolean | null;
             }>;
+            photos?: Array<{
+                id: string;
+                filePath: string;
+                fileName: string;
+                mimeType: string;
+            }> | null;
         };
     };
 
@@ -242,6 +267,14 @@ export default function CreateMaterialRequestPage() {
     const [updateRequest] = useMutation<UpdateRequestResult, UpdateRequestVars>(UPDATE_MATERIAL_REQUEST_MUTATION);
     const [addItemToRequest] = useMutation<AddItemResult, AddItemVars>(ADD_MATERIAL_TO_REQUEST_MUTATION);
     const [removeItemFromRequest] = useMutation<RemoveItemResult, RemoveItemVars>(REMOVE_MATERIAL_FROM_REQUEST_MUTATION);
+
+    type AddPhotoResult = { addMaterialRequestPhoto: { id: string; filePath: string; fileName: string; mimeType: string } };
+    type AddPhotoVars = { input: { materialRequestId: string; filePath: string; fileName: string; mimeType: string } };
+    type RemovePhotoResult = { removeMaterialRequestPhoto: boolean };
+    type RemovePhotoVars = { id: string };
+
+    const [addPhoto] = useMutation<AddPhotoResult, AddPhotoVars>(ADD_MATERIAL_REQUEST_PHOTO_MUTATION);
+    const [removePhoto] = useMutation<RemovePhotoResult, RemovePhotoVars>(REMOVE_MATERIAL_REQUEST_PHOTO_MUTATION);
 
     // IDs de los items que ya existían en BD al cargar el formulario de edición
     const originalItemIdsRef = useRef<string[]>([]);
@@ -368,6 +401,16 @@ export default function CreateMaterialRequestPage() {
         if (!isEdit || !editData?.materialRequest) return;
         const req = editData.materialRequest;
 
+        // Pre-fill photos from DB
+        if (req.photos && req.photos.length > 0) {
+            setPhotos(req.photos.map((p) => ({
+                preview: resolveBackendAssetUrl(p.filePath),
+                dbId: p.id,
+                filePath: p.filePath,
+                fileName: p.fileName,
+            })));
+        }
+
         // Guardar los IDs originales para detectar items eliminados al guardar
         originalItemIdsRef.current = req.items.map((item) => item.id);
 
@@ -455,6 +498,41 @@ export default function CreateMaterialRequestPage() {
         },
         [catalogItems, setValue],
     );
+
+    // ── Photo handlers ────────────────────────────────────────────────────────
+    const handlePhotoFiles = (files: FileList | null) => {
+        if (!files) return;
+        const newFiles = Array.from(files);
+        const remaining = 5 - photos.length;
+        if (remaining <= 0) {
+            setGlobalError('Se permite un máximo de 5 fotografías.');
+            return;
+        }
+        const toAdd = newFiles.slice(0, remaining);
+        const invalid = toAdd.filter((f) => !f.type.startsWith('image/'));
+        if (invalid.length > 0) {
+            setGlobalError('Solo se aceptan archivos de imagen (JPEG, PNG, WebP).');
+            return;
+        }
+        const oversized = toAdd.filter((f) => f.size > 5 * 1024 * 1024);
+        if (oversized.length > 0) {
+            setGlobalError('Cada fotografía debe pesar menos de 5 MB.');
+            return;
+        }
+        setPhotos((prev) => [
+            ...prev,
+            ...toAdd.map((f) => ({ file: f, preview: URL.createObjectURL(f) })),
+        ]);
+        if (photoInputRef.current) photoInputRef.current.value = '';
+    };
+
+    const removePhotoEntry = (index: number) => {
+        setPhotos((prev) => {
+            const entry = prev[index];
+            if (entry.preview.startsWith('blob:')) URL.revokeObjectURL(entry.preview);
+            return prev.filter((_, i) => i !== index);
+        });
+    };
 
     // ── Submit ────────────────────────────────────────────────────────────────
     const onSubmit = async (values: FormValues) => {
@@ -583,6 +661,33 @@ export default function CreateMaterialRequestPage() {
                         },
                     });
                 }
+            }
+
+            // ── Photos: remove deleted ones, upload new ones ───────────────
+            if (isEdit) {
+                const remainingDbIds = new Set(photos.filter((p) => p.dbId).map((p) => p.dbId!));
+                const originalDbIds = (editData?.materialRequest?.photos ?? []).map((p) => p.id);
+                for (const dbId of originalDbIds) {
+                    if (!remainingDbIds.has(dbId)) {
+                        await removePhoto({ variables: { id: dbId } });
+                    }
+                }
+            }
+
+            for (const photo of photos) {
+                if (photo.dbId) continue; // already in DB
+                if (!photo.file) continue;
+                const uploaded = await uploadFileToBackend(photo.file);
+                await addPhoto({
+                    variables: {
+                        input: {
+                            materialRequestId: targetId,
+                            filePath: uploaded.url,
+                            fileName: photo.file.name,
+                            mimeType: photo.file.type,
+                        },
+                    },
+                });
             }
 
             navigate(`/solicitud-material/${targetId}`);
@@ -1167,6 +1272,65 @@ export default function CreateMaterialRequestPage() {
                                 {...register('suggestedSupplier')}
                             />
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* ── Fotografías ── */}
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-base">
+                            {showItems ? '7.' : '6.'} Fotografías <span className="text-muted-foreground font-normal text-sm">(opcional, máx. 5)</span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {photos.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                                {photos.map((photo, index) => (
+                                    <div key={index} className="relative">
+                                        <img
+                                            src={photo.preview}
+                                            alt={photo.fileName ?? `Foto ${index + 1}`}
+                                            className="w-20 h-20 object-cover rounded-md border border-border"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removePhotoEntry(index)}
+                                            className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center shadow-sm hover:bg-destructive/80"
+                                            aria-label="Eliminar foto"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {photos.length < 5 && (
+                            <>
+                                <input
+                                    ref={photoInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    className="hidden"
+                                    onChange={(e) => handlePhotoFiles(e.target.files)}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1.5"
+                                    onClick={() => photoInputRef.current?.click()}
+                                >
+                                    <Camera className="h-4 w-4" />
+                                    Agregar fotografías
+                                </Button>
+                            </>
+                        )}
+
+                        <p className="text-xs text-muted-foreground">
+                            {photos.length}/5 fotografías · Formatos: JPEG, PNG, WebP · Máx. 5 MB por imagen
+                        </p>
                     </CardContent>
                 </Card>
 

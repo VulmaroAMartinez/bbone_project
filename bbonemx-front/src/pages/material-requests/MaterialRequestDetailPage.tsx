@@ -32,7 +32,9 @@ import {
     MapPin,
     Calendar,
     Info,
+    Camera,
 } from 'lucide-react';
+import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
 
 import {
     CATEGORY_LABELS,
@@ -523,6 +525,44 @@ export default function MaterialRequestDetailPage() {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Fotografías */}
+            {(() => {
+                const photos = (request as unknown as { photos?: Array<{ id: string; filePath: string; fileName: string }> }).photos;
+                if (!photos || photos.length === 0) return null;
+                return (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <Camera className="h-4 w-4 text-muted-foreground" />
+                                Fotografías
+                                <Badge variant="secondary" className="ml-auto text-xs font-normal">
+                                    {photos.length}
+                                </Badge>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                                {photos.map((photo) => (
+                                    <a
+                                        key={photo.id}
+                                        href={resolveBackendAssetUrl(photo.filePath)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block"
+                                    >
+                                        <img
+                                            src={resolveBackendAssetUrl(photo.filePath)}
+                                            alt={photo.fileName}
+                                            className="w-24 h-24 object-cover rounded-md border border-border hover:opacity-80 transition-opacity cursor-pointer"
+                                        />
+                                    </a>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            })()}
 
             {/* Email modal */}
             <EmailModal

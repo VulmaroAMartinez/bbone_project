@@ -17,6 +17,10 @@ import {
   PRIORITY_COLORS,
   formatDate,
 } from '@/components/material-requests/material-request.constants';
+import {
+  getDeliveryStatusLabel,
+  getDeliveryStatusColor,
+} from '@/lib/material-requests/delivery-status.util';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -122,6 +126,7 @@ interface EditFormValues {
   purchaseOrder?: string;
   deliveryMerchandise?: string;
   supplier?: string;
+  estimatedDeliveryDate?: string;
 }
 
 const STATUSES_REQUIRING_SC = new Set([
@@ -151,6 +156,7 @@ const editSchema: yup.ObjectSchema<EditFormValues> = yup.object({
     then: (schema) => schema.required('La E.M. es requerida para marcar como entregado'),
   }),
   supplier: yup.string().optional(),
+  estimatedDeliveryDate: yup.string().optional(),
 });
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -242,6 +248,9 @@ export default function MaterialRequestHistoryPage() {
       purchaseOrder: h?.purchaseOrder ?? '',
       deliveryMerchandise: h?.deliveryMerchandise ?? '',
       supplier: h?.supplier ?? '',
+      estimatedDeliveryDate: h?.estimatedDeliveryDate
+        ? String(h.estimatedDeliveryDate).split('T')[0]
+        : '',
     });
     setEditingMrId(mrId);
   };
@@ -258,6 +267,7 @@ export default function MaterialRequestHistoryPage() {
             purchaseOrder: values.purchaseOrder || undefined,
             deliveryMerchandise: values.deliveryMerchandise || undefined,
             supplier: values.supplier || undefined,
+            estimatedDeliveryDate: values.estimatedDeliveryDate || undefined,
           },
         },
       });
@@ -398,6 +408,8 @@ export default function MaterialRequestHistoryPage() {
                     <TableHead className="whitespace-nowrap text-center">Art.</TableHead>
                     <TableHead className="hidden xl:table-cell whitespace-nowrap">Justificación</TableHead>
                     <TableHead className="hidden xl:table-cell whitespace-nowrap">F. Entrega</TableHead>
+                    <TableHead className="hidden xl:table-cell whitespace-nowrap">F. Est. Entrega</TableHead>
+                    <TableHead className="hidden xl:table-cell whitespace-nowrap">Estado entrega</TableHead>
                     <TableHead className="hidden xl:table-cell whitespace-nowrap">Proveedor</TableHead>
                     <TableHead className="hidden sm:table-cell whitespace-nowrap">Solicitante</TableHead>
                     <TableHead className="whitespace-nowrap min-w-[120px]">Progreso</TableHead>
@@ -468,6 +480,33 @@ export default function MaterialRequestHistoryPage() {
                         </TableCell>
                         <TableCell className="hidden xl:table-cell text-xs">
                           {h?.deliveryDate ? formatDate(h.deliveryDate) : '—'}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell text-xs">
+                          {h?.estimatedDeliveryDate
+                            ? formatDate(h.estimatedDeliveryDate)
+                            : '—'}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell text-xs whitespace-nowrap">
+                          {(() => {
+                            const label = getDeliveryStatusLabel(
+                              h?.estimatedDeliveryDate
+                                ? String(h.estimatedDeliveryDate)
+                                : null,
+                              h?.deliveryDate ? String(h.deliveryDate) : null,
+                            );
+                            if (!label) return '—';
+                            const color = getDeliveryStatusColor(
+                              h?.estimatedDeliveryDate
+                                ? String(h.estimatedDeliveryDate)
+                                : null,
+                              h?.deliveryDate ? String(h.deliveryDate) : null,
+                            );
+                            return (
+                              <span className={`font-medium ${color}`}>
+                                {label}
+                              </span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="hidden xl:table-cell text-xs max-w-[100px] truncate">
                           {h?.supplier || '—'}
@@ -582,6 +621,11 @@ export default function MaterialRequestHistoryPage() {
                 <Label>Proveedor</Label>
                 <Input {...register('supplier')} placeholder="Proveedor" />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Fecha estimada de entrega</Label>
+              <Input type="date" {...register('estimatedDeliveryDate')} />
             </div>
 
             {editingHistory?.deliveryDate && (

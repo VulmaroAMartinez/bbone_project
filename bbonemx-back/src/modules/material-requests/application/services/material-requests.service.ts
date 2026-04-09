@@ -4,10 +4,13 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { existsSync } from 'fs';
+import { basename, join } from 'path';
 import {
   MaterialRequestsRepository,
   MaterialRequestItemsRepository,
   MaterialRequestHistoryRepository,
+  MaterialRequestPhotosRepository,
 } from '../../infrastructure/repositories';
 import {
   MaterialRequest,
@@ -20,13 +23,23 @@ import {
   CreateMaterialRequestItemInput,
   SendMaterialRequestEmailInput,
   UpdateMaterialRequestHistoryInput,
+  CreateMaterialRequestPhotoInput,
 } from '../dto';
 import { RequestCategory, StatusHistoryMR } from 'src/common';
+import { MaterialRequestPhoto } from '../../domain/entities';
 import { MaterialsService } from 'src/modules/catalogs/materials/application/services';
 import { SparePartsService } from 'src/modules/catalogs/spare-parts/application/services';
 import { EmailService } from 'src/common/modules/email/application/services/email.service';
 import { EmailTemplateService } from 'src/common/modules/email/application/services/email-template.service';
 import { MaterialRequestEmailTemplateData } from 'src/common/modules/email/presentation/types';
+
+const ALLOWED_PHOTO_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
+const MAX_PHOTOS_PER_REQUEST = 5;
 
 /** Categories that represent a request for a brand-new SKU (no catalog entry exists yet). */
 const SKU_REQUEST_CATEGORIES = new Set<RequestCategory>([
@@ -87,6 +100,7 @@ export class MaterialRequestsService {
     private readonly materialRequestsRepository: MaterialRequestsRepository,
     private readonly materialRequestItemsRepository: MaterialRequestItemsRepository,
     private readonly materialRequestHistoryRepository: MaterialRequestHistoryRepository,
+    private readonly materialRequestPhotosRepository: MaterialRequestPhotosRepository,
     private readonly materialsService: MaterialsService,
     private readonly sparePartsService: SparePartsService,
     private readonly emailService: EmailService,
@@ -259,6 +273,56 @@ export class MaterialRequestsService {
     return true;
   }
 
+  // ─── Photos ──────────────────────────────────────────────────────────────────
+
+  async addPhoto(
+    input: CreateMaterialRequestPhotoInput,
+    uploadedBy: string,
+  ): Promise<MaterialRequestPhoto> {
+    await this.findByIdOrFail(input.materialRequestId);
+
+    if (!ALLOWED_PHOTO_MIME_TYPES.has(input.mimeType)) {
+      throw new BadRequestException(
+        'Tipo de archivo no permitido. Solo se aceptan JPEG, PNG y WebP.',
+      );
+    }
+
+    const count = await this.materialRequestPhotosRepository.countByMaterialRequestId(
+      input.materialRequestId,
+    );
+
+    if (count >= MAX_PHOTOS_PER_REQUEST) {
+      throw new BadRequestException(
+        `Se permite un máximo de ${MAX_PHOTOS_PER_REQUEST} fotografías por solicitud.`,
+      );
+    }
+
+    return this.materialRequestPhotosRepository.create({
+      materialRequestId: input.materialRequestId,
+      filePath: input.filePath,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      uploadedBy,
+    });
+  }
+
+  async removePhoto(id: string): Promise<boolean> {
+    const photo = await this.materialRequestPhotosRepository.findById(id);
+    if (!photo) {
+      throw new NotFoundException(`Fotografía con ID ${id} no encontrada`);
+    }
+    await this.materialRequestPhotosRepository.softDelete(id);
+    return true;
+  }
+
+  async findPhotosByRequestId(
+    materialRequestId: string,
+  ): Promise<MaterialRequestPhoto[]> {
+    return this.materialRequestPhotosRepository.findByMaterialRequestId(
+      materialRequestId,
+    );
+  }
+
   // ─── Email ──────────────────────────────────────────────────────────────────
 
   async sendEmail(input: SendMaterialRequestEmailInput): Promise<boolean> {
@@ -306,6 +370,44 @@ export class MaterialRequestsService {
       return `${day} de ${month} de ${year}, ${hours}:${mins}`;
     };
 
+    // ── Load photos and build email attachments ───────────────────────────────
+    const dbPhotos =
+      await this.materialRequestPhotosRepository.findByMaterialRequestId(
+        request.id,
+      );
+
+    const uploadsDir = join(process.cwd(), 'uploads');
+
+    const attachments: Array<{
+      filename: string;
+      path: string;
+      cid: string;
+      contentType: string;
+    }> = [];
+
+    const photoTemplateData: Array<{ cid: string; fileName: string }> = [];
+
+    dbPhotos.forEach((photo, index) => {
+      const fileName = basename(photo.filePath);
+      const filePath = join(uploadsDir, fileName);
+
+      if (!existsSync(filePath)) {
+        this.logger.warn(
+          `Photo file not found on disk, skipping attachment: ${filePath}`,
+        );
+        return;
+      }
+
+      const cid = `mr-photo-${index}`;
+      attachments.push({
+        filename: photo.fileName,
+        path: filePath,
+        cid,
+        contentType: photo.mimeType,
+      });
+      photoTemplateData.push({ cid, fileName: photo.fileName });
+    });
+
     const templateData: MaterialRequestEmailTemplateData = {
       folio: request.folio,
       createdAt: formatDate(request.createdAt),
@@ -344,6 +446,7 @@ export class MaterialRequestsService {
         proposedMinStock: item.proposedMinStock,
         isGenericAllowed: item.isGenericAllowed,
       })),
+      photos: photoTemplateData.length > 0 ? photoTemplateData : undefined,
     };
 
     const html =
@@ -354,6 +457,7 @@ export class MaterialRequestsService {
       cc: input.cc,
       subject: `Solicitud de Material ${request.folio}`,
       html,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     await this.materialRequestsRepository.update(request.id, {
@@ -443,6 +547,9 @@ export class MaterialRequestsService {
         supplier: input.supplier,
         progressPercentage,
         ...(deliveryDate !== undefined && { deliveryDate }),
+        ...(input.estimatedDeliveryDate !== undefined && {
+          estimatedDeliveryDate: input.estimatedDeliveryDate,
+        }),
       },
     );
 

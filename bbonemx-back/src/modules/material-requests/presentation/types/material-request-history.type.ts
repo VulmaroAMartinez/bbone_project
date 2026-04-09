@@ -10,6 +10,7 @@ export class MaterialRequestHistoryType {
   @Field({ nullable: true }) purchaseOrder?: string;
   @Field({ nullable: true }) deliveryMerchandise?: string;
   @Field(() => Date, { nullable: true }) deliveryDate?: Date | null;
+  @Field(() => Date, { nullable: true }) estimatedDeliveryDate?: Date | null;
   @Field(() => Int, { nullable: true }) progressPercentage?: number;
   @Field({ nullable: true }) supplier?: string;
   @Field() isActive: boolean;

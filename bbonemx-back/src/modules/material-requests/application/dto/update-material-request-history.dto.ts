@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsDate,
 } from 'class-validator';
 import { StatusHistoryMR } from 'src/common';
 
@@ -41,4 +42,9 @@ export class UpdateMaterialRequestHistoryInput {
   @IsOptional()
   @IsString()
   supplier?: string;
+
+  @Field(() => Date, { nullable: true })
+  @IsOptional()
+  @IsDate({ message: 'La fecha estimada de entrega debe ser una fecha válida' })
+  estimatedDeliveryDate?: Date;
 }

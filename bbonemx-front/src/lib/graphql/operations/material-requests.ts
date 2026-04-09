@@ -211,6 +211,13 @@ export const GET_MATERIAL_REQUEST_QUERY = gql`
           unitOfMeasure
         }
       }
+      photos {
+        id
+        filePath
+        fileName
+        mimeType
+        uploadedAt
+      }
     }
   }
 `;
@@ -365,6 +372,7 @@ export const GET_MATERIAL_REQUEST_HISTORIES_QUERY = gql`
         purchaseOrder
         deliveryMerchandise
         deliveryDate
+        estimatedDeliveryDate
         progressPercentage
         supplier
       }
@@ -383,9 +391,30 @@ export const UPDATE_MATERIAL_REQUEST_HISTORY_MUTATION = gql`
         purchaseOrder
         deliveryMerchandise
         deliveryDate
+        estimatedDeliveryDate
         progressPercentage
         supplier
       }
     }
+  }
+`;
+
+// ─── Photo mutations ──────────────────────────────────────────────────────────
+
+export const ADD_MATERIAL_REQUEST_PHOTO_MUTATION = gql`
+  mutation AddMaterialRequestPhoto($input: CreateMaterialRequestPhotoInput!) {
+    addMaterialRequestPhoto(input: $input) {
+      id
+      filePath
+      fileName
+      mimeType
+      uploadedAt
+    }
+  }
+`;
+
+export const REMOVE_MATERIAL_REQUEST_PHOTO_MUTATION = gql`
+  mutation RemoveMaterialRequestPhoto($id: ID!) {
+    removeMaterialRequestPhoto(id: $id)
   }
 `;

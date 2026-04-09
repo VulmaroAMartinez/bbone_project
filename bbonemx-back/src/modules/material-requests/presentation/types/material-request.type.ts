@@ -8,6 +8,7 @@ import { UserType } from 'src/modules/users';
 import { MaterialRequestItemType } from './material-request-item.type';
 import { MaterialRequestMachineType } from './material-request-machine.type';
 import { MaterialRequestHistoryType } from './material-request-history.type';
+import { MaterialRequestPhotoType } from './material-request-photo.type';
 
 @ObjectType('MaterialRequest')
 export class MaterialRequestType {
@@ -33,6 +34,8 @@ export class MaterialRequestType {
   @Field(() => [MaterialRequestItemType]) items: MaterialRequestItemType[];
   @Field(() => [MaterialRequestHistoryType], { nullable: true })
   histories?: MaterialRequestHistoryType[];
+  @Field(() => [MaterialRequestPhotoType], { nullable: true })
+  photos?: MaterialRequestPhotoType[];
   @Field(() => Date, { nullable: true }) emailSentAt?: Date | null;
   @Field() isActive: boolean;
   @Field() createdAt: Date;

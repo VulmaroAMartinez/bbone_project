@@ -5,11 +5,13 @@ import {
   MaterialRequestItem,
   MaterialRequestMachine,
   MaterialRequestHistory,
+  MaterialRequestPhoto,
 } from './domain/entities';
 import {
   MaterialRequestsRepository,
   MaterialRequestItemsRepository,
   MaterialRequestHistoryRepository,
+  MaterialRequestPhotosRepository,
 } from './infrastructure/repositories';
 import { MaterialRequestsService } from './application/services';
 import { MaterialRequestsResolver } from './presentation/resolvers';
@@ -23,6 +25,7 @@ import { MaterialsModule } from '../catalogs/materials/materials.module';
       MaterialRequestItem,
       MaterialRequestMachine,
       MaterialRequestHistory,
+      MaterialRequestPhoto,
     ]),
     MaterialsModule,
     SparePartsModule,
@@ -31,6 +34,7 @@ import { MaterialsModule } from '../catalogs/materials/materials.module';
     MaterialRequestsRepository,
     MaterialRequestItemsRepository,
     MaterialRequestHistoryRepository,
+    MaterialRequestPhotosRepository,
     MaterialRequestsService,
     MaterialRequestsResolver,
   ],

@@ -39,6 +39,14 @@ export class MaterialRequestHistory extends BaseEntity {
   })
   deliveryDate?: Date | null;
 
+  @Column({
+    name: 'estimated_delivery_date',
+    nullable: true,
+    type: 'date',
+    transformer: dateColumnTransformer,
+  })
+  estimatedDeliveryDate?: Date | null;
+
   @Column({ name: 'progress_percentage', nullable: true })
   progressPercentage?: number;
 
