@@ -15,6 +15,7 @@ const RELATIONS = [
   'items.material',
   'items.sparePart',
   'histories',
+  'photos',
 ];
 
 @Injectable()
