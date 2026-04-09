@@ -30,3 +30,6 @@ next-env.d.ts
 .claude
 
 /dev-dist
+
+# FCM: usar solo el SW unificado en src/sw.ts; no volver a añadir este archivo.
+/public/firebase-messaging-sw.js
