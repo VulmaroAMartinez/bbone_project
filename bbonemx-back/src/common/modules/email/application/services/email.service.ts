@@ -45,6 +45,7 @@ export class EmailService {
         subject: options.subject,
         text: options.text,
         html,
+        attachments: options.attachments,
       });
     } catch (error) {
       this.logger.error(
