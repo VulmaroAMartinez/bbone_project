@@ -63,7 +63,7 @@ onBackgroundMessage(messaging, (payload) => {
   const notificationOptions: NotificationOptions = {
     body: payload.notification?.body ?? '',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
+    badge: '/icons/icon-192x192.png',
     tag: (payload.data?.['type'] as string | undefined) ?? 'default',
     data: payload.data ?? {},
     requireInteraction: true,
@@ -93,9 +93,11 @@ self.addEventListener('notificationclick', (event) => {
         // Focus an existing window for this origin if available
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            return (client as WindowClient)
-              .navigate(urlToOpen)
-              .then(() => client.focus());
+            const windowClient = client as WindowClient;
+            return windowClient.navigate(urlToOpen).then((navigated) => {
+              const toFocus = navigated ?? windowClient;
+              return toFocus.focus();
+            });
           }
         }
         return self.clients.openWindow(urlToOpen);

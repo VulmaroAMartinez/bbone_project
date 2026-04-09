@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 import { requestFcmToken, isFirebaseConfigured } from '@/lib/firebase';
+import { reportError } from '@/lib/logging';
 
 const REGISTER_DEVICE_TOKEN = gql`
   mutation RegisterDeviceToken($input: RegisterDeviceTokenInput!) {
@@ -60,7 +61,6 @@ export function usePushNotifications({ isAuthenticated }: UsePushNotificationsOp
     if (!isSupported || !isAuthenticated) return false;
 
     setIsRegistering(true);
-    // Clear stale token — requestFcmToken always unsubscribes first, so old token is invalid
     localStorage.removeItem(FCM_TOKEN_KEY);
     try {
       const token = await requestFcmToken();
@@ -100,7 +100,7 @@ export function usePushNotifications({ isAuthenticated }: UsePushNotificationsOp
         variables: { input: { fcmToken: storedToken } },
       });
     } catch (error) {
-      console.error('[Push] Error al desregistrar token:', error);
+      reportError('Push', 'Error al desregistrar token FCM.', error);
     } finally {
       localStorage.removeItem(FCM_TOKEN_KEY);
     }

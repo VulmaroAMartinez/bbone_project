@@ -4,7 +4,13 @@
  */
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getMessaging, getToken, type Messaging } from 'firebase/messaging';
+import {
+  getMessaging,
+  getToken,
+  onMessage,
+  type Messaging,
+  type MessagePayload,
+} from 'firebase/messaging';
 
 import { logDevDebug, logDevWarning, reportError } from './logging';
 
@@ -19,6 +25,38 @@ const firebaseConfig = {
 
 let app: FirebaseApp | null = null;
 let messaging: Messaging | null = null;
+let foregroundMessagingAttached = false;
+
+function showForegroundFcmNotification(payload: MessagePayload): void {
+  if (Notification.permission !== 'granted') return;
+
+  const title = payload.notification?.title ?? 'BB Maintenance';
+  const body = payload.notification?.body ?? '';
+  const icon =
+    (typeof payload.notification?.image === 'string' && payload.notification.image) ||
+    '/icons/icon-192x192.png';
+  const data = payload.data ?? {};
+  const tag = typeof data['type'] === 'string' ? data['type'] : 'default';
+  const link = typeof data['link'] === 'string' ? data['link'] : undefined;
+
+  new Notification(title, {
+    body,
+    icon,
+    badge: '/icons/icon-192x192.png',
+    tag,
+    data: link ? { link } : {},
+    requireInteraction: true,
+  });
+}
+
+function attachForegroundMessagingOnce(instance: Messaging): void {
+  if (foregroundMessagingAttached) return;
+  foregroundMessagingAttached = true;
+  onMessage(instance, (payload) => {
+    logDevDebug('Firebase', 'Mensaje FCM en primer plano.', { messageId: payload.messageId });
+    showForegroundFcmNotification(payload);
+  });
+}
 
 function isFirebaseConfigured(): boolean {
   return !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.messagingSenderId);
@@ -42,6 +80,7 @@ export function getFirebaseMessaging(): Messaging | null {
 
   try {
     messaging = getMessaging(firebaseApp);
+    attachForegroundMessagingOnce(messaging);
     return messaging;
   } catch (error) {
     reportError('Firebase', 'No se pudo inicializar Firebase Messaging.', error);
@@ -82,14 +121,6 @@ export async function requestFcmToken(): Promise<string | null> {
   logDevDebug('Firebase', 'Service Worker listo para solicitar el token FCM.', {
     hasActiveWorker: !!registration.active,
   });
-
-  // Clear any stale push subscription — prevents AbortError when VAPID key changed
-  // or subscription became invalid (most common cause of "push service error")
-  const existingSubscription = await registration.pushManager.getSubscription();
-  if (existingSubscription) {
-    await existingSubscription.unsubscribe();
-    logDevDebug('Firebase', 'Suscripción push anterior eliminada.');
-  }
 
   const FCM_TIMEOUT_MS = 15_000;
   const fcmTimeout = new Promise<never>((_, reject) =>
