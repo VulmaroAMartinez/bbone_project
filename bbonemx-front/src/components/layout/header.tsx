@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useNotification } from '@/hooks/useNotification';
-import { Bell, Menu, Check, Clock } from 'lucide-react';
+import { Bell, Menu, Check, Clock, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { NotificationType } from '@/lib/graphql/generated/graphql';
+import { useTheme } from 'next-themes';
 
 interface HeaderProps {
   title?: string;
@@ -33,6 +34,7 @@ interface HeaderProps {
 export function Header({ title, subtitle }: HeaderProps) {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotification();  
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
 
   // Formatear fecha relativa
   function formatDate(dateStr: string): string {
@@ -93,6 +95,20 @@ export function Header({ title, subtitle }: HeaderProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+          aria-label={resolvedTheme === 'dark' ? 'Activar tema claro' : 'Activar tema oscuro'}
+          title={resolvedTheme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+        >
+          {resolvedTheme === 'dark' ? (
+            <Sun className="h-5 w-5" />
+          ) : (
+            <Moon className="h-5 w-5" />
+          )}
+        </Button>
+
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
