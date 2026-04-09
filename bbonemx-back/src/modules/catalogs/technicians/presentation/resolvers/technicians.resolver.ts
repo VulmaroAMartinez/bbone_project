@@ -1,4 +1,13 @@
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ID,
+  ResolveField,
+  Parent,
+  Int,
+} from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { TechnicianType } from '../types/technician.type';
 import { JwtAuthGuard, Role, Roles, RolesGuard } from 'src/common';
@@ -7,6 +16,8 @@ import {
   CreateTechnicianInput,
   UpdateTechnicianInput,
 } from '../../application/dto';
+import { Technician } from '../../domain/entities';
+import { calculateVacationDays } from 'src/common/utils';
 
 @Resolver(() => TechnicianType)
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -58,5 +69,11 @@ export class TechniciansResolver {
   @Mutation(() => TechnicianType, { name: 'activateTechnician' })
   async activateTechnician(@Args('id', { type: () => ID }) id: string) {
     return this.techniciansService.activate(id);
+  }
+
+  @ResolveField(() => Int, { name: 'vacationDays', nullable: true })
+  resolveVacationDays(@Parent() technician: Technician): number | null {
+    if (!technician.hireDate) return null;
+    return calculateVacationDays(technician.hireDate);
   }
 }
