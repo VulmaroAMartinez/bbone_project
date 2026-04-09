@@ -368,6 +368,13 @@ input CreateMaterialRequestItemInput {
   unitOfMeasure: String
 }
 
+input CreateMaterialRequestPhotoInput {
+  fileName: String!
+  filePath: String!
+  materialRequestId: ID!
+  mimeType: String!
+}
+
 input CreateOvertimeInput {
   activity: String!
   endTime: String!
@@ -457,7 +464,7 @@ input CreateTechnicianInput {
   shoeSize: String!
   transportRoute: String!
   userId: ID!
-  vacationPeriod: Float!
+  vacationPeriod: Float
 }
 
 input CreateUserInput {
@@ -775,6 +782,7 @@ type MaterialRequest {
   items: [MaterialRequestItem!]!
   justification: String
   machines: [MaterialRequestMachine!]!
+  photos: [MaterialRequestPhoto!]
   priority: RequestPriority!
   requester: User!
   requesterId: ID!
@@ -787,6 +795,7 @@ type MaterialRequestHistory {
   createdAt: DateTime!
   deliveryDate: DateTime
   deliveryMerchandise: String
+  estimatedDeliveryDate: DateTime
   id: ID!
   isActive: Boolean!
   materialRequestId: ID!
@@ -825,6 +834,18 @@ type MaterialRequestMachine {
   machineId: ID!
 }
 
+type MaterialRequestPhoto {
+  createdAt: DateTime!
+  fileName: String!
+  filePath: String!
+  id: ID!
+  isActive: Boolean!
+  materialRequestId: ID!
+  mimeType: String!
+  uploadedAt: DateTime!
+  uploadedBy: ID!
+}
+
 type MixPoint {
   count: Int!
   period: String!
@@ -847,6 +868,7 @@ type Mutation {
   activateUser(id: ID!): User!
   addActivityMaterialRequest(input: AddActivityMaterialRequestByFolioInput!): ActivityMaterialRequest!
   addActivityWorkOrder(input: AddActivityWorkOrderByFolioInput!): ActivityWorkOrder!
+  addMaterialRequestPhoto(input: CreateMaterialRequestPhotoInput!): MaterialRequestPhoto!
   addMaterialToRequest(input: CreateMaterialRequestItemInput!, materialRequestId: ID!): MaterialRequestItem!
   addWorkOrderMaterial(input: AddWorkOrderMaterialInput!): WorkOrderMaterial!
   addWorkOrderSparePart(input: AddWorkOrderSparePartInput!): WorkOrderSparePart!
@@ -943,6 +965,7 @@ type Mutation {
   removeActivityMaterialRequest(activityId: ID!, materialRequestId: ID!): Boolean!
   removeActivityWorkOrder(activityId: ID!, workOrderId: ID!): Boolean!
   removeMaterialFromRequest(materialRequestMaterialId: ID!): Boolean!
+  removeMaterialRequestPhoto(id: ID!): Boolean!
   removeWorkOrderMaterial(id: ID!): Boolean!
   removeWorkOrderSparePart(id: ID!): Boolean!
   resumePreventiveTasksCron: Boolean!
@@ -1547,6 +1570,7 @@ type Technician {
   updatedAt: DateTime!
   updatedBy: String!
   user: User!
+  vacationDays: Int
   vacationPeriod: Float!
 }
 
@@ -1659,6 +1683,7 @@ input UpdateMaterialInput {
 
 input UpdateMaterialRequestHistoryInput {
   deliveryMerchandise: String
+  estimatedDeliveryDate: DateTime
   materialRequestId: ID!
   purchaseOrder: String
   purchaseRequest: String
