@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
 import {
     GetMaterialRequestDocument,
+    GetMaterialRequestsDocument,
     SendMaterialRequestEmailDocument,
     type GetMaterialRequestQuery,
 } from '@/lib/graphql/generated/graphql';
@@ -61,7 +62,10 @@ function EmailModal({ open, onClose, materialRequestId, folio }: EmailModalProps
     );
 
     const [sendEmail, { loading: sending }] = useMutation(SendMaterialRequestEmailDocument, {
-        refetchQueries: ['GetMaterialRequest', 'GetMaterialRequests'],
+        refetchQueries: [
+            { query: GetMaterialRequestDocument, variables: { id: materialRequestId } },
+            GetMaterialRequestsDocument,
+        ],
     });
 
     const handleClose = () => {
