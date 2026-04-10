@@ -4,7 +4,6 @@ import {
   IsString,
   IsUUID,
   IsInt,
-  IsPositive,
   IsOptional,
   IsBoolean,
   Length,
@@ -138,13 +137,10 @@ export class CreateTechnicianInput {
   @IsDate({ message: 'La fecha de contratación debe ser una fecha válida' })
   hireDate: Date;
 
-  @Field()
-  @IsNotEmpty({ message: 'El periodo de vacaciones es requerido' })
+  @Field({ nullable: true })
+  @IsOptional()
   @IsInt({ message: 'El periodo de vacaciones debe ser un número entero' })
-  @IsPositive({
-    message: 'El periodo de vacaciones debe ser un número positivo',
-  })
-  vacationPeriod: number;
+  vacationPeriod?: number;
 
   @Field()
   @IsNotEmpty({ message: 'El ID de la posición es requerido' })

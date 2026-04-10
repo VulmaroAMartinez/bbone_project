@@ -7,6 +7,13 @@ export interface BaseEmailTemplateData {
   footerText?: string;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  path?: string;
+  cid?: string;
+  contentType?: string;
+}
+
 export interface SendEmailOptions {
   to: string | string[];
   subject: string;
@@ -15,6 +22,7 @@ export interface SendEmailOptions {
   cc?: string | string[];
   bcc?: string | string[];
   from?: string;
+  attachments?: EmailAttachment[];
   template?: {
     data: BaseEmailTemplateData;
   };
@@ -58,6 +66,11 @@ export interface TechnicianBirthdaysWeeklyTemplateData {
   birthdays: TechnicianBirthdayEmailRowData[];
 }
 
+export interface MaterialRequestEmailPhotoData {
+  cid: string;
+  fileName: string;
+}
+
 export interface MaterialRequestEmailTemplateData {
   folio: string;
   createdAt: string;
@@ -75,4 +88,5 @@ export interface MaterialRequestEmailTemplateData {
   suggestedSupplier?: string;
   customMessage?: string;
   items: MaterialRequestEmailItemData[];
+  photos?: MaterialRequestEmailPhotoData[];
 }

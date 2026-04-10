@@ -32,6 +32,7 @@ export const GET_TECHNICIANS_DATA_QUERY = gql`
       shoeSize
       transportRoute
       vacationPeriod
+      vacationDays
       user {
         id
         firstName
@@ -89,6 +90,7 @@ technician(id: $id) {
       shoeSize
       transportRoute
       vacationPeriod
+      vacationDays
       user {
         id
         fullName

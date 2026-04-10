@@ -83,6 +83,10 @@ export default function TechnicianDetailPage() {
                             <span>{tech.vacationPeriod}</span>
                         </div>
                         <div>
+                            <span className="text-muted-foreground block mb-1">Días de vacaciones</span>
+                            <span>{tech.vacationDays ?? '—'}</span>
+                        </div>
+                        <div>
                             <span className="text-muted-foreground block mb-1">Email Corporativo</span>
                             <span>{u.email || '--'}</span>
                         </div>

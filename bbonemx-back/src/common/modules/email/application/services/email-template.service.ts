@@ -3,6 +3,7 @@ import {
   BaseEmailTemplateData,
   MaterialRequestEmailTemplateData,
   MaterialRequestEmailItemData,
+  MaterialRequestEmailPhotoData,
   TechnicianBirthdaysWeeklyTemplateData,
 } from '../../presentation/types';
 
@@ -168,6 +169,8 @@ export class EmailTemplateService {
   ${this.renderItemsTable(data.items)}
 
   ${this.renderObservations(data)}
+
+  ${this.renderPhotos(data.photos)}
 
   <!-- Footer -->
   <tr>
@@ -347,6 +350,30 @@ export class EmailTemplateService {
       ${this.renderSectionHeader('Observaciones')}
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         ${rows}
+      </table>
+    </td>
+  </tr>`;
+  }
+
+  private renderPhotos(photos?: MaterialRequestEmailPhotoData[]): string {
+    if (!photos || photos.length === 0) return '';
+
+    const thumbnails = photos
+      .map(
+        (p) => `
+      <td style="padding:4px;">
+        <img src="cid:${p.cid}" alt="${this.escapeHtml(p.fileName)}"
+          style="width:160px;height:120px;object-fit:cover;border-radius:4px;border:1px solid #e2e8f0;" />
+      </td>`,
+      )
+      .join('');
+
+    return `
+  <tr>
+    <td style="padding:0 24px 20px;">
+      ${this.renderSectionHeader('Fotografías adjuntas')}
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>${thumbnails}</tr>
       </table>
     </td>
   </tr>`;

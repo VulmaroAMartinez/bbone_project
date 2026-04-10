@@ -16,6 +16,7 @@ import {
 import { MaterialRequestItem } from './material-request-item.entity';
 import { MaterialRequestMachine } from './material-request-machine.entity';
 import { MaterialRequestHistory } from './material-request-history.entity';
+import { MaterialRequestPhoto } from './material-request-photo.entity';
 
 @Entity({ name: 'material_requests' })
 export class MaterialRequest extends BaseEntity {
@@ -98,4 +99,9 @@ export class MaterialRequest extends BaseEntity {
     },
   )
   histories: MaterialRequestHistory[];
+
+  @OneToMany(() => MaterialRequestPhoto, (photo) => photo.materialRequest, {
+    cascade: true,
+  })
+  photos: MaterialRequestPhoto[];
 }

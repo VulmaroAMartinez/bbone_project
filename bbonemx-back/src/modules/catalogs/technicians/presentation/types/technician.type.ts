@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
 import { UserType } from 'src/modules/users/presentation/types';
 import { PositionType } from 'src/modules/catalogs/positions/presentation/types';
 
@@ -23,6 +23,7 @@ export class TechnicianType {
   @Field() transportRoute: string;
   @Field() hireDate: Date;
   @Field() vacationPeriod: number;
+  @Field(() => Int, { nullable: true }) vacationDays?: number;
   @Field(() => PositionType) position: PositionType;
   @Field() isActive: boolean;
   @Field() createdAt: Date;

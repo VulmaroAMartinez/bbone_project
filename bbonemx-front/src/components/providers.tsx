@@ -12,6 +12,7 @@ import { NotificationProvider } from '@/contexts/notification-context';
 import { GlobalSyncManager } from '@/components/GlobalSyncManager';
 import { useState, useEffect, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
+import { ThemeProvider } from 'next-themes';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -35,13 +36,15 @@ export function Providers({ children }: ProvidersProps) {
   }
 
   return (
-    <ApolloProvider client={client}>
-      <AuthProvider>
-        <NotificationProvider>
-          {children}
-          <GlobalSyncManager />
-        </NotificationProvider>
-      </AuthProvider>
-    </ApolloProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="bbmaintenance-theme">
+      <ApolloProvider client={client}>
+        <AuthProvider>
+          <NotificationProvider>
+            {children}
+            <GlobalSyncManager />
+          </NotificationProvider>
+        </AuthProvider>
+      </ApolloProvider>
+    </ThemeProvider>
   );
 }

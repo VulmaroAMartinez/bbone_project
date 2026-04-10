@@ -1,14 +1,19 @@
-import { MaterialRequestType, MaterialRequestItemType } from '../types';
+import {
+  MaterialRequestType,
+  MaterialRequestItemType,
+  MaterialRequestPhotoType,
+} from '../types';
 import { MaterialRequestsService } from '../../application/services';
 import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard, Roles, RolesGuard, Role } from 'src/common';
+import { JwtAuthGuard, Roles, RolesGuard, Role, CurrentUser } from 'src/common';
 import {
   CreateMaterialRequestInput,
   UpdateMaterialRequestInput,
   CreateMaterialRequestItemInput,
   SendMaterialRequestEmailInput,
   UpdateMaterialRequestHistoryInput,
+  CreateMaterialRequestPhotoInput,
 } from '../../application/dto';
 
 @Resolver(() => MaterialRequestType)
@@ -98,5 +103,20 @@ export class MaterialRequestsResolver {
     @Args('input') input: UpdateMaterialRequestHistoryInput,
   ) {
     return this.materialRequestsService.updateHistory(input);
+  }
+
+  @Mutation(() => MaterialRequestPhotoType)
+  async addMaterialRequestPhoto(
+    @Args('input') input: CreateMaterialRequestPhotoInput,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.materialRequestsService.addPhoto(input, userId);
+  }
+
+  @Mutation(() => Boolean)
+  async removeMaterialRequestPhoto(
+    @Args('id', { type: () => ID }) id: string,
+  ): Promise<boolean> {
+    return this.materialRequestsService.removePhoto(id);
   }
 }

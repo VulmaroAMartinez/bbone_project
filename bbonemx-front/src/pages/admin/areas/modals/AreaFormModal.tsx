@@ -44,7 +44,7 @@ import { toast } from 'sonner';
 // ─── Constants ───────────────────────────────────────────
 const AREA_TYPES_WITH_SUBAREAS = ['OPERATIONAL', 'PRODUCTION', 'SERVICE'];
 const VIRTUAL_LIST_THRESHOLD = 30;
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 20;
 
 // ─── Schema ──────────────────────────────────────────────
 const areaSchema = yup.object({
@@ -177,7 +177,7 @@ function SubAreasEditableList({
   }
 
   return (
-    <ScrollArea className="rounded-md border border-border/50" style={{ maxHeight }}>
+    <ScrollArea className="w-full rounded-md border border-border/50" style={{ height: maxHeight }}>
       <div className="p-1">
         {items.map((sa) => {
           const isEditing = editingId === sa.id;

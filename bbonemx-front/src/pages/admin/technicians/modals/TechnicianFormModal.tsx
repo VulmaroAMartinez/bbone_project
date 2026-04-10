@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Schema & types
@@ -57,7 +57,9 @@ const createSchema = (isEditing: boolean) =>
         shirtSize: yup.string().trim().required('La talla de camisa es obligatoria'),
         shoeSize: yup.string().trim().required('La talla de calzado es obligatoria'),
         transportRoute: yup.string().trim().required('La ruta de transporte es obligatoria'),
-        vacationPeriod: yup.number().min(0).required('Indique el periodo vacacional actual').default(0),
+        vacationPeriod: isEditing
+            ? yup.number().min(0).required('Indique el periodo vacacional actual').default(0)
+            : yup.number().optional().default(undefined),
         isBoss: yup.boolean().default(false),
     });
 
@@ -98,9 +100,11 @@ export default function TechnicianFormModal({
     const [updateTechnician] = useMutation(UpdateTechnicianProfileDocument);
 
     const [isSaving, setIsSaving] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormValues>({
-        resolver: yupResolver(createSchema(isEditing)),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        resolver: yupResolver(createSchema(isEditing)) as any,
     });
 
     // Reset form when technician prop changes (populate for edit, clear for create)
@@ -142,11 +146,15 @@ export default function TechnicianFormModal({
                 firstName: '', lastName: '', employeeNumber: '', departmentId: '', email: '', phone: '', password: '',
                 positionId: '', address: '', allergies: '', birthDate: '', bloodType: '', childrenCount: 0,
                 education: '', emergencyContactName: '', emergencyContactPhone: '', emergencyContactRelationship: '',
-                hireDate: '', nss: '', pantsSize: '', rfc: '', shirtSize: '', shoeSize: '', transportRoute: '', vacationPeriod: 0,
+                hireDate: '', nss: '', pantsSize: '', rfc: '', shirtSize: '', shoeSize: '', transportRoute: '',
                 isBoss: false,
             });
         }
     }, [open, technician, reset]);
+
+    useEffect(() => {
+        if (!open) setShowPassword(false);
+    }, [open]);
 
     const onSubmit = async (values: FormValues) => {
         if (!techRoleId) {
@@ -183,7 +191,9 @@ export default function TechnicianFormModal({
                 shirtSize: values.shirtSize,
                 shoeSize: values.shoeSize,
                 transportRoute: values.transportRoute,
-                vacationPeriod: Number(values.vacationPeriod),
+                ...(isEditing && values.vacationPeriod !== undefined
+                    ? { vacationPeriod: Number(values.vacationPeriod) }
+                    : {}),
                 isBoss: values.isBoss ?? false,
             };
 
@@ -257,11 +267,26 @@ export default function TechnicianFormModal({
                             </div>
                             <div className="space-y-2">
                                 <Label>{isEditing ? 'Nueva Contraseña (Opcional)' : 'Contraseña *'}</Label>
-                                <Input
-                                    type="password"
-                                    {...register('password')}
-                                    placeholder={isEditing ? 'Dejar vacío para no cambiar' : '********'}
-                                />
+                                <div className="relative">
+                                    <Input
+                                        type={showPassword ? 'text' : 'password'}
+                                        {...register('password')}
+                                        placeholder={isEditing ? 'Dejar vacío para no cambiar' : '********'}
+                                        className="pr-10"
+                                        autoComplete="new-password"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                                        onClick={() => setShowPassword((v) => !v)}
+                                        disabled={isSaving}
+                                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
                                 <FieldError name="password" />
                             </div>
                         </div>
@@ -302,11 +327,13 @@ export default function TechnicianFormModal({
                                 <Input type="date" {...register('hireDate')} />
                                 <FieldError name="hireDate" />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Periodo Vacacional *</Label>
-                                <Input type="number" min="0" {...register('vacationPeriod')} />
-                                <FieldError name="vacationPeriod" />
-                            </div>
+                            {isEditing && (
+                                <div className="space-y-2">
+                                    <Label>Periodo Vacacional *</Label>
+                                    <Input type="number" min="0" {...register('vacationPeriod')} />
+                                    <FieldError name="vacationPeriod" />
+                                </div>
+                            )}
                             <div className="sm:col-span-2">
                                 <Controller name="isBoss" control={control} render={({ field }) => (
                                     <div className="flex items-center gap-2 pt-1">

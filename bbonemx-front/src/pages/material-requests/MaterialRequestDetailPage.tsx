@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
 import {
     GetMaterialRequestDocument,
+    GetMaterialRequestsDocument,
     SendMaterialRequestEmailDocument,
     type GetMaterialRequestQuery,
 } from '@/lib/graphql/generated/graphql';
@@ -32,7 +33,9 @@ import {
     MapPin,
     Calendar,
     Info,
+    Camera,
 } from 'lucide-react';
+import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
 
 import {
     CATEGORY_LABELS,
@@ -59,7 +62,10 @@ function EmailModal({ open, onClose, materialRequestId, folio }: EmailModalProps
     );
 
     const [sendEmail, { loading: sending }] = useMutation(SendMaterialRequestEmailDocument, {
-        refetchQueries: ['GetMaterialRequest', 'GetMaterialRequests'],
+        refetchQueries: [
+            { query: GetMaterialRequestDocument, variables: { id: materialRequestId } },
+            GetMaterialRequestsDocument,
+        ],
     });
 
     const handleClose = () => {
@@ -520,6 +526,40 @@ export default function MaterialRequestDetailPage() {
                                 <p className="font-medium">{request.suggestedSupplier}</p>
                             </div>
                         )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Fotografías */}
+            {request.photos && request.photos.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Camera className="h-4 w-4 text-muted-foreground" />
+                            Fotografías
+                            <Badge variant="secondary" className="ml-auto text-xs font-normal">
+                                {request.photos.length}
+                            </Badge>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                            {request.photos.map((photo) => (
+                                <a
+                                    key={photo.id}
+                                    href={resolveBackendAssetUrl(photo.filePath)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block"
+                                >
+                                    <img
+                                        src={resolveBackendAssetUrl(photo.filePath)}
+                                        alt={photo.fileName}
+                                        className="w-24 h-24 object-cover rounded-md border border-border hover:opacity-80 transition-opacity cursor-pointer"
+                                    />
+                                </a>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
             )}

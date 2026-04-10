@@ -81,7 +81,7 @@ export class TechniciansService {
       shoeSize: input.shoeSize,
       transportRoute: input.transportRoute,
       hireDate: input.hireDate,
-      vacationPeriod: input.vacationPeriod,
+      vacationPeriod: new Date().getFullYear(),
       positionId: input.positionId,
     });
 
