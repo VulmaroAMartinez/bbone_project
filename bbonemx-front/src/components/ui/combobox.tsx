@@ -27,7 +27,10 @@ interface ComboboxProps {
     placeholder?: string
     searchPlaceholder?: string
     emptyText?: string
+    /** Clases extra para el panel (PopoverContent), p. ej. ancho máximo */
     className?: string
+    /** Clases extra para la lista con scroll (CommandList), p. ej. max-h para limitar altura */
+    listClassName?: string
     triggerClassName?: string
     disabled?: boolean
     size?: 'sm' | 'default'
@@ -41,6 +44,7 @@ function Combobox({
     searchPlaceholder = 'Buscar...',
     emptyText = 'Sin resultados.',
     className,
+    listClassName,
     triggerClassName,
     disabled = false,
     size = 'default',
@@ -80,13 +84,13 @@ function Combobox({
             >
                 <Command>
                     <CommandInput placeholder={searchPlaceholder} />
-                    <CommandList>
+                    <CommandList className={listClassName}>
                         <CommandEmpty>{emptyText}</CommandEmpty>
                         <CommandGroup>
                             {options.map((option) => (
                                 <CommandItem
                                     key={option.value}
-                                    value={option.label}
+                                    value={`${option.label} ${option.value}`}
                                     disabled={option.disabled}
                                     onSelect={() => {
                                         onValueChange?.(option.value)

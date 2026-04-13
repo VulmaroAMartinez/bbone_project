@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   GetWorkOrdersFilteredDocument,
   GetShiftsDocument,
+  GetAreasDocument,
   type WorkOrderStatus,
   type WorkOrderPriority,
   WorkOrderItemFragmentDoc,
@@ -18,6 +19,7 @@ import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Select,
   SelectContent,
@@ -56,17 +58,62 @@ const PRIORITY_TABS: { value: WorkOrderPriority | 'all'; label: string }[] = [
 
 const PAGE_SIZE = 12;
 
+const STATUS_VALUES = new Set(STATUS_TABS.map((t) => t.value));
+
+function parseStatusFromSearchParams(status: string | null): WorkOrderStatus | 'all' {
+  if (!status || !STATUS_VALUES.has(status as WorkOrderStatus | 'all')) return 'all';
+  return status as WorkOrderStatus | 'all';
+}
+
 function OrdenesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<WorkOrderStatus | 'all'>(
-    (searchParams.get('status') as WorkOrderStatus) || 'all'
+  const [statusFilter, setStatusFilter] = useState<WorkOrderStatus | 'all'>(() =>
+    parseStatusFromSearchParams(searchParams.get('status')),
   );
   const [shiftFilter, setShiftFilter] = useState<string>('all');
+  const [areaFilter, setAreaFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<WorkOrderPriority | 'all'>('all');
 
   const { data: shiftsData } = useQuery(GetShiftsDocument);
+  const { data: areasData } = useQuery(GetAreasDocument);
+  const areas = useMemo(() => {
+    const raw = areasData?.areas ? unmaskFragment(AreaBasicFragmentDoc, areasData.areas) : [];
+    const seen = new Set<string>();
+    return raw.filter((a) => {
+      const id = String(a.id ?? '');
+      if (!id || id === 'all' || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [areasData?.areas]);
+
+  const areaComboboxOptions = useMemo(
+    () => [
+      { value: 'all', label: 'Todas las áreas' },
+      ...areas.map((a) => ({ value: a.id, label: a.name })),
+    ],
+    [areas],
+  );
+
+  useEffect(() => {
+    if (areaFilter === 'all') return;
+    if (!areas.length) return;
+    if (!areas.some((a) => a.id === areaFilter)) {
+      setAreaFilter('all');
+    }
+  }, [areas, areaFilter]);
+
+  useEffect(() => {
+    if (shiftFilter === 'all') return;
+    const shifts = shiftsData?.shiftsActive ?? [];
+    if (!shifts.length) return;
+    if (!shifts.some((s) => s.id === shiftFilter)) {
+      setShiftFilter('all');
+    }
+  }, [shiftsData?.shiftsActive, shiftFilter]);
 
   const handleStatusChange = (val: WorkOrderStatus | 'all') => {
     setStatusFilter(val);
@@ -77,13 +124,13 @@ function OrdenesPage() {
       setSearchParams({});
     }
   };
-  const [priorityFilter, setPriorityFilter] = useState<WorkOrderPriority | 'all'>('all');
 
   const { data, loading, error, isOffline } = useOfflineAwareQuery(GetWorkOrdersFilteredDocument, {
     variables: {
       status: statusFilter !== 'all' ? statusFilter : undefined,
       priority: priorityFilter !== 'all' ? priorityFilter : undefined,
       assignedShiftId: shiftFilter !== 'all' ? shiftFilter : undefined,
+      areaId: areaFilter !== 'all' ? areaFilter : undefined,
     },
   });
 
@@ -150,9 +197,22 @@ function OrdenesPage() {
                 className="pl-9"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 flex-wrap gap-2">
+              <Combobox
+                options={areaComboboxOptions}
+                value={areaFilter}
+                onValueChange={(val) => {
+                  setAreaFilter(val);
+                  setPage(1);
+                }}
+                placeholder="Área"
+                searchPlaceholder="Buscar área..."
+                emptyText="Sin coincidencias"
+                triggerClassName="w-[160px] shrink-0 justify-between"
+                listClassName="max-h-[min(20rem,45vh)]"
+              />
               <Select value={statusFilter} onValueChange={(val) => handleStatusChange(val as WorkOrderStatus | 'all')}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-[160px] shrink-0">
                   <Filter className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
@@ -163,7 +223,7 @@ function OrdenesPage() {
                 </SelectContent>
               </Select>
               <Select value={priorityFilter} onValueChange={(val) => { setPriorityFilter(val as WorkOrderPriority | 'all'); setPage(1); }}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-[160px] shrink-0">
                   <SelectValue placeholder="Prioridad" />
                 </SelectTrigger>
                 <SelectContent>
@@ -173,7 +233,7 @@ function OrdenesPage() {
                 </SelectContent>
               </Select>
               <Select value={shiftFilter} onValueChange={(v) => { setShiftFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-[160px] shrink-0">
                   <SelectValue placeholder="Turno" />
                 </SelectTrigger>
                 <SelectContent>
