@@ -17,7 +17,7 @@ type Activity {
   areaId: ID!
   comments: String
   createdAt: DateTime!
-  endDate: DateTime!
+  endDate: DateTime
   id: ID!
   isActive: Boolean!
   machine: Machine!
@@ -277,7 +277,7 @@ input CreateActivityInput {
   activity: String!
   areaId: ID!
   comments: String
-  endDate: String!
+  endDate: String
   machineId: ID!
   priority: Boolean! = false
   progress: Int! = 0

@@ -37,8 +37,9 @@ export class Activity extends BaseEntity {
     name: 'end_date',
     type: 'date',
     transformer: dateColumnTransformer,
+    nullable: true,
   })
-  endDate: Date;
+  endDate?: Date | null;
 
   @Column({ type: 'integer', default: 0 })
   progress: number;

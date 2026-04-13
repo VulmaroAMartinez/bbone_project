@@ -59,7 +59,10 @@ export class ActivitiesService {
       machineId: input.machineId,
       activity: input.activity,
       startDate: new Date(input.startDate),
-      endDate: new Date(input.endDate),
+      endDate:
+        input.endDate != null && input.endDate !== ''
+          ? new Date(input.endDate)
+          : undefined,
       progress: input.progress ?? 0,
       status: input.status ?? ActivityStatus.PENDING,
       comments: input.comments,
@@ -97,8 +100,12 @@ export class ActivitiesService {
     if (input.activity !== undefined) updateData.activity = input.activity;
     if (input.startDate !== undefined)
       updateData.startDate = new Date(input.startDate);
-    if (input.endDate !== undefined)
-      updateData.endDate = new Date(input.endDate);
+    if (input.endDate !== undefined) {
+      updateData.endDate =
+        input.endDate === null || input.endDate === ''
+          ? null
+          : new Date(input.endDate);
+    }
     if (input.progress !== undefined) updateData.progress = input.progress;
     if (input.status !== undefined) updateData.status = input.status;
     if (input.comments !== undefined) updateData.comments = input.comments;

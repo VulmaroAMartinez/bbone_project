@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { toast } from 'sonner';
@@ -71,7 +71,15 @@ const schema = yup.object({
   machineId: yup.string().required('La máquina es requerida'),
   activity: yup.string().trim().required('La actividad es requerida'),
   startDate: yup.string().required('La fecha de inicio es requerida'),
-  endDate: yup.string().required('La fecha de fin es requerida'),
+  endDate: yup
+    .string()
+    .transform((v) => (v === '' || v == null ? undefined : v))
+    .optional()
+    .test(
+      'valid-end-date',
+      'La fecha de fin no es válida',
+      (value) => value === undefined || !Number.isNaN(Date.parse(value)),
+    ),
   progress: yup
     .number()
     .min(0, 'Mínimo 0')
@@ -91,7 +99,9 @@ const schema = yup.object({
     .required('Debe asignar al menos un técnico'),
 });
 
-type FormValues = yup.InferType<typeof schema>;
+type FormValues = Omit<yup.InferType<typeof schema>, 'endDate'> & {
+  endDate?: string;
+};
 
 export default function ActivityFormPage() {
   const navigate = useNavigate();
@@ -113,13 +123,13 @@ export default function ActivityFormPage() {
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as Resolver<FormValues>,
     defaultValues: {
       areaId: '',
       machineId: '',
       activity: '',
       startDate: '',
-      endDate: '',
+      endDate: undefined,
       progress: 0,
       status: 'PENDING',
       comments: '',
@@ -152,7 +162,7 @@ export default function ActivityFormPage() {
         machineId: a.machineId,
         activity: a.activity,
         startDate: a.startDate ? a.startDate.split('T')[0] : '',
-        endDate: a.endDate ? a.endDate.split('T')[0] : '',
+        endDate: a.endDate ? a.endDate.split('T')[0] : undefined,
         progress: a.progress,
         status: a.status,
         comments: a.comments || '',
@@ -184,24 +194,42 @@ export default function ActivityFormPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const input = {
-        areaId: values.areaId,
-        machineId: values.machineId,
-        activity: values.activity,
-        startDate: values.startDate,
-        endDate: values.endDate,
-        progress: values.progress,
-        status: values.status as ActivityStatus,
-        comments: values.comments || undefined,
-        priority: values.priority,
-        technicianIds: values.technicianIds as string[],
-      };
-
       if (isEditing) {
-        await updateActivity({ variables: { id: id!, input } });
+        await updateActivity({
+          variables: {
+            id: id!,
+            input: {
+              areaId: values.areaId,
+              machineId: values.machineId,
+              activity: values.activity,
+              startDate: values.startDate,
+              endDate: values.endDate ?? null,
+              progress: values.progress,
+              status: values.status as ActivityStatus,
+              comments: values.comments || undefined,
+              priority: values.priority,
+              technicianIds: values.technicianIds as string[],
+            },
+          },
+        });
         toast.success('Actividad actualizada');
       } else {
-        await createActivity({ variables: { input } });
+        await createActivity({
+          variables: {
+            input: {
+              areaId: values.areaId,
+              machineId: values.machineId,
+              activity: values.activity,
+              startDate: values.startDate,
+              ...(values.endDate ? { endDate: values.endDate } : {}),
+              progress: values.progress,
+              status: values.status as ActivityStatus,
+              comments: values.comments || undefined,
+              priority: values.priority,
+              technicianIds: values.technicianIds as string[],
+            },
+          },
+        });
         toast.success('Actividad creada');
       }
       navigate('/admin/actividades');
@@ -293,7 +321,7 @@ export default function ActivityFormPage() {
 
               {/* Fecha fin */}
               <div className="space-y-2">
-                <Label>Fecha Fin *</Label>
+                <Label>Fecha fin</Label>
                 <Input type="date" {...register('endDate')} />
                 {errors.endDate && <p className="text-xs text-destructive">{errors.endDate.message}</p>}
               </div>
