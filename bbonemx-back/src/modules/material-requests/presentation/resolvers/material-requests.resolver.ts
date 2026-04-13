@@ -7,6 +7,7 @@ import { MaterialRequestsService } from '../../application/services';
 import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard, Roles, RolesGuard, Role, CurrentUser } from 'src/common';
+import { User } from 'src/modules/users/domain/entities';
 import {
   CreateMaterialRequestInput,
   UpdateMaterialRequestInput,
@@ -29,9 +30,9 @@ export class MaterialRequestsResolver {
   }
 
   @Query(() => [MaterialRequestType], { name: 'materialRequestsWithDeleted' })
-  @Roles(Role.ADMIN)
-  async materialRequestsWithDeleted() {
-    return this.materialRequestsService.findAllWithDeleted();
+  @Roles(Role.ADMIN, Role.BOSS)
+  async materialRequestsWithDeleted(@CurrentUser() user: User) {
+    return this.materialRequestsService.findAllWithDeletedForUser(user);
   }
 
   @Query(() => [MaterialRequestType], { name: 'materialRequestsActive' })
@@ -40,16 +41,22 @@ export class MaterialRequestsResolver {
   }
 
   @Query(() => MaterialRequestType, { name: 'materialRequest', nullable: true })
-  async materialRequest(@Args('id', { type: () => ID }) id: string) {
-    return this.materialRequestsService.findById(id);
+  async materialRequest(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.materialRequestsService.findByIdForUser(id, user);
   }
 
   @Query(() => MaterialRequestType, {
     name: 'materialRequestByFolio',
     nullable: true,
   })
-  async materialRequestByFolio(@Args('folio') folio: string) {
-    return this.materialRequestsService.findByFolio(folio);
+  async materialRequestByFolio(
+    @Args('folio') folio: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.materialRequestsService.findByFolioForUser(folio, user);
   }
 
   @Mutation(() => MaterialRequestType)
@@ -63,60 +70,72 @@ export class MaterialRequestsResolver {
   async updateMaterialRequest(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: UpdateMaterialRequestInput,
+    @CurrentUser() user: User,
   ) {
-    return this.materialRequestsService.update(id, input);
+    return this.materialRequestsService.update(id, input, user);
   }
 
   @Mutation(() => MaterialRequestItemType)
   async addMaterialToRequest(
     @Args('materialRequestId', { type: () => ID }) materialRequestId: string,
     @Args('input') input: CreateMaterialRequestItemInput,
+    @CurrentUser() user: User,
   ) {
-    return this.materialRequestsService.addMaterial(materialRequestId, input);
+    return this.materialRequestsService.addMaterial(
+      materialRequestId,
+      input,
+      user,
+    );
   }
 
   @Mutation(() => Boolean)
   async removeMaterialFromRequest(
     @Args('materialRequestMaterialId', { type: () => ID }) id: string,
+    @CurrentUser() user: User,
   ) {
-    return this.materialRequestsService.removeMaterial(id);
+    return this.materialRequestsService.removeMaterial(id, user);
   }
 
   @Mutation(() => Boolean)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   async deactivateMaterialRequest(
     @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user: User,
   ): Promise<boolean> {
-    return this.materialRequestsService.deactivate(id);
+    return this.materialRequestsService.deactivate(id, user);
   }
 
   @Mutation(() => Boolean, { name: 'sendMaterialRequestEmail' })
+  @Roles(Role.ADMIN, Role.BOSS)
   async sendMaterialRequestEmail(
     @Args('input') input: SendMaterialRequestEmailInput,
+    @CurrentUser() user: User,
   ): Promise<boolean> {
-    return this.materialRequestsService.sendEmail(input);
+    return this.materialRequestsService.sendEmail(input, user);
   }
 
   @Mutation(() => MaterialRequestType)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   async updateMaterialRequestHistory(
     @Args('input') input: UpdateMaterialRequestHistoryInput,
+    @CurrentUser() user: User,
   ) {
-    return this.materialRequestsService.updateHistory(input);
+    return this.materialRequestsService.updateHistory(input, user);
   }
 
   @Mutation(() => MaterialRequestPhotoType)
   async addMaterialRequestPhoto(
     @Args('input') input: CreateMaterialRequestPhotoInput,
-    @CurrentUser('id') userId: string,
+    @CurrentUser() user: User,
   ) {
-    return this.materialRequestsService.addPhoto(input, userId);
+    return this.materialRequestsService.addPhoto(input, user.id, user);
   }
 
   @Mutation(() => Boolean)
   async removeMaterialRequestPhoto(
     @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user: User,
   ): Promise<boolean> {
-    return this.materialRequestsService.removePhoto(id);
+    return this.materialRequestsService.removePhoto(id, user);
   }
 }

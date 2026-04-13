@@ -108,10 +108,11 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
         { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
       ];
-      if (isBoss || isAdmin) {
+      if (isBoss) {
         items.push(
-          ...(isBoss ? [] : [{ href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle } as NavItem]),
-          { href: '/solicitud-material/nueva', label: 'Solicitud de Material', icon: FileCog2 },
+          { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
+          { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
+          { href: '/solicitud-material/nueva', label: 'Nueva solicitud', icon: PlusCircle },
         );
       }
       return items;

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { existsSync } from 'fs';
@@ -27,6 +28,7 @@ import {
 } from '../dto';
 import { RequestCategory, StatusHistoryMR } from 'src/common';
 import { MaterialRequestPhoto } from '../../domain/entities';
+import { User } from 'src/modules/users/domain/entities';
 import { MaterialsService } from 'src/modules/catalogs/materials/application/services';
 import { SparePartsService } from 'src/modules/catalogs/spare-parts/application/services';
 import { EmailService } from 'src/common/modules/email/application/services/email.service';
@@ -177,7 +179,56 @@ export class MaterialRequestsService {
     }
   }
 
+  /** BOSS (sin ADMIN): solo solicitudes donde es solicitante o jefe a cargo (`boss` = nombre completo). */
+  private isBossScopeMatch(user: User, mr: MaterialRequest): boolean {
+    return (
+      mr.requesterId === user.id ||
+      mr.boss.trim().toLowerCase() === user.fullName.trim().toLowerCase()
+    );
+  }
+
+  private assertBossCanAccessMaterialRequest(
+    user: User,
+    mr: MaterialRequest,
+  ): void {
+    if (!user.hasRole('BOSS') || user.hasRole('ADMIN')) return;
+    if (this.isBossScopeMatch(user, mr)) return;
+    throw new ForbiddenException(
+      'No tiene permiso para acceder a esta solicitud de material',
+    );
+  }
+
+  private assertBossCanManageMaterialRequest(
+    user: User,
+    mr: MaterialRequest,
+  ): void {
+    if (!user.hasRole('BOSS') || user.hasRole('ADMIN')) return;
+    if (this.isBossScopeMatch(user, mr)) return;
+    throw new ForbiddenException(
+      'No tiene permiso para gestionar esta solicitud de material',
+    );
+  }
+
   // ─── Queries ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Listado administrativo: ADMIN ve todo; jefe (BOSS sin ADMIN) solo solicitudes propias
+   * (como solicitante o como jefe a cargo).
+   */
+  async findAllWithDeletedForUser(user: User): Promise<MaterialRequest[]> {
+    if (user.hasRole('ADMIN')) {
+      return this.materialRequestsRepository.findAllWithDeleted();
+    }
+    if (user.hasRole('BOSS')) {
+      return this.materialRequestsRepository.findAllWithDeletedForBossScope(
+        user.id,
+        user.fullName,
+      );
+    }
+    throw new ForbiddenException(
+      'No tiene permiso para listar solicitudes de material',
+    );
+  }
 
   async findAll(): Promise<MaterialRequest[]> {
     return this.materialRequestsRepository.findAll();
@@ -195,6 +246,16 @@ export class MaterialRequestsService {
     return this.materialRequestsRepository.findById(id);
   }
 
+  async findByIdForUser(
+    id: string,
+    user: User,
+  ): Promise<MaterialRequest | null> {
+    const mr = await this.materialRequestsRepository.findById(id);
+    if (!mr) return null;
+    this.assertBossCanAccessMaterialRequest(user, mr);
+    return mr;
+  }
+
   async findByIdOrFail(id: string): Promise<MaterialRequest> {
     const materialRequest = await this.materialRequestsRepository.findById(id);
     if (!materialRequest) {
@@ -207,6 +268,16 @@ export class MaterialRequestsService {
 
   async findByFolio(folio: string): Promise<MaterialRequest | null> {
     return this.materialRequestsRepository.findByFolio(folio);
+  }
+
+  async findByFolioForUser(
+    folio: string,
+    user: User,
+  ): Promise<MaterialRequest | null> {
+    const mr = await this.materialRequestsRepository.findByFolio(folio);
+    if (!mr) return null;
+    this.assertBossCanAccessMaterialRequest(user, mr);
+    return mr;
   }
 
   async findByMachineId(machineId: string): Promise<MaterialRequest[]> {
@@ -232,8 +303,10 @@ export class MaterialRequestsService {
   async update(
     id: string,
     input: UpdateMaterialRequestInput,
+    user: User,
   ): Promise<MaterialRequest | null> {
     const existing = await this.findByIdOrFail(id);
+    this.assertBossCanManageMaterialRequest(user, existing);
     const category = input.category ?? existing.category;
     for (const item of input.items ?? []) {
       await this.validateItem(item, category);
@@ -253,8 +326,10 @@ export class MaterialRequestsService {
   async addMaterial(
     materialRequestId: string,
     input: CreateMaterialRequestItemInput,
+    user: User,
   ): Promise<MaterialRequestItem> {
     const request = await this.findByIdOrFail(materialRequestId);
+    this.assertBossCanManageMaterialRequest(user, request);
     await this.validateItem(input, request.category);
     return this.materialRequestItemsRepository.create({
       ...input,
@@ -262,13 +337,25 @@ export class MaterialRequestsService {
     });
   }
 
-  async removeMaterial(materialRequestItemId: string): Promise<boolean> {
+  async removeMaterial(
+    materialRequestItemId: string,
+    user: User,
+  ): Promise<boolean> {
+    const item = await this.materialRequestItemsRepository.findById(
+      materialRequestItemId,
+    );
+    if (!item) {
+      throw new NotFoundException('Ítem de solicitud no encontrado');
+    }
+    const request = await this.findByIdOrFail(item.materialRequestId);
+    this.assertBossCanManageMaterialRequest(user, request);
     await this.materialRequestItemsRepository.delete(materialRequestItemId);
     return true;
   }
 
-  async deactivate(id: string): Promise<boolean> {
-    await this.findByIdOrFail(id);
+  async deactivate(id: string, user: User): Promise<boolean> {
+    const mr = await this.findByIdOrFail(id);
+    this.assertBossCanManageMaterialRequest(user, mr);
     await this.materialRequestsRepository.softDelete(id);
     return true;
   }
@@ -278,8 +365,10 @@ export class MaterialRequestsService {
   async addPhoto(
     input: CreateMaterialRequestPhotoInput,
     uploadedBy: string,
+    user: User,
   ): Promise<MaterialRequestPhoto> {
-    await this.findByIdOrFail(input.materialRequestId);
+    const mr = await this.findByIdOrFail(input.materialRequestId);
+    this.assertBossCanManageMaterialRequest(user, mr);
 
     if (!ALLOWED_PHOTO_MIME_TYPES.has(input.mimeType)) {
       throw new BadRequestException(
@@ -307,11 +396,13 @@ export class MaterialRequestsService {
     });
   }
 
-  async removePhoto(id: string): Promise<boolean> {
+  async removePhoto(id: string, user: User): Promise<boolean> {
     const photo = await this.materialRequestPhotosRepository.findById(id);
     if (!photo) {
       throw new NotFoundException(`Fotografía con ID ${id} no encontrada`);
     }
+    const mr = await this.findByIdOrFail(photo.materialRequestId);
+    this.assertBossCanManageMaterialRequest(user, mr);
     await this.materialRequestPhotosRepository.softDelete(id);
     return true;
   }
@@ -326,8 +417,12 @@ export class MaterialRequestsService {
 
   // ─── Email ──────────────────────────────────────────────────────────────────
 
-  async sendEmail(input: SendMaterialRequestEmailInput): Promise<boolean> {
+  async sendEmail(
+    input: SendMaterialRequestEmailInput,
+    user: User,
+  ): Promise<boolean> {
     const request = await this.findByIdOrFail(input.materialRequestId);
+    this.assertBossCanManageMaterialRequest(user, request);
 
     if (request.emailSentAt) {
       throw new BadRequestException(
@@ -483,8 +578,10 @@ export class MaterialRequestsService {
 
   async updateHistory(
     input: UpdateMaterialRequestHistoryInput,
+    user: User,
   ): Promise<MaterialRequest> {
     const mr = await this.findByIdOrFail(input.materialRequestId);
+    this.assertBossCanManageMaterialRequest(user, mr);
 
     if (!mr.emailSentAt) {
       throw new BadRequestException(

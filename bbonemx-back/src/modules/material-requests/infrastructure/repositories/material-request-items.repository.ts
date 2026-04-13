@@ -10,6 +10,13 @@ export class MaterialRequestItemsRepository {
     private readonly repository: Repository<MaterialRequestItem>,
   ) {}
 
+  async findById(id: string): Promise<MaterialRequestItem | null> {
+    return this.repository.findOne({
+      where: { id },
+      relations: ['material', 'sparePart'],
+    });
+  }
+
   async findByRequestId(
     materialRequestId: string,
   ): Promise<MaterialRequestItem[]> {

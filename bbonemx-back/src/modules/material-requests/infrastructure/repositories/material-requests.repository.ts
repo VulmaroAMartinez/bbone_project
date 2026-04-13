@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { MaterialRequest, MaterialRequestMachine } from '../../domain/entities';
 import { FolioGenerator } from 'src/common';
 
@@ -40,6 +40,38 @@ export class MaterialRequestsRepository {
       relations: RELATIONS,
       order: { createdAt: 'DESC' },
     });
+  }
+
+  /**
+   * Solicitudes donde el usuario es solicitante o figura como jefe a cargo (campo `boss` = fullName).
+   */
+  async findAllWithDeletedForBossScope(
+    requesterId: string,
+    bossFullName: string,
+  ): Promise<MaterialRequest[]> {
+    const idsRaw = await this.repository
+      .createQueryBuilder('mr')
+      .withDeleted()
+      .select('mr.id', 'id')
+      .where(
+        '(mr.requester_id = :requesterId OR LOWER(TRIM(mr.boss)) = LOWER(TRIM(:bossName)))',
+        { requesterId, bossName: bossFullName },
+      )
+      .orderBy('mr.created_at', 'DESC')
+      .getRawMany<{ id: string }>();
+
+    if (idsRaw.length === 0) return [];
+
+    const ids = idsRaw.map((r) => r.id);
+    const rows = await this.repository.find({
+      where: { id: In(ids) },
+      withDeleted: true,
+      relations: RELATIONS,
+    });
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    return ids
+      .map((id) => byId.get(id))
+      .filter((r): r is MaterialRequest => r != null);
   }
 
   async findAllActive(): Promise<MaterialRequest[]> {

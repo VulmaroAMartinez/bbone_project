@@ -89,9 +89,6 @@ export function AppRouter() {
             <Route path="/areas/:id/ordenes" element={<AreaWorkOrdersPage />} />
             <Route path="/areas/:id/maquinas" element={<AreaMachinesPage />} />
             <Route path="/areas/:id/hallazgos" element={<AreaFindingsPage />} />
-            <Route path="/solicitud-material" element={<MaterialRequestsPage />} />
-            <Route path="/seguimiento-solicitudes" element={<MaterialRequestHistoryPage />} />
-            <Route path="/solicitud-material/:id" element={<MaterialRequestDetailPage />} />
             <Route path="/horas-extra" element={<OvertimePage />} />
             <Route path="/admin/actividades" element={<ActivitiesPage />} />
             <Route path="/admin/actividades/nueva" element={<ActivityFormPage />} />
@@ -125,6 +122,9 @@ export function AppRouter() {
           <Route element={<ShellLayout title="Solicitud de material" />}>
             <Route path="/solicitud-material/nueva" element={<CreateMaterialRequestPage />} />
             <Route path="/solicitud-material/:id/editar" element={<CreateMaterialRequestPage />} />
+            <Route path="/solicitud-material" element={<MaterialRequestsPage />} />
+            <Route path="/seguimiento-solicitudes" element={<MaterialRequestHistoryPage />} />
+            <Route path="/solicitud-material/:id" element={<MaterialRequestDetailPage />} />
           </Route>
         </Route>
 
