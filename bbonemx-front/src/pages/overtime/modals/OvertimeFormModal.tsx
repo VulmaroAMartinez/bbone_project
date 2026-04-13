@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -109,6 +110,15 @@ export function OvertimeFormModal({
   const [updateOvertime, { loading: updating }] = useMutation(UPDATE_OVERTIME_MUTATION);
   const saving = creating || updating;
 
+  const technicianComboboxOptions = useMemo(
+    () =>
+      technicians.map((t) => ({
+        value: t.id,
+        label: `${t.user.employeeNumber} - ${t.user.firstName} ${t.user.lastName}`,
+      })),
+    [technicians],
+  );
+
   const onSubmit = async (values: OvertimeFormValues) => {
     try {
       if (isEdit) {
@@ -147,7 +157,7 @@ export function OvertimeFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[min(90vh,100dvh)] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar Registro' : 'Registrar Horas Extra'}</DialogTitle>
           <DialogDescription>
@@ -168,18 +178,15 @@ export function OvertimeFormModal({
                   name="technicianId"
                   control={form.control}
                   render={({ field }) => (
-                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar tecnico" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {technicians.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.user.employeeNumber} - {t.user.firstName} {t.user.lastName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Combobox
+                      options={technicianComboboxOptions}
+                      value={field.value ?? ''}
+                      onValueChange={(v) => field.onChange(v || null)}
+                      placeholder="Seleccionar técnico"
+                      searchPlaceholder="Buscar por nombre o número..."
+                      emptyText="Sin coincidencias"
+                      listClassName="max-h-[min(20rem,45vh)]"
+                    />
                   )}
                 />
               </div>

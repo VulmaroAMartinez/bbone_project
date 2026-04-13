@@ -222,16 +222,6 @@ function OrdenesPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={priorityFilter} onValueChange={(val) => { setPriorityFilter(val as WorkOrderPriority | 'all'); setPage(1); }}>
-                <SelectTrigger className="w-[160px] shrink-0">
-                  <SelectValue placeholder="Prioridad" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_TABS.map((tab) => (
-                    <SelectItem key={tab.value} value={tab.value}>{tab.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Select value={shiftFilter} onValueChange={(v) => { setShiftFilter(v); setPage(1); }}>
                 <SelectTrigger className="w-[160px] shrink-0">
                   <SelectValue placeholder="Turno" />
@@ -246,6 +236,18 @@ function OrdenesPage() {
             </div>
           </div>
         </CardContent>
+        <div className="px-5">
+          <Select value={priorityFilter} onValueChange={(val) => { setPriorityFilter(val as WorkOrderPriority | 'all'); setPage(1); }}>
+            <SelectTrigger className="w-[160px] shrink-0">
+              <SelectValue placeholder="Prioridad" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITY_TABS.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>{tab.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </Card>
 
       {/* Orders List */}
