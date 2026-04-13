@@ -11,6 +11,7 @@ import {
   IsDateString,
   IsBoolean,
   ArrayMinSize,
+  ValidateIf,
 } from 'class-validator';
 import { ActivityStatus } from '../../../../common/enums';
 
@@ -36,10 +37,11 @@ export class CreateActivityInput {
   @IsDateString({}, { message: 'La fecha de inicio debe ser válida' })
   startDate: string;
 
-  @Field()
-  @IsNotEmpty({ message: 'La fecha de fin es requerida' })
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && v !== '')
   @IsDateString({}, { message: 'La fecha de fin debe ser válida' })
-  endDate: string;
+  endDate?: string;
 
   @Field(() => Int, { defaultValue: 0 })
   @IsOptional()
@@ -95,10 +97,11 @@ export class UpdateActivityInput {
   @IsDateString({}, { message: 'La fecha de inicio debe ser válida' })
   startDate?: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   @IsOptional()
+  @ValidateIf((_, v) => v != null && v !== '')
   @IsDateString({}, { message: 'La fecha de fin debe ser válida' })
-  endDate?: string;
+  endDate?: string | null;
 
   @Field(() => Int, { nullable: true })
   @IsOptional()

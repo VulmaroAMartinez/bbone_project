@@ -135,11 +135,12 @@ export default function TecnicoOrdenPage() {
     if (!order) return;
 
     // ── Campos reutilizados en ambas ramas (online / offline) ─────────────
+    const usedSpare = values.usedSparePart === true;
     const closeInput = {
       finalStatus: values.finalStatus,
       toolsUsed: values.toolsUsed || undefined,
       customSparePart:
-        values.sparePartId === 'OTHER' && values.customSparePart?.trim()
+        usedSpare && values.sparePartId === 'OTHER' && values.customSparePart?.trim()
           ? values.customSparePart.trim()
           : undefined,
       customMaterial:
@@ -158,7 +159,7 @@ export default function TecnicoOrdenPage() {
 
     const effectiveStatus = (values.finalStatus ?? 'COMPLETED') as WorkOrderStatus;
     const sparePartId =
-      values.sparePartId && values.sparePartId !== 'OTHER' ? values.sparePartId : undefined;
+      usedSpare && values.sparePartId && values.sparePartId !== 'OTHER' ? values.sparePartId : undefined;
     const materialId =
       values.materialId && values.materialId !== 'OTHER' ? values.materialId : undefined;
 
@@ -448,7 +449,7 @@ export default function TecnicoOrdenPage() {
                 <span className="text-muted-foreground flex items-center gap-2">
                   <Wrench className="h-4 w-4" /> Equipo/Estructura
                 </span>
-                <span className="font-mono bg-muted px-2 py-1 rounded">{machine.code}</span>
+                <span className="font-medium text-right">{machine.name}</span>
               </div>
             )}
             <hr className="my-2 border-border/50" />
@@ -487,7 +488,7 @@ export default function TecnicoOrdenPage() {
               <span>Iniciada</span>
               <span>
                 {workOrderRaw.startDate
-                  ? new Date(order.createdAt).toLocaleString('es-MX', {
+                  ? new Date((workOrderRaw as { startDate: string }).startDate).toLocaleString('es-MX', {
                       dateStyle: 'short',
                       timeStyle: 'short',
                     })

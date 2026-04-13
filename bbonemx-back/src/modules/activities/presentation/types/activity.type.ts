@@ -29,8 +29,8 @@ export class ActivityType {
   @Field()
   startDate: Date;
 
-  @Field()
-  endDate: Date;
+  @Field({ nullable: true })
+  endDate?: Date;
 
   @Field(() => Int)
   progress: number;

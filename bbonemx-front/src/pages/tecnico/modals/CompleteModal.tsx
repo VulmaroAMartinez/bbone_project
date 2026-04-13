@@ -58,6 +58,7 @@ const closeSchema = yup.object({
     otherwise: (s) => s.default(''),
   }),
   toolsUsed: yup.string().default(''),
+  usedSparePart: yup.boolean().default(false),
   sparePartId: yup.string().nullable().optional(),
   customSparePart: yup.string().default(''),
   materialId: yup.string().nullable().optional(),
@@ -97,6 +98,7 @@ export function CompleteModal({
     control,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CloseFormValues>({
     resolver: yupResolver(closeSchema) as unknown as import('react-hook-form').Resolver<CloseFormValues>,
@@ -109,6 +111,7 @@ export function CompleteModal({
       downtimeMinutes: undefined,
       observations: '',
       toolsUsed: '',
+      usedSparePart: false,
       sparePartId: null,
       customSparePart: '',
       materialId: null,
@@ -119,6 +122,7 @@ export function CompleteModal({
   // eslint-disable-next-line react-hooks/incompatible-library
   const watchedSparePartId = watch('sparePartId');
   const watchedMaterialId = watch('materialId');
+  const usedSparePart = watch('usedSparePart');
 
   // Load spare parts when modal opens
   useEffect(() => {
@@ -138,6 +142,7 @@ export function CompleteModal({
         downtimeMinutes: undefined,
         observations: '',
         toolsUsed: '',
+        usedSparePart: false,
         sparePartId: null,
         customSparePart: '',
         materialId: null,
@@ -317,46 +322,83 @@ export function CompleteModal({
 
                 {/* Refacciones */}
                 {machineId && (
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-muted-foreground" /> Refacción utilizada
-                      <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
-                    </Label>
-                    {sparePartsLoading ? (
-                      <Skeleton className="h-9 w-full" />
-                    ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-muted-foreground" /> ¿Utilizó refacción del catálogo?
+                        <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+                      </Label>
                       <Controller
-                        name="sparePartId"
+                        name="usedSparePart"
                         control={control}
                         render={({ field }) => (
-                            <Combobox
-                              options={[
-                                { value: '', label: 'Sin refacción' },
-                                ...spareParts.map((sp) => ({
-                                  value: sp.id,
-                                  label: `${sp.brand} ${sp.model} — ${sp.partNumber}`,
-                                })),
-                              { value: 'OTHER', label: 'Otra (especificar)' },
-                            ]}
-                            value={field.value ?? ''}
-                            onValueChange={(v) => field.onChange(v || null)}
-                            placeholder="Selecciona una refacción..."
-                            searchPlaceholder="Buscar refacción..."
-                          />
+                          <RadioGroup
+                            value={field.value === true ? 'yes' : 'no'}
+                            onValueChange={(v) => {
+                              const yes = v === 'yes';
+                              field.onChange(yes);
+                              if (!yes) {
+                                setValue('sparePartId', null);
+                                setValue('customSparePart', '');
+                              }
+                            }}
+                            className="flex flex-wrap gap-6"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="yes" id="used-spare-yes" />
+                              <Label htmlFor="used-spare-yes" className="font-normal cursor-pointer">
+                                Sí
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="no" id="used-spare-no" />
+                              <Label htmlFor="used-spare-no" className="font-normal cursor-pointer">
+                                No
+                              </Label>
+                            </div>
+                          </RadioGroup>
                         )}
                       />
-                    )}
-                    {watchedSparePartId === 'OTHER' && (
-                      <Input
-                        {...register('customSparePart')}
-                        placeholder="Describe la refacción utilizada..."
-                        className="mt-2"
-                      />
-                    )}
-                    {spareParts.length === 0 && !sparePartsLoading && (
-                      <p className="text-xs text-muted-foreground">
-                        Esta máquina no tiene refacciones registradas en catálogo.
-                      </p>
+                    </div>
+                    {usedSparePart === true && (
+                      <div className="space-y-2">
+                        <Label className="text-sm text-muted-foreground">Seleccionar refacción</Label>
+                        {sparePartsLoading ? (
+                          <Skeleton className="h-9 w-full" />
+                        ) : (
+                          <Controller
+                            name="sparePartId"
+                            control={control}
+                            render={({ field }) => (
+                              <Combobox
+                                options={[
+                                  ...spareParts.map((sp) => ({
+                                    value: sp.id,
+                                    label: `${sp.brand} ${sp.model} — ${sp.partNumber}`,
+                                  })),
+                                  { value: 'OTHER', label: 'Otra (especificar)' },
+                                ]}
+                                value={field.value ?? ''}
+                                onValueChange={(v) => field.onChange(v || null)}
+                                placeholder="Selecciona una refacción..."
+                                searchPlaceholder="Buscar refacción..."
+                              />
+                            )}
+                          />
+                        )}
+                        {watchedSparePartId === 'OTHER' && (
+                          <Input
+                            {...register('customSparePart')}
+                            placeholder="Describe la refacción utilizada..."
+                            className="mt-2"
+                          />
+                        )}
+                        {spareParts.length === 0 && !sparePartsLoading && (
+                          <p className="text-xs text-muted-foreground">
+                            Esta máquina no tiene refacciones registradas en catálogo.
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

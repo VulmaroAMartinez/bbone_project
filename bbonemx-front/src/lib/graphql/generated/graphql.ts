@@ -35,7 +35,7 @@ export type Activity = {
   areaId: Scalars['ID']['output'];
   comments?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
-  endDate: Scalars['DateTime']['output'];
+  endDate?: Maybe<Scalars['DateTime']['output']>;
   id: Scalars['ID']['output'];
   isActive: Scalars['Boolean']['output'];
   machine: Machine;
@@ -271,7 +271,7 @@ export type CreateActivityInput = {
   activity: Scalars['String']['input'];
   areaId: Scalars['ID']['input'];
   comments?: InputMaybe<Scalars['String']['input']>;
-  endDate: Scalars['String']['input'];
+  endDate?: InputMaybe<Scalars['String']['input']>;
   machineId: Scalars['ID']['input'];
   priority?: Scalars['Boolean']['input'];
   progress?: Scalars['Int']['input'];
@@ -2792,7 +2792,7 @@ export type WorkType =
   /** Neumática */
   | 'PNEUMATIC';
 
-export type ActivityItemFragment = { __typename?: 'Activity', id: string, activity: string, startDate: string, endDate: string, progress: number, status: ActivityStatus, comments?: string | null, priority: boolean, isActive: boolean, createdAt: string, updatedAt: string, areaId: string, machineId: string, area: (
+export type ActivityItemFragment = { __typename?: 'Activity', id: string, activity: string, startDate: string, endDate?: string | null, progress: number, status: ActivityStatus, comments?: string | null, priority: boolean, isActive: boolean, createdAt: string, updatedAt: string, areaId: string, machineId: string, area: (
     { __typename?: 'Area' }
     & { ' $fragmentRefs'?: { 'AreaBasicFragment': AreaBasicFragment } }
   ), machine: { __typename?: 'Machine', id: string, name: string, code: string }, technicians: Array<{ __typename?: 'ActivityTechnician', id: string, technicianId: string, assignedAt: string, technician: (
