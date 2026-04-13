@@ -29,6 +29,9 @@ const schema = yup.object({
     model: yup.string().trim().default(''),
     supplier: yup.string().trim().default(''),
     unitOfMeasure: yup.string().trim().default(''),
+    description: yup.string().trim().default(''),
+    cantidad: yup.number().nullable().default(null).transform((value, originalValue) => String(originalValue).trim() === '' ? null : value),
+    costo: yup.number().nullable().default(null).transform((value, originalValue) => String(originalValue).trim() === '' ? null : value),
 });
 
 type FormValues = yup.InferType<typeof schema>;
@@ -45,6 +48,9 @@ interface SparePartFormModalProps {
         model?: string | null;
         supplier?: string | null;
         unitOfMeasure?: string | null;
+        description?: string | null;
+        cantidad?: number | null;
+        costo?: number | null;
     } | null;
     onSuccess: () => void;
 }
@@ -57,7 +63,18 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
 
     const { register, handleSubmit, reset, control, formState: { errors } } = useForm<FormValues>({
         resolver: yupResolver(schema),
-        defaultValues: { partNumber: '', machineId: '', sku: '', brand: '', model: '', supplier: '', unitOfMeasure: '' },
+        defaultValues: {
+            partNumber: '',
+            machineId: '',
+            sku: '',
+            brand: '',
+            model: '',
+            supplier: '',
+            unitOfMeasure: '',
+            description: '',
+            cantidad: null,
+            costo: null,
+        },
     });
 
     const machineRefs = machinesData?.machinesWithDeleted ?? [];
@@ -74,9 +91,23 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
                     model: sparePart.model || '',
                     supplier: sparePart.supplier || '',
                     unitOfMeasure: sparePart.unitOfMeasure || '',
+                    description: sparePart.description || '',
+                    cantidad: sparePart.cantidad ?? null,
+                    costo: sparePart.costo ?? null,
                 });
             } else {
-                reset({ partNumber: '', machineId: '', sku: '', brand: '', model: '', supplier: '', unitOfMeasure: '' });
+                reset({
+                    partNumber: '',
+                    machineId: '',
+                    sku: '',
+                    brand: '',
+                    model: '',
+                    supplier: '',
+                    unitOfMeasure: '',
+                    description: '',
+                    cantidad: null,
+                    costo: null,
+                });
             }
         }
     }, [open, sparePart, reset]);
@@ -130,6 +161,10 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
                     {/* Identificación */}
                     <div className="space-y-4 p-4 rounded-lg border border-border">
                         <h4 className="font-semibold text-sm text-primary uppercase tracking-wider">Identificación</h4>
+                        <div className="space-y-2">
+                            <Label>Descripción</Label>
+                            <Input {...register('description')} placeholder="Breve descripción..." />
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Número de Parte *</Label>
@@ -158,6 +193,16 @@ export default function SparePartFormModal({ open, onOpenChange, sparePart, onSu
                             <div className="space-y-2">
                                 <Label>Proveedor</Label>
                                 <Input {...register('supplier')} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Cantidad (Inventario)</Label>
+                                <Input type="number" step="0.01" {...register('cantidad')} placeholder="0.00" />
+                                {errors.cantidad && <p className="text-xs text-destructive">{errors.cantidad.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Costo Unitario</Label>
+                                <Input type="number" step="0.01" {...register('costo')} placeholder="0.00" />
+                                {errors.costo && <p className="text-xs text-destructive">{errors.costo.message}</p>}
                             </div>
                             <div className="space-y-2">
                                 <Label>U. de Medida</Label>

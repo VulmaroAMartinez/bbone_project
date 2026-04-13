@@ -1,17 +1,35 @@
 import { SparePartType } from '../types';
 import { SparePartsService } from '../../application/services';
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ID,
+  ResolveField,
+  Parent,
+  Float,
+} from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard, Roles, RolesGuard, Role } from 'src/common';
 import {
   CreateSparePartInput,
   UpdateSparePartInput,
 } from '../../application/dto';
+import { SparePart } from '../../domain/entities';
 
 @Resolver(() => SparePartType)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class SparePartsResolver {
   constructor(private readonly sparePartsService: SparePartsService) {}
+
+  @ResolveField('precioTotal', () => Float, { nullable: true })
+  getPrecioTotal(@Parent() sparePart: SparePart) {
+    if (sparePart.cantidad != null && sparePart.costo != null) {
+      return Number(sparePart.cantidad) * Number(sparePart.costo);
+    }
+    return null;
+  }
 
   @Query(() => [SparePartType], { name: 'spareParts' })
   async spareParts() {

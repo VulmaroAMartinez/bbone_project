@@ -77,6 +77,10 @@ export const GET_SPARE_PARTS_QUERY = gql`
       model
       supplier
       unitOfMeasure
+      description
+      cantidad
+      costo
+      precioTotal
       isActive
       createdAt
       machine {

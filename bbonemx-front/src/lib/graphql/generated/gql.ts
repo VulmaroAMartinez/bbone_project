@@ -53,7 +53,7 @@ type Documents = {
     "\n  mutation UpdateMaterial($id: ID!, $input: UpdateMaterialInput!) {\n    updateMaterial(id: $id, input: $input) {\n      id\n      description\n    }\n  }\n": typeof types.UpdateMaterialDocument,
     "\n  mutation ActivateMaterial($id: ID!) {\n    activateMaterial(id: $id) {\n      id\n      isActive\n    }\n  }\n": typeof types.ActivateMaterialDocument,
     "\n  mutation DeactivateMaterial($id: ID!) {\n    deactivateMaterial(id: $id)\n  }\n": typeof types.DeactivateMaterialDocument,
-    "\n  \n  query GetSpareParts {\n    sparePartsWithDeleted {\n      id\n      partNumber\n      sku\n      brand\n      model\n      supplier\n      unitOfMeasure\n      isActive\n      createdAt\n      machine {\n        ...MachineBasic\n      }\n    }\n  }\n": typeof types.GetSparePartsDocument,
+    "\n  \n  query GetSpareParts {\n    sparePartsWithDeleted {\n      id\n      partNumber\n      sku\n      brand\n      model\n      supplier\n      unitOfMeasure\n      description\n      cantidad\n      costo\n      precioTotal\n      isActive\n      createdAt\n      machine {\n        ...MachineBasic\n      }\n    }\n  }\n": typeof types.GetSparePartsDocument,
     "\n  mutation CreateSparePart($input: CreateSparePartInput!) {\n    createSparePart(input: $input) {\n      id\n      partNumber\n      isActive\n    }\n  }\n": typeof types.CreateSparePartDocument,
     "\n  mutation UpdateSparePart($id: ID!, $input: UpdateSparePartInput!) {\n    updateSparePart(id: $id, input: $input) {\n      id\n      partNumber\n    }\n  }\n": typeof types.UpdateSparePartDocument,
     "\n  mutation ActivateSparePart($id: ID!) {\n    activateSparePart(id: $id) {\n      id\n      isActive\n    }\n  }\n": typeof types.ActivateSparePartDocument,
@@ -211,7 +211,7 @@ const documents: Documents = {
     "\n  mutation UpdateMaterial($id: ID!, $input: UpdateMaterialInput!) {\n    updateMaterial(id: $id, input: $input) {\n      id\n      description\n    }\n  }\n": types.UpdateMaterialDocument,
     "\n  mutation ActivateMaterial($id: ID!) {\n    activateMaterial(id: $id) {\n      id\n      isActive\n    }\n  }\n": types.ActivateMaterialDocument,
     "\n  mutation DeactivateMaterial($id: ID!) {\n    deactivateMaterial(id: $id)\n  }\n": types.DeactivateMaterialDocument,
-    "\n  \n  query GetSpareParts {\n    sparePartsWithDeleted {\n      id\n      partNumber\n      sku\n      brand\n      model\n      supplier\n      unitOfMeasure\n      isActive\n      createdAt\n      machine {\n        ...MachineBasic\n      }\n    }\n  }\n": types.GetSparePartsDocument,
+    "\n  \n  query GetSpareParts {\n    sparePartsWithDeleted {\n      id\n      partNumber\n      sku\n      brand\n      model\n      supplier\n      unitOfMeasure\n      description\n      cantidad\n      costo\n      precioTotal\n      isActive\n      createdAt\n      machine {\n        ...MachineBasic\n      }\n    }\n  }\n": types.GetSparePartsDocument,
     "\n  mutation CreateSparePart($input: CreateSparePartInput!) {\n    createSparePart(input: $input) {\n      id\n      partNumber\n      isActive\n    }\n  }\n": types.CreateSparePartDocument,
     "\n  mutation UpdateSparePart($id: ID!, $input: UpdateSparePartInput!) {\n    updateSparePart(id: $id, input: $input) {\n      id\n      partNumber\n    }\n  }\n": types.UpdateSparePartDocument,
     "\n  mutation ActivateSparePart($id: ID!) {\n    activateSparePart(id: $id) {\n      id\n      isActive\n    }\n  }\n": types.ActivateSparePartDocument,
@@ -503,7 +503,7 @@ export function gql(source: "\n  mutation DeactivateMaterial($id: ID!) {\n    de
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\n  \n  query GetSpareParts {\n    sparePartsWithDeleted {\n      id\n      partNumber\n      sku\n      brand\n      model\n      supplier\n      unitOfMeasure\n      isActive\n      createdAt\n      machine {\n        ...MachineBasic\n      }\n    }\n  }\n"): (typeof documents)["\n  \n  query GetSpareParts {\n    sparePartsWithDeleted {\n      id\n      partNumber\n      sku\n      brand\n      model\n      supplier\n      unitOfMeasure\n      isActive\n      createdAt\n      machine {\n        ...MachineBasic\n      }\n    }\n  }\n"];
+export function gql(source: "\n  \n  query GetSpareParts {\n    sparePartsWithDeleted {\n      id\n      partNumber\n      sku\n      brand\n      model\n      supplier\n      unitOfMeasure\n      description\n      cantidad\n      costo\n      precioTotal\n      isActive\n      createdAt\n      machine {\n        ...MachineBasic\n      }\n    }\n  }\n"): (typeof documents)["\n  \n  query GetSpareParts {\n    sparePartsWithDeleted {\n      id\n      partNumber\n      sku\n      brand\n      model\n      supplier\n      unitOfMeasure\n      description\n      cantidad\n      costo\n      precioTotal\n      isActive\n      createdAt\n      machine {\n        ...MachineBasic\n      }\n    }\n  }\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

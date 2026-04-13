@@ -5,8 +5,10 @@ import {
     GetSparePartsDocument,
     ActivateSparePartDocument,
     DeactivateSparePartDocument,
-    type GetSparePartsQuery
+    MachineBasicFragmentDoc,
+    type GetSparePartsQuery,
 } from '@/lib/graphql/generated/graphql';
+import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,20 +30,22 @@ export default function SparePartsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingSparePart, setEditingSparePart] = useState<any>(null);
 
-    const rawSpareParts = useMemo(() => data?.sparePartsWithDeleted || [], [data?.sparePartsWithDeleted]);
-    const spareParts = useMemo(() =>
-        rawSpareParts.map(p => ({
-            ...p,
-            machine: p.machine as unknown as { name: string },
-        })),
-        [rawSpareParts]
+    const rawSpareParts = useMemo(() => data?.sparePartsWithDeleted ?? [], [data?.sparePartsWithDeleted]);
+
+    const spareParts = useMemo(
+        () =>
+            rawSpareParts.map((p) => ({
+                ...p,
+                machine: unmaskFragment(MachineBasicFragmentDoc, p.machine),
+            })),
+        [rawSpareParts],
     );
 
     const PAGE_SIZE = 20;
-    const filteredParts = spareParts.filter(p =>
+    const filteredParts = spareParts.filter((p) =>
         p.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.machine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.brand?.toLowerCase().includes(searchTerm.toLowerCase())
+        (p.machine?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+        (p.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
     );
     const totalPages = Math.ceil(filteredParts.length / PAGE_SIZE);
     const pageParts = filteredParts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -98,16 +102,18 @@ export default function SparePartsPage() {
                                     <th className="px-4 py-3 font-semibold hidden sm:table-cell">SKU</th>
                                     <th className="px-4 py-3 font-semibold">Máquina</th>
                                     <th className="px-4 py-3 font-semibold hidden md:table-cell">Marca / Modelo</th>
-                                    <th className="px-4 py-3 font-semibold hidden lg:table-cell">Proveedor</th>
+                                    <th className="px-4 py-3 font-semibold hidden lg:table-cell">Inventario</th>
+                                    <th className="px-4 py-3 font-semibold hidden lg:table-cell">Costo / Total</th>
+                                    <th className="px-4 py-3 font-semibold hidden xl:table-cell">Proveedor</th>
                                     <th className="px-4 py-3 font-semibold">Estado</th>
                                     <th className="px-4 py-3 font-semibold text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/50">
                                 {loading ? (
-                                    <tr><td colSpan={7} className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></td></tr>
+                                    <tr><td colSpan={9} className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></td></tr>
                                 ) : filteredParts.length === 0 ? (
-                                    <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">No se encontraron refacciones</td></tr>
+                                    <tr><td colSpan={9} className="py-8 text-center text-muted-foreground">No se encontraron refacciones</td></tr>
                                 ) : (
                                     pageParts.map((part) => (
                                         <tr key={part.id} className="hover:bg-muted/10 transition-colors">
@@ -116,13 +122,30 @@ export default function SparePartsPage() {
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-1.5 text-primary">
                                                     <Wrench className="h-3.5 w-3.5 shrink-0" />
-                                                    <span className="font-semibold truncate">{part.machine.name}</span>
+                                                    <span className="font-semibold truncate">{part.machine?.name ?? '—'}</span>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                                                 {part.brand || '--'} {part.model && `(${part.model})`}
                                             </td>
-                                            <td className="px-4 py-3 hidden lg:table-cell">{part.supplier || '--'}</td>
+                                            <td className="px-4 py-3 hidden lg:table-cell text-sm text-muted-foreground">
+                                                {part.cantidad != null
+                                                  ? Number(part.cantidad).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                                                  : '—'}
+                                            </td>
+                                            <td className="px-4 py-3 hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">
+                                                {part.costo != null || part.precioTotal != null
+                                                  ? [
+                                                      part.costo != null
+                                                        ? Number(part.costo).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+                                                        : '—',
+                                                      part.precioTotal != null
+                                                        ? Number(part.precioTotal).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+                                                        : '—',
+                                                    ].join(' / ')
+                                                  : '—'}
+                                            </td>
+                                            <td className="px-4 py-3 hidden xl:table-cell">{part.supplier || '--'}</td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${part.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
