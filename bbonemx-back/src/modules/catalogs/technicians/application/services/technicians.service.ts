@@ -1,7 +1,9 @@
 import {
-  Injectable,
-  NotFoundException,
+  BadRequestException,
   ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { TechniciansRepository } from '../../infrastructure/repositories';
 import { Technician } from '../../domain/entities';
@@ -12,6 +14,8 @@ import { Role as RoleEnum } from 'src/common/enums/role.enum';
 
 @Injectable()
 export class TechniciansService {
+  private readonly logger = new Logger(TechniciansService.name);
+
   constructor(
     private readonly techniciansRepository: TechniciansRepository,
     private readonly usersRepository: UsersRepository,
@@ -120,7 +124,17 @@ export class TechniciansService {
 
   private async handleBossRole(userId: string, isBoss: boolean): Promise<void> {
     const bossRole = await this.rolesRepository.findByName(RoleEnum.BOSS);
-    if (!bossRole) return;
+    if (!bossRole) {
+      this.logger.error(
+        `Rol ${RoleEnum.BOSS} no encontrado en catálogo (activo). No se puede asignar/quitar jefe de técnicos.`,
+      );
+      if (isBoss) {
+        throw new BadRequestException(
+          'El rol de jefe (BOSS) no está configurado en el sistema. Ejecute las migraciones o el seed de roles y vuelva a intentar.',
+        );
+      }
+      return;
+    }
     await this.usersRepository.setBossRole(userId, bossRole.id, isBoss);
   }
 

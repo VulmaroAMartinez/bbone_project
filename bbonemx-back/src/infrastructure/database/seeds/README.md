@@ -15,7 +15,7 @@ npm run seed
 
 | Archivo | Descripción |
 |---------|-------------|
-| `roles.seed.ts` | Crea los roles iniciales: ADMIN, TECHNICIAN, REQUESTER |
+| `roles.seed.ts` | Crea los roles iniciales: ADMIN, TECHNICIAN, REQUESTER, BOSS |
 | `admin.seed.ts` | Crea el usuario administrador inicial |
 
 ## Orden de ejecución

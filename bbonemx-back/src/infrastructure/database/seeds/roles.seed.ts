@@ -5,6 +5,7 @@ const INITIAL_ROLES = [
   { name: 'ADMIN' },
   { name: 'TECHNICIAN' },
   { name: 'REQUESTER' },
+  { name: 'BOSS' },
 ];
 
 export async function seedRoles(dataSource: DataSource): Promise<void> {
