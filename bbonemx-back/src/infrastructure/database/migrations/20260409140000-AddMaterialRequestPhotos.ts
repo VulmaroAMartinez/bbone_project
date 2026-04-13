@@ -1,4 +1,10 @@
-import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+  TableIndex,
+} from 'typeorm';
 
 export class AddMaterialRequestPhotos20260409140000 implements MigrationInterface {
   name = 'AddMaterialRequestPhotos20260409140000';
@@ -127,10 +133,16 @@ export class AddMaterialRequestPhotos20260409140000 implements MigrationInterfac
   public async down(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('material_request_photos');
     if (table) {
-      const fkMR = table.foreignKeys.find((fk) => fk.columnNames.includes('material_request_id'));
-      const fkUser = table.foreignKeys.find((fk) => fk.columnNames.includes('uploaded_by'));
-      if (fkMR) await queryRunner.dropForeignKey('material_request_photos', fkMR);
-      if (fkUser) await queryRunner.dropForeignKey('material_request_photos', fkUser);
+      const fkMR = table.foreignKeys.find((fk) =>
+        fk.columnNames.includes('material_request_id'),
+      );
+      const fkUser = table.foreignKeys.find((fk) =>
+        fk.columnNames.includes('uploaded_by'),
+      );
+      if (fkMR)
+        await queryRunner.dropForeignKey('material_request_photos', fkMR);
+      if (fkUser)
+        await queryRunner.dropForeignKey('material_request_photos', fkUser);
     }
     await queryRunner.dropTable('material_request_photos', true);
   }

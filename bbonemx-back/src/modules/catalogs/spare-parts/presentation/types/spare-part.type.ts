@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { ObjectType, Field, ID, Float } from '@nestjs/graphql';
 import { MachineType } from 'src/modules/catalogs/machines/presentation/types';
 
 @ObjectType('SparePart')
@@ -12,6 +12,10 @@ export class SparePartType {
   @Field({ nullable: true }) model?: string;
   @Field({ nullable: true }) supplier?: string;
   @Field({ nullable: true }) unitOfMeasure?: string;
+  @Field({ nullable: true }) description?: string;
+  @Field(() => Float, { nullable: true }) cantidad?: number;
+  @Field(() => Float, { nullable: true }) costo?: number;
+  @Field(() => Float, { nullable: true }) precioTotal?: number;
   @Field() isActive: boolean;
   @Field() createdAt: Date;
   @Field() updatedAt: Date;

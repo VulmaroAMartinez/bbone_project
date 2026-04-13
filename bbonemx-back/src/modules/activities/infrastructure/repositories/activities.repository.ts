@@ -52,6 +52,14 @@ export class ActivitiesRepository {
         search: `%${filters.search}%`,
       });
     }
+    if (filters.technicianId) {
+      qb.innerJoin(
+        'a.activityTechnicians',
+        'filter_at',
+        'filter_at.technician_id = :technicianId AND filter_at.is_active = true',
+        { technicianId: filters.technicianId },
+      );
+    }
   }
 
   private applySort(

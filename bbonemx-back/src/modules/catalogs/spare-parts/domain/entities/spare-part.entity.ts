@@ -33,4 +33,13 @@ export class SparePart extends BaseEntity {
     nullable: true,
   })
   unitOfMeasure?: string;
+
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  cantidad?: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  costo?: number;
 }

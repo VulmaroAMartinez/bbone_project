@@ -287,9 +287,10 @@ export class MaterialRequestsService {
       );
     }
 
-    const count = await this.materialRequestPhotosRepository.countByMaterialRequestId(
-      input.materialRequestId,
-    );
+    const count =
+      await this.materialRequestPhotosRepository.countByMaterialRequestId(
+        input.materialRequestId,
+      );
 
     if (count >= MAX_PHOTOS_PER_REQUEST) {
       throw new BadRequestException(

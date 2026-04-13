@@ -42,6 +42,7 @@ input ActivityFiltersInput {
   """Búsqueda por nombre de actividad"""
   search: String
   status: ActivityStatus
+  technicianId: ID
 }
 
 type ActivityMaterialRequest {
@@ -428,6 +429,9 @@ input CreateShiftInput {
 
 input CreateSparePartInput {
   brand: String
+  cantidad: Float
+  costo: Float
+  description: String
   machineId: ID!
   model: String
   partNumber: String!
@@ -1470,13 +1474,17 @@ enum SortOrder {
 
 type SparePart {
   brand: String
+  cantidad: Float
+  costo: Float
   createdAt: DateTime!
+  description: String
   id: ID!
   isActive: Boolean!
   machine: Machine!
   machineId: ID!
   model: String
   partNumber: String!
+  precioTotal: Float
   sku: String
   supplier: String
   unitOfMeasure: String
@@ -1770,6 +1778,9 @@ input UpdateShiftInput {
 
 input UpdateSparePartInput {
   brand: String
+  cantidad: Float
+  costo: Float
+  description: String
   machineId: ID
   model: String
   partNumber: String

@@ -54,17 +54,31 @@ import {
   Download,
 } from 'lucide-react';
 
-const GET_AREAS_FOR_FILTER = gql`
-  query GetAreasForActivityFilter {
+const GET_FILTERS_DATA = gql`
+  query GetFiltersDataForActivity {
     areasActive {
       id
       name
     }
+    techniciansActive {
+      id
+      user {
+        id
+        fullName
+      }
+    }
   }
 `;
 
-type AreasForFilterQuery = {
+type FiltersDataQuery = {
   areasActive: Array<{ id: string; name: string }>;
+  techniciansActive: Array<{
+    id: string;
+    user: {
+      id: string;
+      fullName: string;
+    };
+  }>;
 };
 
 const statusLabels: Record<string, string> = {
@@ -85,6 +99,7 @@ export default function ActivitiesPage() {
   const [limit] = useState(20);
   const [areaFilter, setAreaFilter] = useState<string>('');
   const [machineFilter, setMachineFilter] = useState<string>('');
+  const [technicianFilter, setTechnicianFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<ActivityStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -112,7 +127,7 @@ export default function ActivitiesPage() {
   const [viewActivity, setViewActivity] = useState<ActivityRow | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const { data: areasData } = useQuery<AreasForFilterQuery>(GET_AREAS_FOR_FILTER);
+  const { data: filtersData } = useQuery<FiltersDataQuery>(GET_FILTERS_DATA);
   const { data: machinesData } = useQuery<{ machinesByArea: Array<{ id: string; name: string }> }>(
     GetMachinesByAreaDocument,
     {
@@ -199,6 +214,7 @@ export default function ActivitiesPage() {
             filters: {
               areaId: areaFilter || undefined,
               machineId: machineFilter || undefined,
+              technicianId: technicianFilter || undefined,
               status: statusFilter !== 'all' ? statusFilter : undefined,
               priority: priorityFilter || undefined,
               search: searchTerm || undefined,
@@ -231,8 +247,13 @@ export default function ActivitiesPage() {
   const totalPages = data?.activitiesFiltered?.totalPages || 1;
 
   const areaOptions = useMemo(
-    () => (areasData?.areasActive || []).map((a) => ({ value: a.id, label: a.name })),
-    [areasData],
+    () => (filtersData?.areasActive || []).map((a: { id: string; name: string }) => ({ value: a.id, label: a.name })),
+    [filtersData],
+  );
+
+  const technicianOptions = useMemo(
+    () => (filtersData?.techniciansActive || []).map((t: { id: string; user: { fullName: string } }) => ({ value: t.id, label: t.user.fullName })),
+    [filtersData],
   );
 
   const machineOptions = useMemo(
@@ -283,7 +304,7 @@ export default function ActivitiesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Actividades</h1>
+        <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -326,6 +347,13 @@ export default function ActivitiesPage() {
               onValueChange={handleAreaChange}
               placeholder="Filtrar por área"
               searchPlaceholder="Buscar área..."
+            />
+            <Combobox
+              options={technicianOptions}
+              value={technicianFilter}
+              onValueChange={(v) => { setTechnicianFilter(v); setPage(1); }}
+              placeholder="Filtrar por responsable"
+              searchPlaceholder="Buscar responsable..."
             />
             <Combobox
               options={machineOptions}

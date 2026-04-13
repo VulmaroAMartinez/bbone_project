@@ -55,6 +55,11 @@ export class ActivityFiltersInput {
   @Field({ nullable: true, description: 'Búsqueda por nombre de actividad' })
   @IsOptional()
   search?: string;
+
+  @Field(() => ID, { nullable: true })
+  @IsOptional()
+  @IsUUID()
+  technicianId?: string;
 }
 
 @InputType()
