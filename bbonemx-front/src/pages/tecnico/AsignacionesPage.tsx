@@ -58,7 +58,12 @@ export default function AsignacionesPage() {
 
   const filteredOrders = orders.filter((order) => {
     const machine = unmaskFragment(MachineBasicFragmentDoc, order.machine);
-    const matchesStatus = statusTab === 'all' || order.status === statusTab;
+    const matchesStatus =
+      statusTab === 'all'
+        ? true
+        : statusTab === 'COMPLETED'
+        ? order.status === 'COMPLETED' || order.status === 'FINISHED' || order.status === 'TEMPORARY_REPAIR'
+        : order.status === statusTab;
     const matchesSearch =
       !searchTerm ||
       order.folio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -75,7 +80,7 @@ export default function AsignacionesPage() {
   const progressCount = orders.filter((o) => o.status === 'IN_PROGRESS').length;
   const pausedCount = orders.filter((o) => o.status === 'PAUSED').length;
   const completedandTemporaryRepairCount = orders.filter(
-    (o) => o.status === 'COMPLETED' || o.status === 'TEMPORARY_REPAIR'
+    (o) => o.status === 'COMPLETED' || o.status === 'FINISHED' || o.status === 'TEMPORARY_REPAIR'
   ).length;
 
   return (

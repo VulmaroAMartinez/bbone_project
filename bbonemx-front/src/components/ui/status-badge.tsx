@@ -11,6 +11,10 @@ const statusConfig: Record<WorkOrderStatus, { label: string; className: string }
     label: 'En Progreso',
     className: 'bg-chart-4/10 text-chart-4 border-chart-4/20',
   },
+  FINISHED: {
+    label: 'Finalizada',
+    className: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
+  },
   COMPLETED: {
     label: 'Completada',
     className: 'bg-primary/10 text-primary border-primary/20',
@@ -22,6 +26,10 @@ const statusConfig: Record<WorkOrderStatus, { label: string; className: string }
   PAUSED: {
     label: 'Pausada',
     className: 'bg-chart-5/10 text-chart-5 border-chart-5/20',
+  },
+  CANCELLED: {
+    label: 'Cancelada',
+    className: 'bg-slate-500/10 text-slate-500 border-slate-500/20',
   },
 };
 

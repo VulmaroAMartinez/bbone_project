@@ -54,7 +54,7 @@ export class WorkOrderSignaturesService {
     if (!wo) throw new NotFoundException('OT no encontrada');
 
     if (
-      wo.status !== WorkOrderStatus.COMPLETED &&
+      wo.status !== WorkOrderStatus.FINISHED &&
       wo.status !== WorkOrderStatus.TEMPORARY_REPAIR
     )
       throw new BadRequestException('No se puede firmar la OT en este estado');
@@ -69,11 +69,21 @@ export class WorkOrderSignaturesService {
     if (hasSigned)
       throw new ConflictException('El usuario ya ha firmado la OT');
 
-    return this.workOrderSignaturesRepository.create({
+    const signature = await this.workOrderSignaturesRepository.create({
       workOrderId: input.workOrderId,
       signerId: user.id,
       signatureImagePath: input.signatureImagePath,
     });
+
+    // Check if fully signed to update status to COMPLETED
+    const isFullySigned = await this.isFullySigned(input.workOrderId);
+    if (isFullySigned) {
+      await this.workOrdersRepository.update(input.workOrderId, {
+        status: WorkOrderStatus.COMPLETED,
+      });
+    }
+
+    return signature;
   }
 
   async delete(id: string): Promise<void> {

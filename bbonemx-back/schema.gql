@@ -886,6 +886,7 @@ type Mutation {
 
   """Actualiza múltiples preferencias de notificación en batch"""
   bulkUpdateNotificationPreferences(input: BulkUpdatePreferencesInput!): [NotificationPreference!]!
+  cancelWorkOrder(id: ID!): WorkOrder!
   changeWorkOrderStatus(id: ID!, status: String!): WorkOrder!
   closePreventiveTask(id: ID!, input: ClosePreventiveTaskInput!): PreventiveTask!
   completeWorkOrder(id: ID!, input: CompleteWorkOrderInput!): WorkOrder!
@@ -2060,8 +2061,14 @@ type WorkOrderStats {
 
 """Estados posibles de una orden de trabajo"""
 enum WorkOrderStatus {
-  """Completada - Trabajo finalizado"""
+  """Cancelada - OT anulada por el administrador"""
+  CANCELLED
+
+  """Completada - Trabajo finalizado y firmado"""
   COMPLETED
+
+  """Finalizada - El técnico terminó el trabajo"""
+  FINISHED
 
   """En progreso - Técnico trabajando en la WO"""
   IN_PROGRESS

@@ -93,9 +93,9 @@ export default function OrdenDetallePage() {
 
 
 
-  const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
+  const signatures = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
   const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER');
-  const needsMySignature = (order.status === 'COMPLETED' || order.status === 'TEMPORARY_REPAIR') && !requesterSignature;
+  const needsMySignature = (order.status === 'FINISHED' || order.status === 'TEMPORARY_REPAIR') && !requesterSignature;
 
   const photoBefore = (workOrderRaw as { photos?: Array<{ photoType: string; filePath: string }> })?.photos?.find(p => p.photoType === 'BEFORE');
   const photoAfter = (workOrderRaw as { photos?: Array<{ photoType: string; filePath: string }> })?.photos?.find(p => p.photoType === 'AFTER');

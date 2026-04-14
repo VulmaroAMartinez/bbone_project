@@ -27,10 +27,12 @@ import {
   RESUME_WORK_ORDER_MUTATION,
   ASSIGN_WORK_ORDER_MUTATION,
   EXPORT_WORK_ORDER_PDF_MUTATION,
+  CANCEL_WORK_ORDER_MUTATION,
 } from '@/lib/graphql/operations/work-orders';
 import { GET_TECH_IDS_FOR_SHIFT_QUERY } from '@/lib/graphql/operations/scheduling';
 import { downloadPdfFromBase64 } from '@/lib/utils/pdf-download';
 import { resolveBackendAssetUrl, uploadFileToBackend, dataUrlToFile } from '@/lib/utils/uploads';
+import { cn } from '@/lib/utils';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,10 +61,12 @@ import {
   Pen,
   CheckCircle,
   FileDown,
+  XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ManageWorkOrderDialog } from './modals/ManageWorkOrderDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const MAINTENANCE_TYPES: { value: MaintenanceType; label: string }[] = [
   { value: 'CORRECTIVE_EMERGENT', label: 'Correctivo Emergente' },
@@ -140,6 +144,7 @@ function AdminOrdenDetallePage() {
   const [manageOpen, setManageOpen] = useState(false);
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const [resumeConfirmOpen, setResumeConfirmOpen] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [auxiliaryTechnicians, setAuxiliaryTechnicians] = useState<string[]>([]);
   const [filteredTechIds, setFilteredTechIds] = useState<Set<string> | null>(null);
 
@@ -162,6 +167,7 @@ function AdminOrdenDetallePage() {
   const [updateOrder, { loading: updating }] = useMutation(UPDATE_WORK_ORDER_MUTATION);
   const [assignOrder, { loading: assigning }] = useMutation(ASSIGN_WORK_ORDER_MUTATION);
   const [resumeOrder, { loading: resuming }] = useMutation(RESUME_WORK_ORDER_MUTATION);
+  const [cancelOrder, { loading: cancelling }] = useMutation(CANCEL_WORK_ORDER_MUTATION);
   const [signWorkOrder] = useMutation(SIGN_WORK_ORDER_MUTATION);
   const [exportPdf, { loading: exportingPdf }] = useMutation<{ exportWorkOrderPdf: string }>(
     EXPORT_WORK_ORDER_PDF_MUTATION,
@@ -354,6 +360,17 @@ function AdminOrdenDetallePage() {
     }
   }
 
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    try {
+      await cancelOrder({ variables: { id: order.id } });
+      toast.success('Orden cancelada correctamente');
+      refetch();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al cancelar la orden');
+    }
+  }
+
   const handleSaveSignature = async (dataURL: string) => {
     try {
       if (!order?.id) throw new Error("Order ID is missing");
@@ -395,6 +412,7 @@ function AdminOrdenDetallePage() {
   // Variables de UI
   const isPending = order.status === 'PENDING';
   const isCompleted = order.status === 'COMPLETED';
+  const isCancelled = order.status === 'CANCELLED';
   const isTemporaryRepair = order.status === 'TEMPORARY_REPAIR';
   const showMachineField = mgmt.stoppageType === 'BREAKDOWN' || !!subArea?.id;
   const showScheduledDate = mgmt.maintenanceType === 'CORRECTIVE_SCHEDULED';
@@ -402,7 +420,7 @@ function AdminOrdenDetallePage() {
   // Firmas
   const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
   const adminSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN');
-  const needsMySignature = (isCompleted || isTemporaryRepair) && !adminSignature;
+  const needsMySignature = (isTemporaryRepair || order.status === 'FINISHED') && !adminSignature;
 
   // Fotos
   const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
@@ -428,7 +446,7 @@ function AdminOrdenDetallePage() {
 
       {/* Action buttons del Admin */}
       <div className="flex flex-wrap gap-3 p-4 bg-muted/30 rounded-lg border border-border">
-        {order.status !== 'COMPLETED' && order.status !== 'TEMPORARY_REPAIR' && (
+        {!isCompleted && !isCancelled && (
           <Button onClick={openManageDialog} className="gap-2 shadow-sm">
             <Settings className="h-4 w-4" />
             Gestionar OT {isPending ? 'y Asignar' : ''}
@@ -438,6 +456,12 @@ function AdminOrdenDetallePage() {
           <Button onClick={() => setResumeConfirmOpen(true)} disabled={resuming} variant="secondary" className="gap-2">
             <Play className="h-4 w-4" />
             {resuming ? 'Reanudando...' : 'Forzar Reanudación'}
+          </Button>
+        )}
+        {!isCompleted && !isCancelled && (
+          <Button onClick={() => setCancelConfirmOpen(true)} disabled={cancelling} variant="destructive" className="gap-2">
+            <XCircle className="h-4 w-4" />
+            {cancelling ? 'Cancelando...' : 'Cancelar Orden'}
           </Button>
         )}
         {needsMySignature && (
@@ -459,6 +483,21 @@ function AdminOrdenDetallePage() {
         </Button>
       </div>
 
+      {/* Banner de Cancelada */}
+      {isCancelled && (
+        <Card className="bg-slate-500/10 border-slate-500/30">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <XCircle className="h-6 w-6 text-slate-500 shrink-0" />
+              <div>
+                <p className="font-bold text-slate-700 uppercase tracking-tight">Orden Cancelada</p>
+                <p className="text-sm text-slate-600/80 mt-0.5">Esta orden de trabajo ha sido anulada por un administrador.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Banner de Pausa */}
       {order.status === 'PAUSED' && (workOrderRaw as { pauseReason?: string })?.pauseReason && (
         <Card className="bg-amber-500/10 border-amber-500/30">
@@ -477,7 +516,7 @@ function AdminOrdenDetallePage() {
       <div className="grid gap-6 lg:grid-cols-3 items-start">
         {/* Columna principal (izquierda) */}
         <div className="space-y-6 lg:col-span-2">
-          <Card className="bg-card shadow-sm">
+          <Card className={cn("bg-card shadow-sm transition-opacity", isCancelled && "opacity-60")}>
           <CardHeader className="border-b border-border/50">
             <CardTitle className="flex items-center gap-2 text-base">
               <FileText className="h-5 w-5 text-primary" /> Datos de la Solicitud
@@ -524,7 +563,7 @@ function AdminOrdenDetallePage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card shadow-sm">
+        <Card className={cn("bg-card shadow-sm transition-opacity", isCancelled && "opacity-60")}>
           <CardHeader className="border-b border-border/50 pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Settings className="h-5 w-5 text-primary" /> Parámetros de Gestión
@@ -644,7 +683,7 @@ function AdminOrdenDetallePage() {
 
         {/* Columna lateral (derecha) */}
         <div className="space-y-6 lg:col-start-3">
-          <Card className="bg-card shadow-sm">
+          <Card className={cn("bg-card shadow-sm transition-opacity", isCancelled && "opacity-60")}>
             <CardHeader className="border-b border-border/50 pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Clock className="h-5 w-5 text-primary" /> Tiempos
@@ -699,7 +738,7 @@ function AdminOrdenDetallePage() {
           </Card>
 
           {requester && (
-            <Card className="bg-card shadow-sm">
+            <Card className={cn("bg-card shadow-sm transition-opacity", isCancelled && "opacity-60")}>
               <CardHeader className="border-b border-border/50 pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <User className="h-5 w-5 text-primary" /> Solicitante
@@ -719,7 +758,7 @@ function AdminOrdenDetallePage() {
             </Card>
           )}
 
-          <Card className="bg-card shadow-sm border-primary/20">
+          <Card className={cn("bg-card shadow-sm border-primary/20 transition-opacity", isCancelled && "opacity-60")}>
             <CardHeader className="border-b border-border/50 pb-3 ">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Wrench className="h-5 w-5 text-primary" /> Equipo Técnico
@@ -915,6 +954,27 @@ function AdminOrdenDetallePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Confirmar Cancelación */}
+      <AlertDialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Está seguro de cancelar esta orden?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción marcará la orden como CANCELADA. No se podrá revertir y quedará anulada para el técnico y solicitante.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelOrder}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sí, Cancelar Orden
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Modal Firma */}
       <SignatureDialog

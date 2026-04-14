@@ -56,7 +56,7 @@ export function WorkOrderCard({
               <StatusBadge status={status} />
               {priority && <PriorityBadge priority={priority} size="sm" />}
               {maintenanceType && <MaintenanceTypeBadge type={maintenanceType} size="sm" />}
-              {showPendingSignature && status === 'COMPLETED' && (
+              {showPendingSignature && (status === 'FINISHED' || status === 'TEMPORARY_REPAIR') && (
                 <span className="flex items-center gap-1 text-xs text-primary font-medium">
                   <Pen className="h-3 w-3" /> Firma pendiente
                 </span>

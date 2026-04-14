@@ -352,3 +352,12 @@ export const EXPORT_WORK_ORDER_PDF_MUTATION = gql`
     exportWorkOrderPdf(id: $id)
   }
 `;
+
+export const CANCEL_WORK_ORDER_MUTATION = gql`
+  mutation CancelWorkOrder($id: ID!) {
+    cancelWorkOrder(id: $id) {
+      id
+      status
+    }
+  }
+`;

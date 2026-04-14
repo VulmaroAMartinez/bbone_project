@@ -4,8 +4,10 @@ export enum WorkOrderStatus {
   PENDING = 'PENDING',
   IN_PROGRESS = 'IN_PROGRESS',
   PAUSED = 'PAUSED',
+  FINISHED = 'FINISHED',
   COMPLETED = 'COMPLETED',
   TEMPORARY_REPAIR = 'TEMPORARY_REPAIR',
+  CANCELLED = 'CANCELLED',
 }
 
 registerEnumType(WorkOrderStatus, {
@@ -17,9 +19,11 @@ registerEnumType(WorkOrderStatus, {
     },
     IN_PROGRESS: { description: 'En progreso - Técnico trabajando en la WO' },
     PAUSED: { description: 'Pausada - En espera de material u otra razón' },
-    COMPLETED: { description: 'Completada - Trabajo finalizado' },
+    FINISHED: { description: 'Finalizada - El técnico terminó el trabajo' },
+    COMPLETED: { description: 'Completada - Trabajo finalizado y firmado' },
     TEMPORARY_REPAIR: {
       description: 'Reparación temporal - Solución provisional aplicada',
     },
+    CANCELLED: { description: 'Cancelada - OT anulada por el administrador' },
   },
 });

@@ -43,15 +43,30 @@ const SHIFT_GROUPS: string[][] = [['TURNO 1', 'AVANZADA']];
 
 /** Allowed status transitions */
 const VALID_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
-  [WorkOrderStatus.PENDING]: [WorkOrderStatus.IN_PROGRESS],
+  [WorkOrderStatus.PENDING]: [
+    WorkOrderStatus.IN_PROGRESS,
+    WorkOrderStatus.CANCELLED,
+  ],
   [WorkOrderStatus.IN_PROGRESS]: [
     WorkOrderStatus.PAUSED,
-    WorkOrderStatus.COMPLETED,
+    WorkOrderStatus.FINISHED,
     WorkOrderStatus.TEMPORARY_REPAIR,
+    WorkOrderStatus.CANCELLED,
   ],
-  [WorkOrderStatus.PAUSED]: [WorkOrderStatus.IN_PROGRESS],
+  [WorkOrderStatus.PAUSED]: [
+    WorkOrderStatus.IN_PROGRESS,
+    WorkOrderStatus.CANCELLED,
+  ],
+  [WorkOrderStatus.FINISHED]: [
+    WorkOrderStatus.COMPLETED,
+    WorkOrderStatus.CANCELLED,
+  ],
+  [WorkOrderStatus.TEMPORARY_REPAIR]: [
+    WorkOrderStatus.COMPLETED,
+    WorkOrderStatus.CANCELLED,
+  ],
   [WorkOrderStatus.COMPLETED]: [],
-  [WorkOrderStatus.TEMPORARY_REPAIR]: [],
+  [WorkOrderStatus.CANCELLED]: [],
 };
 
 @Injectable()

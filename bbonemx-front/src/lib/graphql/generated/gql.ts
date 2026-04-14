@@ -170,6 +170,7 @@ type Documents = {
     "\n  query GetActiveMaterials {\n    materialsActive {\n      id\n      description\n      brand\n      model\n      partNumber\n      unitOfMeasure\n    }\n  }\n": typeof types.GetActiveMaterialsDocument,
     "\n  query GetMachineSparePartsForWO($machineId: ID!) {\n    sparePartsByMachine(machineId: $machineId) {\n      id\n      partNumber\n      brand\n      model\n      unitOfMeasure\n      isActive\n    }\n  }\n": typeof types.GetMachineSparePartsForWoDocument,
     "\n  mutation ExportWorkOrderPdf($id: ID!) {\n    exportWorkOrderPdf(id: $id)\n  }\n": typeof types.ExportWorkOrderPdfDocument,
+    "\n  mutation CancelWorkOrder($id: ID!) {\n    cancelWorkOrder(id: $id) {\n      id\n      status\n    }\n  }\n": typeof types.CancelWorkOrderDocument,
 };
 const documents: Documents = {
     "\n  \n  \n  fragment ActivityItem on Activity {\n    id\n    activity\n    startDate\n    endDate\n    progress\n    status\n    comments\n    priority\n    isActive\n    createdAt\n    updatedAt\n    areaId\n    area {\n      ...AreaBasic\n    }\n    machineId\n    machine {\n      id\n      name\n      code\n    }\n    technicians {\n      id\n      technicianId\n      assignedAt\n      technician {\n        ...UserBasic\n      }\n    }\n  }\n": types.ActivityItemFragmentDoc,
@@ -328,6 +329,7 @@ const documents: Documents = {
     "\n  query GetActiveMaterials {\n    materialsActive {\n      id\n      description\n      brand\n      model\n      partNumber\n      unitOfMeasure\n    }\n  }\n": types.GetActiveMaterialsDocument,
     "\n  query GetMachineSparePartsForWO($machineId: ID!) {\n    sparePartsByMachine(machineId: $machineId) {\n      id\n      partNumber\n      brand\n      model\n      unitOfMeasure\n      isActive\n    }\n  }\n": types.GetMachineSparePartsForWoDocument,
     "\n  mutation ExportWorkOrderPdf($id: ID!) {\n    exportWorkOrderPdf(id: $id)\n  }\n": types.ExportWorkOrderPdfDocument,
+    "\n  mutation CancelWorkOrder($id: ID!) {\n    cancelWorkOrder(id: $id) {\n      id\n      status\n    }\n  }\n": types.CancelWorkOrderDocument,
 };
 
 /**
@@ -968,6 +970,10 @@ export function gql(source: "\n  query GetMachineSparePartsForWO($machineId: ID!
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function gql(source: "\n  mutation ExportWorkOrderPdf($id: ID!) {\n    exportWorkOrderPdf(id: $id)\n  }\n"): (typeof documents)["\n  mutation ExportWorkOrderPdf($id: ID!) {\n    exportWorkOrderPdf(id: $id)\n  }\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\n  mutation CancelWorkOrder($id: ID!) {\n    cancelWorkOrder(id: $id) {\n      id\n      status\n    }\n  }\n"): (typeof documents)["\n  mutation CancelWorkOrder($id: ID!) {\n    cancelWorkOrder(id: $id) {\n      id\n      status\n    }\n  }\n"];
 
 export function gql(source: string) {
   return (documents as any)[source] ?? {};
