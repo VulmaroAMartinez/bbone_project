@@ -38,8 +38,8 @@ export type Activity = {
   endDate?: Maybe<Scalars['DateTime']['output']>;
   id: Scalars['ID']['output'];
   isActive: Scalars['Boolean']['output'];
-  machine: Machine;
-  machineId: Scalars['ID']['output'];
+  machine?: Maybe<Machine>;
+  machineId?: Maybe<Scalars['ID']['output']>;
   materialRequests: Array<ActivityMaterialRequest>;
   priority: Scalars['Boolean']['output'];
   progress: Scalars['Int']['output'];
@@ -272,7 +272,7 @@ export type CreateActivityInput = {
   areaId: Scalars['ID']['input'];
   comments?: InputMaybe<Scalars['String']['input']>;
   endDate?: InputMaybe<Scalars['String']['input']>;
-  machineId: Scalars['ID']['input'];
+  machineId?: InputMaybe<Scalars['ID']['input']>;
   priority?: Scalars['Boolean']['input'];
   progress?: Scalars['Int']['input'];
   startDate: Scalars['String']['input'];
@@ -2802,10 +2802,10 @@ export type WorkType =
   /** Neumática */
   | 'PNEUMATIC';
 
-export type ActivityItemFragment = { __typename?: 'Activity', id: string, activity: string, startDate: string, endDate?: string | null, progress: number, status: ActivityStatus, comments?: string | null, priority: boolean, isActive: boolean, createdAt: string, updatedAt: string, areaId: string, machineId: string, area: (
+export type ActivityItemFragment = { __typename?: 'Activity', id: string, activity: string, startDate: string, endDate?: string | null, progress: number, status: ActivityStatus, comments?: string | null, priority: boolean, isActive: boolean, createdAt: string, updatedAt: string, areaId: string, machineId?: string | null, area: (
     { __typename?: 'Area' }
     & { ' $fragmentRefs'?: { 'AreaBasicFragment': AreaBasicFragment } }
-  ), machine: { __typename?: 'Machine', id: string, name: string, code: string }, technicians: Array<{ __typename?: 'ActivityTechnician', id: string, technicianId: string, assignedAt: string, technician: (
+  ), machine?: { __typename?: 'Machine', id: string, name: string, code: string } | null, technicians: Array<{ __typename?: 'ActivityTechnician', id: string, technicianId: string, assignedAt: string, technician: (
       { __typename?: 'User' }
       & { ' $fragmentRefs'?: { 'UserBasicFragment': UserBasicFragment } }
     ) }> } & { ' $fragmentName'?: 'ActivityItemFragment' };
@@ -2837,14 +2837,14 @@ export type GetActivityWorkOrdersQueryVariables = Exact<{
 }>;
 
 
-export type GetActivityWorkOrdersQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine: { __typename?: 'Machine', id: string, name: string }, workOrders: Array<{ __typename?: 'ActivityWorkOrder', id: string, workOrderId: string, createdAt: string, workOrder: { __typename?: 'WorkOrder', id: string, folio: string, description: string, status: WorkOrderStatus, createdAt: string, area: { __typename?: 'Area', id: string, name: string } } }> } | null };
+export type GetActivityWorkOrdersQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine?: { __typename?: 'Machine', id: string, name: string } | null, workOrders: Array<{ __typename?: 'ActivityWorkOrder', id: string, workOrderId: string, createdAt: string, workOrder: { __typename?: 'WorkOrder', id: string, folio: string, description: string, status: WorkOrderStatus, createdAt: string, area: { __typename?: 'Area', id: string, name: string } } }> } | null };
 
 export type GetActivityMaterialRequestsQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
-export type GetActivityMaterialRequestsQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine: { __typename?: 'Machine', id: string, name: string }, materialRequests: Array<{ __typename?: 'ActivityMaterialRequest', id: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance: RequestImportance, priority: RequestPriority, createdAt: string } }> } | null };
+export type GetActivityMaterialRequestsQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine?: { __typename?: 'Machine', id: string, name: string } | null, materialRequests: Array<{ __typename?: 'ActivityMaterialRequest', id: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance: RequestImportance, priority: RequestPriority, createdAt: string } }> } | null };
 
 export type ExportActivitiesExcelQueryVariables = Exact<{
   filters?: InputMaybe<ActivityFiltersInput>;

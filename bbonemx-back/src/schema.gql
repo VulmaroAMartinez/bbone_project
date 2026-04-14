@@ -17,11 +17,11 @@ type Activity {
   areaId: ID!
   comments: String
   createdAt: DateTime!
-  endDate: DateTime!
+  endDate: DateTime
   id: ID!
   isActive: Boolean!
-  machine: Machine!
-  machineId: ID!
+  machine: Machine
+  machineId: ID
   materialRequests: [ActivityMaterialRequest!]!
   priority: Boolean!
   progress: Int!
@@ -276,8 +276,8 @@ input CreateActivityInput {
   activity: String!
   areaId: ID!
   comments: String
-  endDate: String!
-  machineId: ID!
+  endDate: String
+  machineId: ID
   priority: Boolean! = false
   progress: Int! = 0
   startDate: String!

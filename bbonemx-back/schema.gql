@@ -20,8 +20,8 @@ type Activity {
   endDate: DateTime
   id: ID!
   isActive: Boolean!
-  machine: Machine!
-  machineId: ID!
+  machine: Machine
+  machineId: ID
   materialRequests: [ActivityMaterialRequest!]!
   priority: Boolean!
   progress: Int!
@@ -278,7 +278,7 @@ input CreateActivityInput {
   areaId: ID!
   comments: String
   endDate: String
-  machineId: ID!
+  machineId: ID
   priority: Boolean! = false
   progress: Int! = 0
   startDate: String!

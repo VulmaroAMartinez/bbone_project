@@ -1,8 +1,8 @@
 import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { BaseEntity } from 'src/infrastructure/database/base.entity';
-import { Area } from 'src/modules/catalogs/areas/domain/entities';
-import { Machine } from 'src/modules/catalogs/machines/domain/entities';
-import { ActivityStatus, dateColumnTransformer } from 'src/common';
+import { BaseEntity } from '../../../../infrastructure/database/base.entity';
+import { Area } from '../../../catalogs/areas/domain/entities';
+import { Machine } from '../../../catalogs/machines/domain/entities';
+import { ActivityStatus, dateColumnTransformer } from '../../../../common';
 import { ActivityTechnician } from './activity-technician.entity';
 import { ActivityWorkOrder } from './activity-work-order.entity';
 import { ActivityMaterialRequest } from './activity-material-request.entity';
@@ -16,12 +16,12 @@ export class Activity extends BaseEntity {
   @JoinColumn({ name: 'area_id' })
   area: Area;
 
-  @Column({ name: 'machine_id', type: 'uuid' })
-  machineId: string;
+  @Column({ name: 'machine_id', type: 'uuid', nullable: true })
+  machineId?: string | null;
 
-  @ManyToOne(() => Machine)
+  @ManyToOne(() => Machine, { nullable: true })
   @JoinColumn({ name: 'machine_id' })
-  machine: Machine;
+  machine?: Machine | null;
 
   @Column({ type: 'varchar', length: 500 })
   activity: string;

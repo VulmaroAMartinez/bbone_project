@@ -22,10 +22,10 @@ export class CreateActivityInput {
   @IsUUID()
   areaId: string;
 
-  @Field(() => ID)
-  @IsNotEmpty({ message: 'La máquina es requerida' })
+  @Field(() => ID, { nullable: true })
+  @IsOptional()
   @IsUUID()
-  machineId: string;
+  machineId?: string;
 
   @Field()
   @IsNotEmpty({ message: 'La actividad es requerida' })
