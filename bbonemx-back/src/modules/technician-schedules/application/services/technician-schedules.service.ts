@@ -222,7 +222,10 @@ export class TechnicianSchedulesService {
         ? input.absenceReasonId
         : schedule.absenceReasonId;
 
-    this.validateScheduleInput(shiftId, absenceReasonId);
+    this.validateScheduleInput(
+      shiftId ?? undefined,
+      absenceReasonId ?? undefined,
+    );
 
     if (absenceReasonId) {
       await this.validateAbsenceReasonLimit(
