@@ -92,7 +92,6 @@ export default function TecnicoOrdenPage() {
 
   const isAveria = order?.stopType === 'BREAKDOWN';
   const isProcessing = starting || pausing || completing;
-  const isClosed = order?.status === 'COMPLETED' || order?.status === 'FINISHED' || order?.status === 'TEMPORARY_REPAIR';
 
   
   const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
