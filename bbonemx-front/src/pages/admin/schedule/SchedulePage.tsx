@@ -17,7 +17,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select as UISelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScheduleSkeleton } from '@/components/ui/skeleton-loaders';
-import { Calendar, Save, Copy, ChevronLeft, ChevronRight, Loader2, Filter } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Calendar, Save, Copy, ChevronLeft, ChevronRight, Loader2, Filter, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -72,6 +73,8 @@ export default function SchedulePage() {
     // Filtros
     const [filterShift, setFilterShift] = useState<string>('ALL');
     const [filterDay, setFilterDay] = useState<string>('ALL');
+    const [filterName, setFilterName] = useState<string>('');
+    const [filterPosition, setFilterPosition] = useState<string>('ALL');
 
     // --- Queries ---
     const { data: weekData, loading: weekLoading, refetch: refetchWeek } = useOfflineAwareQuery(GetWeekScheduleDocument, {
@@ -242,9 +245,36 @@ export default function SchedulePage() {
     const shifts = shiftData?.shiftsActive || [];
     const absences = absData?.absenceReasonsActive || [];
 
-    // Aplicar Filtros (Quién trabaja el Día X en Turno Y)
-    const filteredTechnicians = technicians.filter(tech => {
+    const positionOptions = useMemo(() => {
+        const unique = new Set(technicians.map((t: { position: { name: string } }) => t.position.name));
+        return Array.from(unique).sort() as string[];
+    }, [technicians]);
+
+    const hasActiveFilters = filterName !== '' || filterPosition !== 'ALL' || filterDay !== 'ALL' || filterShift !== 'ALL';
+
+    const clearFilters = () => {
+        setFilterName('');
+        setFilterPosition('ALL');
+        setFilterDay('ALL');
+        setFilterShift('ALL');
+    };
+
+    // Aplicar Filtros (nombre, puesto, día y turno)
+    const filteredTechnicians = technicians.filter((tech: { user: { id: string; fullName: string; employeeNumber: string }; position: { name: string } }) => {
         const uid = tech.user.id;
+
+        // Filtro por nombre o número de empleado
+        const nameQuery = filterName.trim().toLowerCase();
+        if (nameQuery) {
+            const matchName = tech.user.fullName.toLowerCase().includes(nameQuery);
+            const matchEmp = tech.user.employeeNumber.toLowerCase().includes(nameQuery);
+            if (!matchName && !matchEmp) return false;
+        }
+
+        // Filtro por puesto
+        if (filterPosition !== 'ALL' && tech.position.name !== filterPosition) return false;
+
+        // Filtro por día y turno
         if (filterDay === 'ALL' && filterShift === 'ALL') return true;
 
         if (filterDay !== 'ALL') {
@@ -288,9 +318,9 @@ export default function SchedulePage() {
 
             {/* Navegación y Filtros */}
             <Card className="bg-card border-border shadow-sm">
-                <CardContent className="py-4 flex flex-col lg:flex-row gap-4 justify-between items-center">
-                    {/* Navegador de Semanas */}
-                    <div className="flex items-center justify-between w-full lg:w-auto bg-muted/30 rounded-lg p-1 border border-border/50">
+                <CardContent className="py-5 px-5 space-y-4">
+                    {/* Fila 1: Navegador de Semanas (ancho completo) */}
+                    <div className="flex items-center justify-between bg-muted/30 rounded-lg p-1 border border-border/50">
                         <Button variant="ghost" size="sm" onClick={() => navigateWeek(-1)} disabled={isSaving}>
                             <ChevronLeft className="h-5 w-5" />
                         </Button>
@@ -306,11 +336,50 @@ export default function SchedulePage() {
                         </Button>
                     </div>
 
-                    {/* Filtros de Consulta */}
-                    <div className="flex w-full lg:w-auto gap-2">
-                        <div className="flex-1 lg:w-48">
+                    {/* Fila 2: Filtros en cuadrícula */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {/* Buscar técnico */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                            <Input
+                                value={filterName}
+                                onChange={(e) => setFilterName(e.target.value)}
+                                placeholder="Buscar técnico..."
+                                className="h-10 pl-9 bg-background"
+                            />
+                        </div>
+
+                        {/* Filtrar por puesto */}
+                        <UISelect value={filterPosition} onValueChange={setFilterPosition}>
+                            <SelectTrigger className="h-10 bg-background">
+                                <SelectValue placeholder="Todos los Puestos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Todos los Puestos</SelectItem>
+                                {positionOptions.map(pos => (
+                                    <SelectItem key={pos} value={pos}>{pos}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </UISelect>
+
+                        {/* Filtrar por turno */}
+                        <UISelect value={filterShift} onValueChange={setFilterShift}>
+                            <SelectTrigger className="h-10 bg-background">
+                                <SelectValue placeholder="Todos los Turnos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Todos los Turnos</SelectItem>
+                                {shifts.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </UISelect>
+
+                        {/* Filtrar por día */}
+                        <div className="flex gap-2">
                             <UISelect value={filterDay} onValueChange={setFilterDay}>
-                                <SelectTrigger className="h-10 bg-background"><Filter className="w-4 h-4 mr-2 opacity-50" /> <SelectValue placeholder="Filtrar por Día" /></SelectTrigger>
+                                <SelectTrigger className="h-10 bg-background flex-1">
+                                    <Filter className="w-4 h-4 mr-2 opacity-50 shrink-0" />
+                                    <SelectValue placeholder="Todos los Días" />
+                                </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="ALL">Todos los Días</SelectItem>
                                     {weekDates.map((date, i) => (
@@ -318,15 +387,11 @@ export default function SchedulePage() {
                                     ))}
                                 </SelectContent>
                             </UISelect>
-                        </div>
-                        <div className="flex-1 lg:w-48">
-                            <UISelect value={filterShift} onValueChange={setFilterShift}>
-                                <SelectTrigger className="h-10 bg-background"><SelectValue placeholder="Filtrar por Turno" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="ALL">Todos los Turnos</SelectItem>
-                                    {shifts.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                </SelectContent>
-                            </UISelect>
+                            {hasActiveFilters && (
+                                <Button variant="outline" size="icon" onClick={clearFilters} title="Limpiar filtros" className="h-10 w-10 shrink-0">
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </CardContent>
