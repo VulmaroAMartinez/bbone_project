@@ -312,8 +312,8 @@ export class TechnicianSchedulesRepository {
         const existing = existingMap.get(day.scheduleDate);
 
         if (existing) {
-          existing.shiftId = day.shiftId || undefined;
-          existing.absenceReasonId = day.absenceReasonId || undefined;
+          existing.shiftId = day.shiftId ?? null;
+          existing.absenceReasonId = day.absenceReasonId ?? null;
           await repo.save(existing);
           resultIds.push(existing.id);
         } else {
