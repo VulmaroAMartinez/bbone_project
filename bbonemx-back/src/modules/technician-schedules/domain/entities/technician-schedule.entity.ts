@@ -24,14 +24,14 @@ export class TechnicianSchedule extends BaseEntity {
   year: number;
 
   @Column({ name: 'shift_id', type: 'uuid', nullable: true })
-  shiftId?: string;
+  shiftId?: string | null;
 
   @ManyToOne(() => Shift, { nullable: true })
   @JoinColumn({ name: 'shift_id' })
   shift?: Shift;
 
   @Column({ name: 'absence_reason_id', type: 'uuid', nullable: true })
-  absenceReasonId?: string;
+  absenceReasonId?: string | null;
 
   @ManyToOne(() => AbsenceReason, { nullable: true })
   @JoinColumn({ name: 'absence_reason_id' })

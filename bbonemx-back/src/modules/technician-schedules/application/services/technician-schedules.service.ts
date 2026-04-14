@@ -236,12 +236,12 @@ export class TechnicianSchedulesService {
 
     const updateData: Partial<TechnicianSchedule> = {};
     if (input.shiftId !== undefined) {
-      updateData.shiftId = input.shiftId || undefined;
-      updateData.absenceReasonId = undefined; // Si asigna turno, quita ausencia
+      updateData.shiftId = input.shiftId || null; // null limpia la columna en DB
+      updateData.absenceReasonId = null; // Si asigna turno, quita ausencia
     }
     if (input.absenceReasonId !== undefined) {
-      updateData.absenceReasonId = input.absenceReasonId || undefined;
-      updateData.shiftId = undefined; // Si asigna ausencia, quita turno
+      updateData.absenceReasonId = input.absenceReasonId || null; // null limpia la columna en DB
+      updateData.shiftId = null; // Si asigna ausencia, quita turno
     }
 
     const updated = await this.schedulesRepository.update(id, updateData);
