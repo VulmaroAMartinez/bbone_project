@@ -17,11 +17,11 @@ export class ActivityType {
   @Field(() => AreaType)
   area: AreaType;
 
-  @Field(() => ID)
-  machineId: string;
+  @Field(() => ID, { nullable: true })
+  machineId?: string;
 
-  @Field(() => MachineType)
-  machine: MachineType;
+  @Field(() => MachineType, { nullable: true })
+  machine?: MachineType;
 
   @Field()
   activity: string;

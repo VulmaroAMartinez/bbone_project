@@ -68,7 +68,7 @@ type FormDataQuery = {
 
 const schema = yup.object({
   areaId: yup.string().required('El área es requerida'),
-  machineId: yup.string().required('La máquina es requerida'),
+  machineId: yup.string().optional().default(''),
   activity: yup.string().trim().required('La actividad es requerida'),
   startDate: yup.string().required('La fecha de inicio es requerida'),
   endDate: yup
@@ -111,7 +111,7 @@ export default function ActivityFormPage() {
   const { data: formData, loading: loadingFormData } = useQuery<FormDataQuery>(GET_FORM_DATA);
   const { data: activityData, loading: loadingActivity } = useQuery(
     GetActivityByIdDocument,
-    { variables: { id: id! }, skip: !isEditing },
+    { variables: { id: id! }, skip: !isEditing, fetchPolicy: 'network-only' },
   );
 
   const {
@@ -156,10 +156,11 @@ export default function ActivityFormPage() {
   // Populate form on edit
   useEffect(() => {
     if (isEditing && activity) {
+      console.log('[ActivityForm] Populating for edit:', activity);
       const a = activity;
       reset({
         areaId: a.areaId,
-        machineId: a.machineId,
+        machineId: a.machineId || '',
         activity: a.activity,
         startDate: a.startDate ? a.startDate.split('T')[0] : '',
         endDate: a.endDate ? a.endDate.split('T')[0] : undefined,
@@ -193,18 +194,20 @@ export default function ActivityFormPage() {
   );
 
   const onSubmit = async (values: FormValues) => {
+    console.log('[ActivityForm] Submitting values:', values);
     try {
       if (isEditing) {
-        await updateActivity({
+        console.log('[ActivityForm] Updating activity ID:', id);
+        const result = await updateActivity({
           variables: {
             id: id!,
             input: {
               areaId: values.areaId,
-              machineId: values.machineId,
+              machineId: values.machineId || null,
               activity: values.activity,
               startDate: values.startDate,
               endDate: values.endDate ?? null,
-              progress: values.progress,
+              progress: Number(values.progress),
               status: values.status as ActivityStatus,
               comments: values.comments || undefined,
               priority: values.priority,
@@ -212,17 +215,19 @@ export default function ActivityFormPage() {
             },
           },
         });
+        console.log('[ActivityForm] Update result:', result);
         toast.success('Actividad actualizada');
       } else {
-        await createActivity({
+        console.log('[ActivityForm] Creating activity');
+        const result = await createActivity({
           variables: {
             input: {
               areaId: values.areaId,
-              machineId: values.machineId,
+              machineId: values.machineId || null,
               activity: values.activity,
               startDate: values.startDate,
               ...(values.endDate ? { endDate: values.endDate } : {}),
-              progress: values.progress,
+              progress: Number(values.progress),
               status: values.status as ActivityStatus,
               comments: values.comments || undefined,
               priority: values.priority,
@@ -230,10 +235,12 @@ export default function ActivityFormPage() {
             },
           },
         });
+        console.log('[ActivityForm] Create result:', result);
         toast.success('Actividad creada');
       }
       navigate('/admin/actividades');
     } catch (err: unknown) {
+      console.error('[ActivityForm] Error saving activity:', err);
       toast.error(err instanceof Error ? err.message : 'Error al guardar actividad');
     }
   };
@@ -285,14 +292,14 @@ export default function ActivityFormPage() {
 
               {/* Máquina */}
               <div className="space-y-2">
-                <Label>Equipo *</Label>
+                <Label>Equipo (Opcional)</Label>
                 <Controller
                   name="machineId"
                   control={control}
                   render={({ field }) => (
                     <Combobox
                       options={machineOptions}
-                      value={field.value}
+                      value={field.value || ''}
                       onValueChange={field.onChange}
                       placeholder="Seleccionar equipo"
                       searchPlaceholder="Buscar equipo..."

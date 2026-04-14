@@ -38,8 +38,8 @@ export type Activity = {
   endDate?: Maybe<Scalars['DateTime']['output']>;
   id: Scalars['ID']['output'];
   isActive: Scalars['Boolean']['output'];
-  machine: Machine;
-  machineId: Scalars['ID']['output'];
+  machine?: Maybe<Machine>;
+  machineId?: Maybe<Scalars['ID']['output']>;
   materialRequests: Array<ActivityMaterialRequest>;
   priority: Scalars['Boolean']['output'];
   progress: Scalars['Int']['output'];
@@ -272,7 +272,7 @@ export type CreateActivityInput = {
   areaId: Scalars['ID']['input'];
   comments?: InputMaybe<Scalars['String']['input']>;
   endDate?: InputMaybe<Scalars['String']['input']>;
-  machineId: Scalars['ID']['input'];
+  machineId?: InputMaybe<Scalars['ID']['input']>;
   priority?: Scalars['Boolean']['input'];
   progress?: Scalars['Int']['input'];
   startDate: Scalars['String']['input'];
@@ -861,6 +861,7 @@ export type Mutation = {
   assignWorkOrder: WorkOrder;
   /** Actualiza múltiples preferencias de notificación en batch */
   bulkUpdateNotificationPreferences: Array<NotificationPreference>;
+  cancelWorkOrder: WorkOrder;
   changeWorkOrderStatus: WorkOrder;
   closePreventiveTask: PreventiveTask;
   completeWorkOrder: WorkOrder;
@@ -1088,6 +1089,11 @@ export type MutationAssignWorkOrderArgs = {
 
 export type MutationBulkUpdateNotificationPreferencesArgs = {
   input: BulkUpdatePreferencesInput;
+};
+
+
+export type MutationCancelWorkOrderArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -2742,8 +2748,12 @@ export type WorkOrderStats = {
 
 /** Estados posibles de una orden de trabajo */
 export type WorkOrderStatus =
-  /** Completada - Trabajo finalizado */
+  /** Cancelada - OT anulada por el administrador */
+  | 'CANCELLED'
+  /** Completada - Trabajo finalizado y firmado */
   | 'COMPLETED'
+  /** Finalizada - El técnico terminó el trabajo */
+  | 'FINISHED'
   /** En progreso - Técnico trabajando en la WO */
   | 'IN_PROGRESS'
   /** Pausada - En espera de material u otra razón */
@@ -2792,10 +2802,10 @@ export type WorkType =
   /** Neumática */
   | 'PNEUMATIC';
 
-export type ActivityItemFragment = { __typename?: 'Activity', id: string, activity: string, startDate: string, endDate?: string | null, progress: number, status: ActivityStatus, comments?: string | null, priority: boolean, isActive: boolean, createdAt: string, updatedAt: string, areaId: string, machineId: string, area: (
+export type ActivityItemFragment = { __typename?: 'Activity', id: string, activity: string, startDate: string, endDate?: string | null, progress: number, status: ActivityStatus, comments?: string | null, priority: boolean, isActive: boolean, createdAt: string, updatedAt: string, areaId: string, machineId?: string | null, area: (
     { __typename?: 'Area' }
     & { ' $fragmentRefs'?: { 'AreaBasicFragment': AreaBasicFragment } }
-  ), machine: { __typename?: 'Machine', id: string, name: string, code: string }, technicians: Array<{ __typename?: 'ActivityTechnician', id: string, technicianId: string, assignedAt: string, technician: (
+  ), machine?: { __typename?: 'Machine', id: string, name: string, code: string } | null, technicians: Array<{ __typename?: 'ActivityTechnician', id: string, technicianId: string, assignedAt: string, technician: (
       { __typename?: 'User' }
       & { ' $fragmentRefs'?: { 'UserBasicFragment': UserBasicFragment } }
     ) }> } & { ' $fragmentName'?: 'ActivityItemFragment' };
@@ -2827,14 +2837,14 @@ export type GetActivityWorkOrdersQueryVariables = Exact<{
 }>;
 
 
-export type GetActivityWorkOrdersQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine: { __typename?: 'Machine', id: string, name: string }, workOrders: Array<{ __typename?: 'ActivityWorkOrder', id: string, workOrderId: string, createdAt: string, workOrder: { __typename?: 'WorkOrder', id: string, folio: string, description: string, status: WorkOrderStatus, createdAt: string, area: { __typename?: 'Area', id: string, name: string } } }> } | null };
+export type GetActivityWorkOrdersQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine?: { __typename?: 'Machine', id: string, name: string } | null, workOrders: Array<{ __typename?: 'ActivityWorkOrder', id: string, workOrderId: string, createdAt: string, workOrder: { __typename?: 'WorkOrder', id: string, folio: string, description: string, status: WorkOrderStatus, createdAt: string, area: { __typename?: 'Area', id: string, name: string } } }> } | null };
 
 export type GetActivityMaterialRequestsQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
-export type GetActivityMaterialRequestsQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine: { __typename?: 'Machine', id: string, name: string }, materialRequests: Array<{ __typename?: 'ActivityMaterialRequest', id: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance: RequestImportance, priority: RequestPriority, createdAt: string } }> } | null };
+export type GetActivityMaterialRequestsQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine?: { __typename?: 'Machine', id: string, name: string } | null, materialRequests: Array<{ __typename?: 'ActivityMaterialRequest', id: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance: RequestImportance, priority: RequestPriority, createdAt: string } }> } | null };
 
 export type ExportActivitiesExcelQueryVariables = Exact<{
   filters?: InputMaybe<ActivityFiltersInput>;
@@ -3961,6 +3971,13 @@ export type ExportWorkOrderPdfMutationVariables = Exact<{
 
 export type ExportWorkOrderPdfMutation = { __typename?: 'Mutation', exportWorkOrderPdf: string };
 
+export type CancelWorkOrderMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type CancelWorkOrderMutation = { __typename?: 'Mutation', cancelWorkOrder: { __typename?: 'WorkOrder', id: string, status: WorkOrderStatus } };
+
 export const AreaBasicFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AreaBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Area"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}}]}}]} as unknown as DocumentNode<AreaBasicFragment, unknown>;
 export const RoleBasicFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"RoleBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Role"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]} as unknown as DocumentNode<RoleBasicFragment, unknown>;
 export const UserBasicFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"UserBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"User"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"employeeNumber"}},{"kind":"Field","name":{"kind":"Name","value":"firstName"}},{"kind":"Field","name":{"kind":"Name","value":"lastName"}},{"kind":"Field","name":{"kind":"Name","value":"fullName"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"roleIds"}},{"kind":"Field","name":{"kind":"Name","value":"role"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"RoleBasic"}}]}},{"kind":"Field","name":{"kind":"Name","value":"roles"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"RoleBasic"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"RoleBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Role"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]} as unknown as DocumentNode<UserBasicFragment, unknown>;
@@ -4117,3 +4134,4 @@ export const AddWorkOrderMaterialDocument = {"kind":"Document","definitions":[{"
 export const GetActiveMaterialsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetActiveMaterials"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"materialsActive"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"brand"}},{"kind":"Field","name":{"kind":"Name","value":"model"}},{"kind":"Field","name":{"kind":"Name","value":"partNumber"}},{"kind":"Field","name":{"kind":"Name","value":"unitOfMeasure"}}]}}]}}]} as unknown as DocumentNode<GetActiveMaterialsQuery, GetActiveMaterialsQueryVariables>;
 export const GetMachineSparePartsForWoDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetMachineSparePartsForWO"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"machineId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sparePartsByMachine"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"machineId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"machineId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"partNumber"}},{"kind":"Field","name":{"kind":"Name","value":"brand"}},{"kind":"Field","name":{"kind":"Name","value":"model"}},{"kind":"Field","name":{"kind":"Name","value":"unitOfMeasure"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}}]}}]}}]} as unknown as DocumentNode<GetMachineSparePartsForWoQuery, GetMachineSparePartsForWoQueryVariables>;
 export const ExportWorkOrderPdfDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ExportWorkOrderPdf"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"exportWorkOrderPdf"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<ExportWorkOrderPdfMutation, ExportWorkOrderPdfMutationVariables>;
+export const CancelWorkOrderDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CancelWorkOrder"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cancelWorkOrder"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}}]}}]} as unknown as DocumentNode<CancelWorkOrderMutation, CancelWorkOrderMutationVariables>;

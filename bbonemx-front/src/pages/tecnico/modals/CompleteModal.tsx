@@ -30,7 +30,7 @@ import { AlertTriangle, Wrench, Package, Boxes } from 'lucide-react';
 const closeSchema = yup.object({
   finalStatus: yup
     .mixed<WorkOrderStatus>()
-    .oneOf(['COMPLETED', 'TEMPORARY_REPAIR'])
+    .oneOf(['FINISHED', 'TEMPORARY_REPAIR'])
     .required('El estado final es requerido'),
   breakdownDescription: yup.string().default(''),
   cause: yup.string().when('$isAveria', {
@@ -104,7 +104,7 @@ export function CompleteModal({
     resolver: yupResolver(closeSchema) as unknown as import('react-hook-form').Resolver<CloseFormValues>,
     context: { isAveria },
     defaultValues: {
-      finalStatus: 'COMPLETED',
+      finalStatus: 'FINISHED',
       breakdownDescription: '',
       cause: '',
       actionTaken: '',
@@ -135,7 +135,7 @@ export function CompleteModal({
   useEffect(() => {
     if (open) {
       reset({
-        finalStatus: 'COMPLETED',
+        finalStatus: 'FINISHED',
         breakdownDescription: '',
         cause: '',
         actionTaken: '',
@@ -183,12 +183,12 @@ export function CompleteModal({
                     >
                       <div
                         className="flex items-start space-x-3 border p-4 rounded-lg hover:bg-muted/50 cursor-pointer"
-                        onClick={() => field.onChange('COMPLETED')}
+                        onClick={() => field.onChange('FINISHED')}
                       >
-                        <RadioGroupItem value="COMPLETED" id="status-completed" className="mt-1" />
+                        <RadioGroupItem value="FINISHED" id="status-finished" className="mt-1" />
                         <div>
-                          <Label htmlFor="status-completed" className="text-sm font-semibold cursor-pointer">
-                            Arreglo Definitivo (Completada)
+                          <Label htmlFor="status-finished" className="text-sm font-semibold cursor-pointer">
+                            Arreglo Definitivo (Finalizada)
                           </Label>
                           <p className="text-xs text-muted-foreground">
                             La máquina quedó reparada en óptimas condiciones.

@@ -177,8 +177,8 @@ export class CompleteWorkOrderInput {
   downtimeMinutes?: number;
 
   @Field(() => WorkOrderStatus, {
-    defaultValue: WorkOrderStatus.COMPLETED,
-    description: 'COMPLETED o TEMPORARY_REPAIR',
+    defaultValue: WorkOrderStatus.FINISHED,
+    description: 'FINISHED o TEMPORARY_REPAIR',
   })
   @IsEnum(WorkOrderStatus)
   finalStatus: WorkOrderStatus;

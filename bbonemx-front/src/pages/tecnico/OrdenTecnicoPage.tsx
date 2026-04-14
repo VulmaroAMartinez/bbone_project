@@ -92,7 +92,6 @@ export default function TecnicoOrdenPage() {
 
   const isAveria = order?.stopType === 'BREAKDOWN';
   const isProcessing = starting || pausing || completing;
-  const isClosed = order?.status === 'COMPLETED' || order?.status === 'TEMPORARY_REPAIR';
 
   
   const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
@@ -100,7 +99,7 @@ export default function TecnicoOrdenPage() {
   
   const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
   const techSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN' || s.signer.roles?.some((r: { name: string }) => r.name === 'BOSS'));
-  const needsMySignature = isClosed && !techSignature;
+  const needsMySignature = (order?.status === 'FINISHED' || order?.status === 'TEMPORARY_REPAIR') && !techSignature;
 
   // ─── Handlers
 
@@ -157,7 +156,7 @@ export default function TecnicoOrdenPage() {
         : { observations: values.observations || undefined }),
     };
 
-    const effectiveStatus = (values.finalStatus ?? 'COMPLETED') as WorkOrderStatus;
+    const effectiveStatus = (values.finalStatus ?? 'FINISHED') as WorkOrderStatus;
     const sparePartId =
       usedSpare && values.sparePartId && values.sparePartId !== 'OTHER' ? values.sparePartId : undefined;
     const materialId =

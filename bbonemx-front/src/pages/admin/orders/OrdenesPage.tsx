@@ -44,8 +44,10 @@ const STATUS_TABS: { value: WorkOrderStatus | 'all'; label: string }[] = [
   { value: 'PENDING', label: 'Pendientes' },
   { value: 'IN_PROGRESS', label: 'En Progreso' },
   { value: 'PAUSED', label: 'En Pausa' },
+  { value: 'FINISHED', label: 'Finalizadas' },
   { value: 'COMPLETED', label: 'Completadas' },
   { value: 'TEMPORARY_REPAIR', label: 'Reparación Temporal' },
+  { value: 'CANCELLED', label: 'Canceladas' },
 ];
 
 const PRIORITY_TABS: { value: WorkOrderPriority | 'all'; label: string }[] = [

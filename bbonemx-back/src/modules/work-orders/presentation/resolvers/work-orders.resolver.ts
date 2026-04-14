@@ -299,6 +299,13 @@ export class WorkOrdersResolver {
   @Mutation(() => WorkOrderType)
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
+  cancelWorkOrder(@Args('id', { type: () => ID }) id: string) {
+    return this.workOrdersService.changeStatus(id, WorkOrderStatus.CANCELLED);
+  }
+
+  @Mutation(() => WorkOrderType)
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   changeWorkOrderStatus(
     @Args('id', { type: () => ID }) id: string,
     @Args('status') status: WorkOrderStatus,
