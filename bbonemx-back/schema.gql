@@ -244,8 +244,8 @@ input CompleteWorkOrderInput {
   customSparePart: String
   downtimeMinutes: Int
 
-  """COMPLETED o TEMPORARY_REPAIR"""
-  finalStatus: WorkOrderStatus! = COMPLETED
+  """FINISHED o TEMPORARY_REPAIR"""
+  finalStatus: WorkOrderStatus! = FINISHED
   observations: String
   toolsUsed: String
 }

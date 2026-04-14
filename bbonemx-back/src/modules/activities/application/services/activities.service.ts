@@ -52,7 +52,9 @@ export class ActivitiesService {
 
   async create(input: CreateActivityInput, userId: string): Promise<Activity> {
     await this.areasService.findByIdOrFail(input.areaId);
-    await this.machinesService.findByIdOrFail(input.machineId);
+    if (input.machineId) {
+      await this.machinesService.findByIdOrFail(input.machineId);
+    }
 
     const activity = await this.activitiesRepository.create({
       areaId: input.areaId,
