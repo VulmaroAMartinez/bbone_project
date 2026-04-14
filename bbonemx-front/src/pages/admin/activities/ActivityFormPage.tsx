@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
@@ -39,6 +39,11 @@ const GET_FORM_DATA = gql`
       id
       name
     }
+    subAreasActive {
+      id
+      name
+      areaId
+    }
     techniciansActive {
       id
       isActive
@@ -55,6 +60,7 @@ const GET_FORM_DATA = gql`
 
 type FormDataQuery = {
   areasActive: Array<{ id: string; name: string }>;
+  subAreasActive: Array<{ id: string; name: string; areaId: string }>;
   techniciansActive: Array<{
     id: string;
     isActive: boolean;
@@ -138,10 +144,15 @@ export default function ActivityFormPage() {
     },
   });
 
+  const [selectedSubAreaId, setSelectedSubAreaId] = useState('');
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const selectedAreaId = watch('areaId');
   const { data: machinesData } = useQuery(GetMachinesByAreaDocument, {
-    variables: { areaId: selectedAreaId || undefined },
+    variables: {
+      areaId: selectedAreaId || undefined,
+      subAreaId: selectedSubAreaId || undefined,
+    },
     skip: !selectedAreaId,
   });
 
@@ -173,10 +184,19 @@ export default function ActivityFormPage() {
     }
   }, [activity, isEditing, reset]);
 
-  const areaOptions = useMemo(
-    () => (formData?.areasActive || []).map((a) => ({ value: a.id, label: a.name })),
-    [formData],
-  );
+  const areaOptions = useMemo(() => {
+    const areas = formData?.areasActive ?? [];
+    const subAreas = formData?.subAreasActive ?? [];
+    const options: Array<{ value: string; label: string }> = [];
+    for (const area of areas) {
+      options.push({ value: area.id, label: area.name });
+      const areaSubs = subAreas.filter((s) => s.areaId === area.id);
+      for (const sub of areaSubs) {
+        options.push({ value: `${area.id}|${sub.id}`, label: `${area.name} - ${sub.name}` });
+      }
+    }
+    return options;
+  }, [formData]);
 
   const machines = useFragment(MachineBasicFragmentDoc, machinesData?.machinesByArea ?? []);
   const machineOptions = useMemo(
@@ -277,9 +297,20 @@ export default function ActivityFormPage() {
                   render={({ field }) => (
                     <Combobox
                       options={areaOptions}
-                      value={field.value}
+                      value={
+                        selectedSubAreaId
+                          ? `${field.value}|${selectedSubAreaId}`
+                          : field.value
+                      }
                       onValueChange={(v) => {
-                        field.onChange(v);
+                        if (v.includes('|')) {
+                          const [areaId, subAreaId] = v.split('|');
+                          field.onChange(areaId);
+                          setSelectedSubAreaId(subAreaId);
+                        } else {
+                          field.onChange(v);
+                          setSelectedSubAreaId('');
+                        }
                         setValue('machineId', '');
                       }}
                       placeholder="Seleccionar área"
