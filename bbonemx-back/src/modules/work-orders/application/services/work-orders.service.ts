@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { WorkOrdersRepository } from '../../infrastructure/repositories';
@@ -263,6 +264,14 @@ export class WorkOrdersService {
     );
     if (!isAssigned)
       throw new BadRequestException('El técnico no está asignado a la OT');
+    const isLead = await this.woTechniciansRepository.isTechnicianLead(
+      id,
+      technicianId,
+    );
+    if (!isLead)
+      throw new ForbiddenException(
+        'Solo el técnico líder puede iniciar la OT',
+      );
     if (!wo.canStart())
       throw new BadRequestException('No se puede iniciar la OT en este estado');
 
@@ -291,6 +300,14 @@ export class WorkOrdersService {
     );
     if (!isAssigned)
       throw new BadRequestException('El técnico no está asignado a la OT');
+    const isLead = await this.woTechniciansRepository.isTechnicianLead(
+      id,
+      technicianId,
+    );
+    if (!isLead)
+      throw new ForbiddenException(
+        'Solo el técnico líder puede pausar la OT',
+      );
     if (!wo.canPause())
       throw new BadRequestException('No se puede pausar la OT en este estado');
 
@@ -334,6 +351,14 @@ export class WorkOrdersService {
     );
     if (!isAssigned)
       throw new BadRequestException('El técnico no está asignado a la OT');
+    const isLead = await this.woTechniciansRepository.isTechnicianLead(
+      id,
+      technicianId,
+    );
+    if (!isLead)
+      throw new ForbiddenException(
+        'Solo el técnico líder puede finalizar la OT',
+      );
     if (!wo.canComplete())
       throw new BadRequestException(
         'No se puede completar la OT en este estado',

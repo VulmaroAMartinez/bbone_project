@@ -131,4 +131,19 @@ export class WorkOrderTechniciansRepository {
     });
     return count > 0;
   }
+
+  async isTechnicianLead(
+    workOrderId: string,
+    technicianId: string,
+  ): Promise<boolean> {
+    const count = await this.repository.count({
+      where: {
+        workOrderId: workOrderId,
+        technicianId: technicianId,
+        isLead: true,
+        isActive: true,
+      },
+    });
+    return count > 0;
+  }
 }

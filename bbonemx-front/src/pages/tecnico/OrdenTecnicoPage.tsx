@@ -13,8 +13,9 @@ import {
   AreaBasicFragmentDoc,
   MachineBasicFragmentDoc,
   SubAreaBasicFragmentDoc,
+  UserBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
-import { useFragment } from '@/lib/graphql/generated/fragment-masking';
+import { useFragment, useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 import type {
   WorkOrderPhoto,
   WorkOrderSignature,
@@ -92,6 +93,11 @@ export default function TecnicoOrdenPage() {
 
   const isAveria = order?.stopType === 'BREAKDOWN';
   const isProcessing = starting || pausing || completing;
+  const isCurrentUserLead = order?.technicians?.some((t) => {
+    if (!t.isLead) return false;
+    const tech = unmaskFragment(UserBasicFragmentDoc, t.technician);
+    return tech?.id === currentUser?.id;
+  });
 
   
   const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
@@ -337,10 +343,14 @@ export default function TecnicoOrdenPage() {
                   Al iniciar, comenzará a registrarse el tiempo de ejecución.
                 </p>
               </div>
-              <Button onClick={handleStartWork} disabled={isProcessing} className="gap-2 shrink-0">
-                <Play className="h-4 w-4" />
-                {starting ? 'Iniciando...' : 'Iniciar Trabajo'}
-              </Button>
+              {isCurrentUserLead ? (
+                <Button onClick={handleStartWork} disabled={isProcessing} className="gap-2 shrink-0">
+                  <Play className="h-4 w-4" />
+                  {starting ? 'Iniciando...' : 'Iniciar Trabajo'}
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground shrink-0">Solo el técnico líder puede iniciar.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -359,23 +369,27 @@ export default function TecnicoOrdenPage() {
                   Al cerrar la OT podrá llenar el reporte técnico de falla.
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="gap-2 bg-background border-chart-3/50 hover:bg-chart-3/10"
-                  onClick={() => setPauseOpen(true)}
-                >
-                  <Pause className="h-4 w-4" /> Pausar
-                </Button>
-                <Button
-                  onClick={() => setCompleteOpen(true)}
-                  disabled={isProcessing}
-                  className="gap-2 bg-chart-3 hover:bg-chart-3/90 text-primary-foreground"
-                >
-                  <Square className="h-4 w-4" />
-                  {completing ? 'Procesando...' : 'Cerrar OT'}
-                </Button>
-              </div>
+              {isCurrentUserLead ? (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2 bg-background border-chart-3/50 hover:bg-chart-3/10"
+                    onClick={() => setPauseOpen(true)}
+                  >
+                    <Pause className="h-4 w-4" /> Pausar
+                  </Button>
+                  <Button
+                    onClick={() => setCompleteOpen(true)}
+                    disabled={isProcessing}
+                    className="gap-2 bg-chart-3 hover:bg-chart-3/90 text-primary-foreground"
+                  >
+                    <Square className="h-4 w-4" />
+                    {completing ? 'Procesando...' : 'Cerrar OT'}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Solo el técnico líder puede pausar o cerrar.</p>
+              )}
             </div>
           </CardContent>
         </Card>
