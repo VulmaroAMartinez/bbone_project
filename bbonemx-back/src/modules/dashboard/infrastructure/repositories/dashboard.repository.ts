@@ -4,13 +4,16 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import { DashboardInput } from '../../application/dto';
 import { WorkOrder } from 'src/modules/work-orders/domain/entities';
 import { Finding } from 'src/modules/findings/domain/entities';
-import { PreventiveTask } from 'src/modules/preventive-tasks/domain/entities';
-import { WorkOrderStatus, FindingStatus } from 'src/common';
+import { Activity } from 'src/modules/activities/domain/entities';
+import { ActivityTechnician } from 'src/modules/activities/domain/entities/activity-technician.entity';
+import { WorkOrderStatus, FindingStatus, MaintenanceType } from 'src/common';
 import {
   AreaMetric,
   KeyValue,
   MachineMetric,
   MixPoint,
+  ResponsibleActivityMetric,
+  StatusCount,
   TechnicianMetric,
   TimeCount,
 } from '../../presentation/types';
@@ -22,8 +25,10 @@ export class DashboardRepository {
     private readonly workOrdersRepo: Repository<WorkOrder>,
     @InjectRepository(Finding)
     private readonly findingsRepo: Repository<Finding>,
-    @InjectRepository(PreventiveTask)
-    private readonly preventiveTasksRepo: Repository<PreventiveTask>,
+    @InjectRepository(Activity)
+    private readonly activitiesRepo: Repository<Activity>,
+    @InjectRepository(ActivityTechnician)
+    private readonly activityTechniciansRepo: Repository<ActivityTechnician>,
   ) {}
 
   private isDateOnly(value: string): boolean {
@@ -108,92 +113,121 @@ export class DashboardRepository {
     return qb.getCount();
   }
 
-  async getLeadTimeHoursAvg(input: DashboardInput): Promise<number> {
-    const { dateFrom, dateToExclusive } = this.getDateBounds(input);
+  async getCountByStatus(input: DashboardInput): Promise<StatusCount[]> {
     const qb = this.workOrdersRepo.createQueryBuilder('wo');
-    this.applyWorkOrderFilters(qb, input, false);
+    this.applyWorkOrderFilters(qb, input, true);
 
-    qb.andWhere('wo.status IN (:...closedStatuses)', {
-      closedStatuses: [
-        WorkOrderStatus.COMPLETED,
-        WorkOrderStatus.TEMPORARY_REPAIR,
-      ],
-    })
-      .andWhere('wo.end_date >= :dateFrom AND wo.end_date < :dateToExclusive', {
-        dateFrom,
-        dateToExclusive,
-      })
-      .andWhere('wo.end_date IS NOT NULL')
-      .select(
-        'COALESCE(AVG(EXTRACT(EPOCH FROM (wo.end_date - wo.created_at)) / 3600.0), 0)',
-        'avg',
-      );
+    const rows = await qb
+      .select('wo.status', 'status')
+      .addSelect('COUNT(*)::int', 'count')
+      .groupBy('wo.status')
+      .getRawMany<{ status: string; count: string }>();
 
-    const raw = await qb.getRawOne<{ avg: string }>();
-    return Number(raw?.avg || 0);
+    return rows.map((r) => ({ status: r.status, count: Number(r.count) }));
   }
 
-  async getMttrHoursAvg(input: DashboardInput): Promise<number> {
-    const { dateFrom, dateToExclusive } = this.getDateBounds(input);
+  async getTotalWorkOrders(input: DashboardInput): Promise<number> {
     const qb = this.workOrdersRepo.createQueryBuilder('wo');
-    this.applyWorkOrderFilters(qb, input, false);
-
-    qb.andWhere('wo.status IN (:...closedStatuses)', {
-      closedStatuses: [
-        WorkOrderStatus.COMPLETED,
-        WorkOrderStatus.TEMPORARY_REPAIR,
-      ],
-    })
-      .andWhere('wo.end_date >= :dateFrom AND wo.end_date < :dateToExclusive', {
-        dateFrom,
-        dateToExclusive,
-      })
-      .andWhere('wo.end_date IS NOT NULL')
-      .select(
-        'COALESCE(AVG(CASE WHEN wo.functional_time_minutes IS NOT NULL AND wo.functional_time_minutes > 0 ' +
-          'THEN wo.functional_time_minutes / 60.0 ELSE EXTRACT(EPOCH FROM (wo.end_date - wo.start_date)) / 3600.0 END), 0)',
-        'avg',
-      );
-
-    const raw = await qb.getRawOne<{ avg: string }>();
-    return Number(raw?.avg || 0);
+    this.applyWorkOrderFilters(qb, input, true);
+    return qb.getCount();
   }
 
-  async getPreventiveComplianceRate(input: DashboardInput): Promise<number> {
+  async getDueToday(input: DashboardInput): Promise<number> {
+    const tz = input.timezone ?? 'America/Mexico_City';
+    const qb = this.workOrdersRepo.createQueryBuilder('wo');
+    this.applyWorkOrderFilters(qb, input, true, false);
+
+    qb.andWhere('wo.maintenance_type = :maintenanceType', {
+      maintenanceType: MaintenanceType.CORRECTIVE_SCHEDULED,
+    })
+      .andWhere('wo.status IN (:...openStatuses)', {
+        openStatuses: [
+          WorkOrderStatus.PENDING,
+          WorkOrderStatus.IN_PROGRESS,
+          WorkOrderStatus.PAUSED,
+        ],
+      })
+      .andWhere('wo.scheduled_date IS NOT NULL')
+      .andWhere(
+        `(wo.scheduled_date AT TIME ZONE :tz)::date = (NOW() AT TIME ZONE :tz)::date`,
+        { tz },
+      );
+
+    return qb.getCount();
+  }
+
+  async getOverdue(input: DashboardInput): Promise<number> {
+    const tz = input.timezone ?? 'America/Mexico_City';
+    const qb = this.workOrdersRepo.createQueryBuilder('wo');
+    this.applyWorkOrderFilters(qb, input, true, false);
+
+    qb.andWhere('wo.maintenance_type = :maintenanceType', {
+      maintenanceType: MaintenanceType.CORRECTIVE_SCHEDULED,
+    })
+      .andWhere('wo.status IN (:...openStatuses)', {
+        openStatuses: [
+          WorkOrderStatus.PENDING,
+          WorkOrderStatus.IN_PROGRESS,
+          WorkOrderStatus.PAUSED,
+        ],
+      })
+      .andWhere('wo.scheduled_date IS NOT NULL')
+      .andWhere(
+        `(wo.scheduled_date AT TIME ZONE :tz)::date < (NOW() AT TIME ZONE :tz)::date`,
+        { tz },
+      );
+
+    return qb.getCount();
+  }
+
+  async getActivitiesByResponsible(
+    input: DashboardInput,
+  ): Promise<ResponsibleActivityMetric[]> {
     const { dateFrom, dateToExclusive } = this.getDateBounds(input);
-    const qb = this.preventiveTasksRepo
-      .createQueryBuilder('pt')
-      .where('pt.is_active = true');
 
-    qb.andWhere(
-      'pt.created_at >= :dateFrom AND pt.created_at < :dateToExclusive',
-      {
-        dateFrom,
-        dateToExclusive,
-      },
-    );
+    const qb = this.activitiesRepo
+      .createQueryBuilder('a')
+      .innerJoin(
+        'activity_technicians',
+        'at',
+        'at.activity_id = a.id AND at.is_active = true',
+      )
+      .innerJoin('users', 'u', 'u.id = at.technician_id')
+      .where('a.is_active = true')
+      .andWhere(
+        'a.start_date >= :dateFrom AND a.start_date < :dateToExclusive',
+        { dateFrom, dateToExclusive },
+      );
 
-    if (input.machineIds?.length)
-      qb.andWhere('pt.machine_id IN (:...machineIds)', {
-        machineIds: input.machineIds,
-      });
+    if (input.areaIds?.length)
+      qb.andWhere('a.area_id IN (:...areaIds)', { areaIds: input.areaIds });
 
-    const totalRaw = await qb
-      .select('COUNT(*)', 'total')
-      .getRawOne<{ total: string }>();
-    const total = Number(totalRaw?.total || 0);
-    if (!total) return 0;
+    const rows = await qb
+      .select('u.id', 'responsibleId')
+      .addSelect("concat(u.first_name, ' ', u.last_name)", 'responsibleName')
+      .addSelect('COUNT(DISTINCT a.id)::int', 'totalActivities')
+      .addSelect(
+        'COUNT(DISTINCT CASE WHEN a.end_date IS NOT NULL THEN a.id END)::int',
+        'activitiesWithEndDate',
+      )
+      .groupBy('u.id')
+      .addGroupBy('u.first_name')
+      .addGroupBy('u.last_name')
+      .orderBy('"totalActivities"', 'DESC')
+      .limit(15)
+      .getRawMany<{
+        responsibleId: string;
+        responsibleName: string;
+        totalActivities: string;
+        activitiesWithEndDate: string;
+      }>();
 
-    const onTimeRaw = await qb
-      .clone()
-      .andWhere('pt.last_wo_generated_at IS NOT NULL')
-      .andWhere('pt.next_execution_date IS NOT NULL')
-      .andWhere('pt.last_wo_generated_at <= pt.next_execution_date')
-      .select('COUNT(*)', 'total')
-      .getRawOne<{ total: string }>();
-
-    const onTime = Number(onTimeRaw?.total || 0);
-    return (onTime / total) * 100;
+    return rows.map((r) => ({
+      responsibleId: r.responsibleId,
+      responsibleName: r.responsibleName,
+      totalActivities: Number(r.totalActivities),
+      activitiesWithEndDate: Number(r.activitiesWithEndDate),
+    }));
   }
 
   async getThroughputByWeek(input: DashboardInput): Promise<TimeCount[]> {

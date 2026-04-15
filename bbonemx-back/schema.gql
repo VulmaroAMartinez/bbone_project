@@ -512,6 +512,7 @@ type CronJobStatus {
 }
 
 type DashboardCharts {
+  activitiesByResponsible: [ResponsibleActivityMetric!]!
   downtimeByAreaTop5: [AreaMetric!]!
   findingsByArea: [AreaMetric!]!
   findingsConversion: [KeyValue!]!
@@ -545,9 +546,10 @@ input DashboardInput {
 
 type DashboardKpis {
   activeBacklog: Int!
-  leadTimeHoursAvg: Float!
-  mttrHoursAvg: Float!
-  preventiveComplianceRate: Float!
+  countByStatus: [StatusCount!]!
+  dueToday: Int!
+  overdue: Int!
+  totalWorkOrders: Int!
 }
 
 type DashboardRankings {
@@ -688,7 +690,7 @@ type GenerateWorkOrdersResult {
 
 type KeyValue {
   key: String!
-  value: Float!
+  value: Int!
 }
 
 input LoginInput {
@@ -1412,6 +1414,13 @@ enum RequestPriority {
   URGENT
 }
 
+type ResponsibleActivityMetric {
+  activitiesWithEndDate: Int!
+  responsibleId: String!
+  responsibleName: String!
+  totalActivities: Int!
+}
+
 type Role {
   createdAt: DateTime!
   id: ID!
@@ -1497,6 +1506,11 @@ input StartWorkOrderInput {
 
   """Descripción de la avería al iniciar (si aplica)"""
   observations: String
+}
+
+type StatusCount {
+  count: Int!
+  status: String!
 }
 
 """

@@ -10,9 +10,10 @@ export class DashboardService {
   async getDashboardData(input: DashboardInput): Promise<DashboardData> {
     const [
       activeBacklog,
-      leadTimeHoursAvg,
-      mttrHoursAvg,
-      preventiveComplianceRate,
+      totalWorkOrders,
+      dueToday,
+      overdue,
+      countByStatus,
       throughputByWeek,
       maintenanceMixByPeriod,
       downtimeByAreaTop5,
@@ -21,11 +22,13 @@ export class DashboardService {
       topTechniciansByClosures,
       findingsByArea,
       workOrdersByArea,
+      activitiesByResponsible,
     ] = await Promise.all([
       this.dashboardRepository.getActiveBacklog(input),
-      this.dashboardRepository.getLeadTimeHoursAvg(input),
-      this.dashboardRepository.getMttrHoursAvg(input),
-      this.dashboardRepository.getPreventiveComplianceRate(input),
+      this.dashboardRepository.getTotalWorkOrders(input),
+      this.dashboardRepository.getDueToday(input),
+      this.dashboardRepository.getOverdue(input),
+      this.dashboardRepository.getCountByStatus(input),
       this.dashboardRepository.getThroughputByWeek(input),
       this.dashboardRepository.getMaintenanceMixByPeriod(input),
       this.dashboardRepository.getDowntimeByAreaTop5(input),
@@ -34,14 +37,16 @@ export class DashboardService {
       this.dashboardRepository.getTopTechniciansByClosures(input),
       this.dashboardRepository.getFindingsByArea(input),
       this.dashboardRepository.getWorkOrdersByArea(input),
+      this.dashboardRepository.getActivitiesByResponsible(input),
     ]);
 
     return {
       kpis: {
         activeBacklog,
-        leadTimeHoursAvg,
-        mttrHoursAvg,
-        preventiveComplianceRate,
+        totalWorkOrders,
+        dueToday,
+        overdue,
+        countByStatus,
       },
       charts: {
         throughputByWeek,
@@ -50,6 +55,7 @@ export class DashboardService {
         findingsConversion,
         findingsByArea,
         workOrdersByArea,
+        activitiesByResponsible,
       },
       rankings: {
         topMachinesByDowntime,
