@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetDashboardDataDocument, GetShiftsDocument, type WorkOrderStatus } from '@/lib/graphql/generated/graphql';
@@ -7,16 +7,22 @@ import { Button } from '@/components/ui/button';
 import { DashboardSkeleton } from '@/components/ui/skeleton-loaders';
 import {
   ClipboardList,
-  Clock,
   AlertTriangle,
   TrendingUp,
-  Wrench,
   ArrowRight,
   Activity,
-  CheckCircle2,
   Users,
   PlusCircle,
   FileDown,
+  CalendarClock,
+  OctagonAlert,
+  LayoutList,
+  Timer,
+  Pause,
+  CheckCheck,
+  Wrench,
+  Ban,
+  ClipboardCheck,
 } from 'lucide-react';
 import {
   BarChart,
@@ -31,6 +37,7 @@ import {
   Cell,
   LineChart,
   Line,
+  Legend,
 } from 'recharts';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -95,6 +102,20 @@ const WO_STATUS_OPTIONS: { value: WorkOrderStatus | 'all'; label: string }[] = [
   { value: 'TEMPORARY_REPAIR' as WorkOrderStatus, label: 'Rep. Temporal' },
 ];
 
+const ALL_STATUSES: WorkOrderStatus[] = [
+  'PENDING', 'IN_PROGRESS', 'PAUSED', 'FINISHED', 'COMPLETED', 'TEMPORARY_REPAIR', 'CANCELLED',
+] as WorkOrderStatus[];
+
+const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  PENDING:          { label: 'Pendientes',    color: 'text-amber-500',   icon: <Timer className="h-4 w-4 text-amber-500" /> },
+  IN_PROGRESS:      { label: 'En Progreso',   color: 'text-blue-500',    icon: <Activity className="h-4 w-4 text-blue-500" /> },
+  PAUSED:           { label: 'En Pausa',      color: 'text-orange-500',  icon: <Pause className="h-4 w-4 text-orange-500" /> },
+  FINISHED:         { label: 'Finalizadas',   color: 'text-teal-500',    icon: <CheckCheck className="h-4 w-4 text-teal-500" /> },
+  COMPLETED:        { label: 'Completadas',   color: 'text-green-500',   icon: <ClipboardCheck className="h-4 w-4 text-green-500" /> },
+  TEMPORARY_REPAIR: { label: 'Rep. Temporal', color: 'text-yellow-500',  icon: <Wrench className="h-4 w-4 text-yellow-500" /> },
+  CANCELLED:        { label: 'Canceladas',    color: 'text-red-500',     icon: <Ban className="h-4 w-4 text-red-500" /> },
+};
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -109,6 +130,7 @@ export default function DashboardPage() {
 
   const refThroughput = useRef<HTMLDivElement>(null);
   const refMix = useRef<HTMLDivElement>(null);
+  const refActivitiesResponsible = useRef<HTMLDivElement>(null);
   const refTechnicians = useRef<HTMLDivElement>(null);
   const refMachinesDowntime = useRef<HTMLDivElement>(null);
   const refFindingsArea = useRef<HTMLDivElement>(null);
@@ -151,7 +173,8 @@ export default function DashboardPage() {
       return;
     }
     const specs: Array<{ el: HTMLDivElement | null; title: string }> = [
-      { el: refThroughput.current, title: 'Rendimiento Semanal (Throughput)' },
+      { el: refActivitiesResponsible.current, title: 'Actividades por Responsable' },
+      { el: refThroughput.current, title: 'Tendencia de Órdenes de Trabajo' },
       { el: refTechnicians.current, title: 'Top Técnicos por Cierres' },
       { el: refMachinesDowntime.current, title: 'Top Máquinas (Tiempo Muerto)' },
       { el: refFindingsArea.current, title: 'Hallazgos por Área' },
@@ -321,64 +344,103 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards (Métricas Lean/CMMS) */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      {/* Fila 1 — Totales y alertas */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
         <Card className="bg-card border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Backlog Activo</CardTitle>
-            <ClipboardList className="h-4 w-4 text-chart-3" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total OTs</CardTitle>
+            <LayoutList className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground tabular-nums">{kpis.activeBacklog}</div>
-            <p className="text-xs text-muted-foreground mt-1">OTs pendientes/en curso</p>
+            <div className="text-2xl font-bold text-foreground tabular-nums">{kpis.totalWorkOrders}</div>
+            <p className="text-xs text-muted-foreground mt-1">En el período seleccionado</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">MTTR Promedio</CardTitle>
-            <Wrench className="h-4 w-4 text-destructive" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Vencen Hoy</CardTitle>
+            <CalendarClock className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground tabular-nums">{kpis.mttrHoursAvg.toFixed(1)}{'\u00A0'}h</div>
-            <p className="text-xs text-muted-foreground mt-1">Tiempo de reparación</p>
+            <div className="text-2xl font-bold text-amber-500 tabular-nums">{kpis.dueToday}</div>
+            <p className="text-xs text-muted-foreground mt-1">Correc. programadas para hoy</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Lead Time</CardTitle>
-            <Clock className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-medium text-muted-foreground">Retrasadas</CardTitle>
+            <OctagonAlert className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground tabular-nums">{kpis.leadTimeHoursAvg.toFixed(1)}{'\u00A0'}h</div>
-            <p className="text-xs text-muted-foreground mt-1">Desde solicitud hasta cierre</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Cumplimiento Preventivo</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground tabular-nums">{kpis.preventiveComplianceRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground mt-1">Tareas ejecutadas a tiempo</p>
+            <div className="text-2xl font-bold text-destructive tabular-nums">{kpis.overdue}</div>
+            <p className="text-xs text-muted-foreground mt-1">Correc. programadas vencidas</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Charts */}
+      {/* Fila 2 — Por status (7 tarjetas) */}
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-7">
+        {ALL_STATUSES.map((status) => {
+          const meta = STATUS_META[status];
+          const count = kpis.countByStatus.find((s) => s.status === status)?.count ?? 0;
+          return (
+            <Card key={status} className="bg-card border-border shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{meta.label}</CardTitle>
+                {meta.icon}
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold tabular-nums ${meta.color}`}>{count}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Gráficas nuevas — Actividades por Responsable + Tendencia OTs */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Rendimiento (Throughput) */}
-        <Card ref={refThroughput} className="bg-card border-border shadow-sm">
+        <Card ref={refActivitiesResponsible} className="bg-card border-border shadow-sm">
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
-              <Activity className="h-4 w-4" /> Rendimiento Semanal (Throughput)
+              <Users className="h-4 w-4" /> Actividades por Responsable
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div role="img" aria-label="Gráfica de rendimiento semanal (throughput) de órdenes cerradas">
+            <div role="img" aria-label="Gráfica de barras dobles de actividades totales vs con fecha fin por responsable">
+            <ResponsiveContainer width="100%" height={280} minWidth={0}>
+              <BarChart data={charts.activitiesByResponsible}>
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
+                <XAxis
+                  dataKey="responsibleName"
+                  stroke="oklch(0.65 0 0)"
+                  tick={{ fontSize: 10 }}
+                  interval={0}
+                  angle={-30}
+                  textAnchor="end"
+                  height={55}
+                />
+                <YAxis stroke="oklch(0.65 0 0)" allowDecimals={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Legend />
+                <Bar dataKey="totalActivities" name="Total actividades" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="activitiesWithEndDate" name="Con fecha fin" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tendencia OTs (Throughput) */}
+        <Card ref={refThroughput} className="bg-card border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-foreground flex items-center gap-2 text-base">
+              <TrendingUp className="h-4 w-4" /> Tendencia de Órdenes de Trabajo
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div role="img" aria-label="Gráfica de tendencia semanal de órdenes de trabajo cerradas">
             <ResponsiveContainer width="100%" height={280} minWidth={0}>
                 <LineChart data={charts.throughputByWeek}>
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
@@ -391,7 +453,10 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Mix de Mantenimiento + Rankings */}
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Mix de Mantenimiento */}
         <Card ref={refMix} className="bg-card border-border shadow-sm">
           <CardHeader>
@@ -427,6 +492,40 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Conversión de Hallazgos */}
+        {(() => {
+          const conv = charts.findingsConversion;
+          const rate = conv.find((k) => k.key === 'convertedRate')?.value ?? 0;
+          const total = conv.find((k) => k.key === 'totalFindings')?.value ?? 0;
+          const converted = conv.find((k) => k.key === 'convertedFindings')?.value ?? 0;
+          return (
+            <Card className="bg-card border-border shadow-sm flex flex-col justify-center">
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gap-2 text-base">
+                  <ArrowRight className="h-4 w-4 text-primary" /> Conversión de Hallazgos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Tasa de conversión</p>
+                  <div className="text-5xl font-bold tabular-nums text-primary">{rate.toFixed(1)}<span className="text-2xl font-normal text-muted-foreground">%</span></div>
+                  <p className="text-xs text-muted-foreground mt-1">Hallazgos convertidos a OT</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total hallazgos</p>
+                    <p className="text-2xl font-bold tabular-nums text-foreground">{total}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Convertidos</p>
+                    <p className="text-2xl font-bold tabular-nums text-green-500">{converted}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
       </div>
 
       {/* Rankings */}

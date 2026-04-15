@@ -1,4 +1,4 @@
-import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Int, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class TimeCount {
@@ -62,8 +62,32 @@ export class KeyValue {
   @Field()
   key: string;
 
-  @Field(() => Float)
+  @Field(() => Int)
   value: number;
+}
+
+@ObjectType()
+export class StatusCount {
+  @Field()
+  status: string;
+
+  @Field(() => Int)
+  count: number;
+}
+
+@ObjectType()
+export class ResponsibleActivityMetric {
+  @Field()
+  responsibleId: string;
+
+  @Field()
+  responsibleName: string;
+
+  @Field(() => Int)
+  totalActivities: number;
+
+  @Field(() => Int)
+  activitiesWithEndDate: number;
 }
 
 @ObjectType()
@@ -71,14 +95,17 @@ export class DashboardKpis {
   @Field(() => Int)
   activeBacklog: number;
 
-  @Field(() => Float)
-  leadTimeHoursAvg: number;
+  @Field(() => Int)
+  totalWorkOrders: number;
 
-  @Field(() => Float)
-  mttrHoursAvg: number;
+  @Field(() => Int)
+  dueToday: number;
 
-  @Field(() => Float)
-  preventiveComplianceRate: number;
+  @Field(() => Int)
+  overdue: number;
+
+  @Field(() => [StatusCount])
+  countByStatus: StatusCount[];
 }
 
 @ObjectType()
@@ -100,6 +127,9 @@ export class DashboardCharts {
 
   @Field(() => [AreaMetric])
   workOrdersByArea: AreaMetric[];
+
+  @Field(() => [ResponsibleActivityMetric])
+  activitiesByResponsible: ResponsibleActivityMetric[];
 }
 
 @ObjectType()

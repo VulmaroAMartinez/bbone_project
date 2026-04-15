@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           display: 'standalone',
           background_color: '#ffffff',
-          theme_color: '#229877',
+          theme_color: '#db1f26',
           orientation: 'portrait-primary',
           categories: ['business', 'productivity'],
           gcm_sender_id: env.VITE_FIREBASE_MESSAGING_SENDER_ID,

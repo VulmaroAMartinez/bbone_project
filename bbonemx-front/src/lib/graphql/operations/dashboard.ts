@@ -6,9 +6,13 @@ query GetDashboardData($input: DashboardInput!) {
       generatedAt
       kpis {
         activeBacklog
-        leadTimeHoursAvg
-        mttrHoursAvg
-        preventiveComplianceRate
+        totalWorkOrders
+        dueToday
+        overdue
+        countByStatus {
+          status
+          count
+        }
       }
       charts {
         downtimeByAreaTop5 {
@@ -38,6 +42,12 @@ query GetDashboardData($input: DashboardInput!) {
         throughputByWeek {
           period
           count
+        }
+        activitiesByResponsible {
+          responsibleId
+          responsibleName
+          totalActivities
+          activitiesWithEndDate
         }
       }
       rankings {
