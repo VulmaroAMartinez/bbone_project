@@ -35,6 +35,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -125,6 +135,7 @@ export default function ActivitiesPage() {
     }> | null;
   };
   const [viewActivity, setViewActivity] = useState<ActivityRow | null>(null);
+  const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const { data: filtersData } = useQuery<FiltersDataQuery>(GET_FILTERS_DATA);
@@ -270,13 +281,20 @@ export default function ActivitiesPage() {
     }
   };
 
-  const handleDelete = async (activityId: string) => {
+  const handleDelete = (activityId: string) => {
+    setDeletingActivityId(activityId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingActivityId) return;
     try {
-      await deleteActivity({ variables: { id: activityId } });
+      await deleteActivity({ variables: { id: deletingActivityId } });
       toast.success('Actividad eliminada');
       refetch();
     } catch {
       toast.error('Error al eliminar actividad');
+    } finally {
+      setDeletingActivityId(null);
     }
   };
 
@@ -550,6 +568,24 @@ export default function ActivitiesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ─── Confirmación: Eliminar actividad ─────────────────────── */}
+      <AlertDialog open={!!deletingActivityId} onOpenChange={(open) => !open && setDeletingActivityId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar actividad?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción es permanente y no se puede deshacer. La actividad y todos sus datos asociados serán eliminados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* View Modal */}
       <Dialog open={!!viewActivity} onOpenChange={() => setViewActivity(null)}>

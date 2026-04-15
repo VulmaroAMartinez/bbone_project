@@ -20,6 +20,16 @@ import { ScheduleSkeleton } from '@/components/ui/skeleton-loaders';
 import { Input } from '@/components/ui/input';
 import { Calendar, Save, Copy, ChevronLeft, ChevronRight, Loader2, Filter, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -90,6 +100,8 @@ export default function SchedulePage() {
     const [copyWeek, { loading: copying }] = useMutation(CopyWeekSchedulesDocument);
 
     const [isSaving, setIsSaving] = useState(false);
+    const [pendingNavDirection, setPendingNavDirection] = useState<number | null>(null);
+    const [showCopyConfirm, setShowCopyConfirm] = useState(false);
 
     const rawSchedules = useFragment(
         ScheduleItemFragmentDoc,
@@ -125,13 +137,19 @@ export default function SchedulePage() {
     }, [schedulesKey, weekNumber, year]);
 
     // --- Handlers de UI ---
-    const navigateWeek = (direction: number) => {
-        if (modifiedTechs.size > 0) {
-            if (!confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de semana?")) return;
-        }
+    const applyNavigation = (direction: number) => {
         const next = new Date(currentDate);
         next.setDate(next.getDate() + direction * 7);
         setCurrentDate(next);
+        setModifiedTechs(new Set());
+    };
+
+    const navigateWeek = (direction: number) => {
+        if (modifiedTechs.size > 0) {
+            setPendingNavDirection(direction);
+            return;
+        }
+        applyNavigation(direction);
     };
 
     // userId here is tech.user.id — the key used in localMatrix and the backend's technicianId
@@ -213,9 +231,12 @@ export default function SchedulePage() {
     };
 
     // --- Copiar Semana Anterior ---
-    const handleCopyPrevious = async () => {
-        if (!confirm("Esto sobrescribirá los horarios actuales con los de la semana pasada. ¿Proceder?")) return;
+    const handleCopyPrevious = () => {
+        setShowCopyConfirm(true);
+    };
 
+    const confirmCopyPrevious = async () => {
+        setShowCopyConfirm(false);
         const prevDate = new Date(currentDate);
         prevDate.setDate(prevDate.getDate() - 7);
         const prevISO = getISOWeekInfo(prevDate);
@@ -470,6 +491,44 @@ export default function SchedulePage() {
                 </div>
             </Card>
 
+            {/* ─── Confirmación: Cambiar semana con cambios pendientes ── */}
+            <AlertDialog open={pendingNavDirection !== null} onOpenChange={(open) => !open && setPendingNavDirection(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Cambios sin guardar</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tienes cambios sin guardar en los horarios. Si cambias de semana se perderán. ¿Deseas descartar los cambios y continuar?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => { applyNavigation(pendingNavDirection!); setPendingNavDirection(null); }}
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                        >
+                            Descartar y continuar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* ─── Confirmación: Copiar semana anterior ──────────────── */}
+            <AlertDialog open={showCopyConfirm} onOpenChange={setShowCopyConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Copiar semana anterior?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Los horarios actuales serán reemplazados con los de la semana pasada. Esta acción no se puede deshacer.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmCopyPrevious}>
+                            Copiar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

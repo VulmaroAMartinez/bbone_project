@@ -16,6 +16,16 @@ import { Search, Plus, Edit2, Power, PowerOff, Loader2, Eye, Wrench, Mail, Phone
 
 import TechnicianFormModal from './modals/TechnicianFormModal';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function TecnicosPage() {
     const { data, loading, refetch } = useOfflineAwareQuery<GetTechniciansDataQuery>(GetTechniciansDataDocument);
@@ -28,6 +38,7 @@ export default function TecnicosPage() {
     const [page, setPage] = useState(1);
     type TechnicianItem = GetTechniciansDataQuery['techniciansWithDeleted'][number];
     const [editingTech, setEditingTech] = useState<TechnicianItem | null>(null);
+    const [deactivatingTech, setDeactivatingTech] = useState<{ id: string; name: string } | null>(null);
 
     const technicians = data?.techniciansWithDeleted || [];
     const departments = (data?.departmentsWithDeleted || []) as Array<{ id: string; name: string }>;
@@ -47,13 +58,26 @@ export default function TecnicosPage() {
         setIsModalOpen(true);
     };
 
-    const toggleStatus = async (id: string, currentStatus: boolean) => {
+    const toggleStatus = (id: string, currentStatus: boolean, name: string) => {
+        if (currentStatus) {
+            setDeactivatingTech({ id, name });
+        } else {
+            activateTechnician({ variables: { id } })
+                .then(() => { toast.success(`Técnico "${name}" activado`); refetch(); })
+                .catch(() => toast.error('Error al activar el técnico'));
+        }
+    };
+
+    const confirmDeactivate = async () => {
+        if (!deactivatingTech) return;
         try {
-            if (currentStatus) await deactivateTechnician({ variables: { id } });
-            else await activateTechnician({ variables: { id } });
+            await deactivateTechnician({ variables: { id: deactivatingTech.id } });
+            toast.success(`Técnico "${deactivatingTech.name}" desactivado`);
             refetch();
         } catch {
-            toast.error('Error al actualizar el estado');
+            toast.error('Error al desactivar el técnico');
+        } finally {
+            setDeactivatingTech(null);
         }
     };
 
@@ -125,7 +149,7 @@ export default function TecnicosPage() {
                                                 <Button variant="ghost" size="icon" onClick={() => openModal(tech)} title="Editar">
                                                     <Edit2 className="h-4 w-4 text-primary" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => toggleStatus(tech.id, tech.isActive)} title={tech.isActive ? 'Desactivar' : 'Activar'}>
+                                                <Button variant="ghost" size="icon" onClick={() => toggleStatus(tech.id, tech.isActive, tech.user.fullName)} title={tech.isActive ? 'Desactivar' : 'Activar'}>
                                                     {tech.isActive ? <PowerOff className="h-4 w-4 text-destructive" /> : <Power className="h-4 w-4 text-success" />}
                                                 </Button>
                                             </div>
@@ -162,6 +186,23 @@ export default function TecnicosPage() {
                 techRoleId={techRoleId}
                 onSuccess={() => refetch()}
             />
+
+            <AlertDialog open={!!deactivatingTech} onOpenChange={(open) => !open && setDeactivatingTech(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Desactivar técnico?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            El técnico <strong>{deactivatingTech?.name}</strong> será marcado como inactivo y no podrá ser asignado a órdenes de trabajo. Podrás reactivarlo más tarde.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive text-white hover:bg-destructive/90">
+                            Desactivar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

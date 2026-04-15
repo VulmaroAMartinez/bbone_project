@@ -14,6 +14,16 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import PositionFormModal from './modals/PositionFormModal';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function PositionsPage() {
     const { data, loading, refetch } = useOfflineAwareQuery<GetPositionsQuery>(GetPositionsDocument);
@@ -26,6 +36,7 @@ export default function PositionsPage() {
     const [page, setPage] = useState(1);
     type PositionItem = GetPositionsQuery['positionsWithDeleted'][number];
     const [editingItem, setEditingItem] = useState<PositionItem | null>(null);
+    const [deactivatingPosition, setDeactivatingPosition] = useState<{ id: string; name: string } | null>(null);
 
     const positions = data?.positionsWithDeleted || [];
     const PAGE_SIZE = 20;
@@ -41,13 +52,26 @@ export default function PositionsPage() {
         setIsModalOpen(true);
     };
 
-    const toggleStatus = async (id: string, currentStatus: boolean) => {
+    const toggleStatus = (id: string, currentStatus: boolean, name: string) => {
+        if (currentStatus) {
+            setDeactivatingPosition({ id, name });
+        } else {
+            activatePosition({ variables: { id } })
+                .then(() => { toast.success(`Cargo "${name}" activado`); refetch(); })
+                .catch((e: unknown) => toast.error(e instanceof Error ? e.message : 'Error al activar el cargo'));
+        }
+    };
+
+    const confirmDeactivate = async () => {
+        if (!deactivatingPosition) return;
         try {
-            if (currentStatus) await deactivatePosition({ variables: { id } });
-            else await activatePosition({ variables: { id } });
+            await deactivatePosition({ variables: { id: deactivatingPosition.id } });
+            toast.success(`Cargo "${deactivatingPosition.name}" desactivado`);
             refetch();
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'Error al actualizar el estado');
+            toast.error(error instanceof Error ? error.message : 'Error al desactivar el cargo');
+        } finally {
+            setDeactivatingPosition(null);
         }
     };
 
@@ -100,7 +124,7 @@ export default function PositionsPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <Button variant="ghost" size="icon" onClick={() => openModal(pos)}><Edit2 className="h-4 w-4 text-primary" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => toggleStatus(pos.id, pos.isActive)}>
+                                            <Button variant="ghost" size="icon" onClick={() => toggleStatus(pos.id, pos.isActive, pos.name)}>
                                                 {pos.isActive ? <PowerOff className="h-4 w-4 text-destructive" /> : <Power className="h-4 w-4 text-success" />}
                                             </Button>
                                         </td>
@@ -133,6 +157,23 @@ export default function PositionsPage() {
                 position={editingItem}
                 onSuccess={() => refetch()}
             />
+
+            <AlertDialog open={!!deactivatingPosition} onOpenChange={(open) => !open && setDeactivatingPosition(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Desactivar cargo?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            El cargo <strong>{deactivatingPosition?.name}</strong> será marcado como inactivo. Podrás reactivarlo más tarde.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive text-white hover:bg-destructive/90">
+                            Desactivar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

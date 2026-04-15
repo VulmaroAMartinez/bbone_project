@@ -14,6 +14,16 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import DepartmentFormModal from './modals/DepartmentFormModal';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function DepartmentsPage() {
     const { data, loading, refetch } = useOfflineAwareQuery<GetDepartmentsQuery>(GetDepartmentsDocument);
@@ -26,6 +36,7 @@ export default function DepartmentsPage() {
     const [page, setPage] = useState(1);
     type DepartmentItem = GetDepartmentsQuery['departmentsWithDeleted'][number];
     const [editingItem, setEditingItem] = useState<DepartmentItem | null>(null);
+    const [deactivatingDept, setDeactivatingDept] = useState<{ id: string; name: string } | null>(null);
 
     const departments = data?.departmentsWithDeleted || [];
     const PAGE_SIZE = 20;
@@ -41,13 +52,26 @@ export default function DepartmentsPage() {
         setIsModalOpen(true);
     };
 
-    const toggleStatus = async (id: string, currentStatus: boolean) => {
+    const toggleStatus = (id: string, currentStatus: boolean, name: string) => {
+        if (currentStatus) {
+            setDeactivatingDept({ id, name });
+        } else {
+            activateDepartment({ variables: { id } })
+                .then(() => { toast.success(`Departamento "${name}" activado`); refetch(); })
+                .catch((e: unknown) => toast.error(e instanceof Error ? e.message : 'Error al activar el departamento'));
+        }
+    };
+
+    const confirmDeactivate = async () => {
+        if (!deactivatingDept) return;
         try {
-            if (currentStatus) await deactivateDepartment({ variables: { id } });
-            else await activateDepartment({ variables: { id } });
+            await deactivateDepartment({ variables: { id: deactivatingDept.id } });
+            toast.success(`Departamento "${deactivatingDept.name}" desactivado`);
             refetch();
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'Error al actualizar el estado');
+            toast.error(error instanceof Error ? error.message : 'Error al desactivar el departamento');
+        } finally {
+            setDeactivatingDept(null);
         }
     };
 
@@ -100,7 +124,7 @@ export default function DepartmentsPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <Button variant="ghost" size="icon" onClick={() => openModal(dept)}><Edit2 className="h-4 w-4 text-primary" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => toggleStatus(dept.id, dept.isActive)}>
+                                            <Button variant="ghost" size="icon" onClick={() => toggleStatus(dept.id, dept.isActive, dept.name)}>
                                                 {dept.isActive ? <PowerOff className="h-4 w-4 text-destructive" /> : <Power className="h-4 w-4 text-success" />}
                                             </Button>
                                         </td>
@@ -133,6 +157,23 @@ export default function DepartmentsPage() {
                 department={editingItem}
                 onSuccess={() => refetch()}
             />
+
+            <AlertDialog open={!!deactivatingDept} onOpenChange={(open) => !open && setDeactivatingDept(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Desactivar departamento?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            El departamento <strong>{deactivatingDept?.name}</strong> será marcado como inactivo. Podrás reactivarlo más tarde.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive text-white hover:bg-destructive/90">
+                            Desactivar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

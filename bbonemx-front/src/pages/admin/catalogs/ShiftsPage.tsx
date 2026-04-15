@@ -14,6 +14,16 @@ import { Input } from '@/components/ui/input';
 import { Search, ClockPlus, Edit2, Power, PowerOff, Loader2, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import ShiftFormModal from './modals/ShiftFormModal';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function ShiftsPage() {
     const { data, loading, refetch } = useOfflineAwareQuery<GetShiftsAllQuery>(GetShiftsAllDocument);
@@ -26,6 +36,7 @@ export default function ShiftsPage() {
     const [page, setPage] = useState(1);
     type ShiftItem = GetShiftsAllQuery['shiftsWithDeleted'][number];
     const [editingItem, setEditingItem] = useState<ShiftItem | null>(null);
+    const [deactivatingShift, setDeactivatingShift] = useState<{ id: string; name: string } | null>(null);
 
     const shifts = data?.shiftsWithDeleted || [];
     const PAGE_SIZE = 20;
@@ -38,13 +49,26 @@ export default function ShiftsPage() {
         setIsModalOpen(true);
     };
 
-    const toggleStatus = async (id: string, currentStatus: boolean) => {
+    const toggleStatus = (id: string, currentStatus: boolean, name: string) => {
+        if (currentStatus) {
+            setDeactivatingShift({ id, name });
+        } else {
+            activateShift({ variables: { id } })
+                .then(() => { toast.success(`Turno "${name}" activado`); refetch(); })
+                .catch((e: unknown) => toast.error(e instanceof Error ? e.message : 'Error al activar el turno'));
+        }
+    };
+
+    const confirmDeactivate = async () => {
+        if (!deactivatingShift) return;
         try {
-            if (currentStatus) await deactivateShift({ variables: { id } });
-            else await activateShift({ variables: { id } });
+            await deactivateShift({ variables: { id: deactivatingShift.id } });
+            toast.success(`Turno "${deactivatingShift.name}" desactivado`);
             refetch();
         } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'Error al actualizar el estado');
+            toast.error(error instanceof Error ? error.message : 'Error al desactivar el turno');
+        } finally {
+            setDeactivatingShift(null);
         }
     };
 
@@ -95,7 +119,7 @@ export default function ShiftsPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <Button variant="ghost" size="icon" onClick={() => openModal(sh)}><Edit2 className="h-4 w-4 text-primary" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => toggleStatus(sh.id, sh.isActive)}>
+                                            <Button variant="ghost" size="icon" onClick={() => toggleStatus(sh.id, sh.isActive, sh.name)}>
                                                 {sh.isActive ? <PowerOff className="h-4 w-4 text-destructive" /> : <Power className="h-4 w-4 text-success" />}
                                             </Button>
                                         </td>
@@ -128,6 +152,23 @@ export default function ShiftsPage() {
                 shift={editingItem}
                 onSuccess={() => refetch()}
             />
+
+            <AlertDialog open={!!deactivatingShift} onOpenChange={(open) => !open && setDeactivatingShift(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Desactivar turno?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            El turno <strong>{deactivatingShift?.name}</strong> será marcado como inactivo. Podrás reactivarlo más tarde.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive text-white hover:bg-destructive/90">
+                            Desactivar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
