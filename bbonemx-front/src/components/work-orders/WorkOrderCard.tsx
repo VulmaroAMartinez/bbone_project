@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge, PriorityBadge, MaintenanceTypeBadge } from '@/components/ui/status-badge';
 import type { WorkOrderStatus, WorkOrderPriority, MaintenanceType } from '@/lib/graphql/generated/graphql';
 import { MapPin, Calendar, UserPlus, User, Wrench, ChevronRight, Pen } from 'lucide-react';
@@ -23,9 +24,13 @@ interface WorkOrderCardProps extends WorkOrderCardData {
   onClick: () => void;
   showPendingSignature?: boolean;
   action?: ReactNode;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelectChange?: (id: string, checked: boolean) => void;
 }
 
 export function WorkOrderCard({
+  id,
   folio,
   status,
   priority,
@@ -40,15 +45,31 @@ export function WorkOrderCard({
   onClick,
   showPendingSignature,
   action,
+  selectable,
+  selected,
+  onSelectChange,
 }: WorkOrderCardProps) {
   return (
     <Card
-      className="bg-card border-border hover:border-primary/50 hover:shadow-md transition-all shadow-sm cursor-pointer group"
-      onClick={onClick}
+      className={`bg-card border-border hover:border-primary/50 hover:shadow-md transition-all shadow-sm group ${selectable ? 'cursor-default' : 'cursor-pointer'} ${selected ? 'ring-2 ring-primary border-primary' : ''}`}
+      onClick={selectable ? undefined : onClick}
     >
       <CardContent className="py-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
+          {selectable && (
+            <div
+              className="flex items-center shrink-0 self-start md:self-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Checkbox
+                id={`select-wo-${id}`}
+                checked={selected ?? false}
+                onCheckedChange={(checked) => onSelectChange?.(id, !!checked)}
+                aria-label={`Seleccionar orden ${folio}`}
+              />
+            </div>
+          )}
+          <div className="flex-1 min-w-0 cursor-pointer" onClick={selectable ? onClick : undefined}>
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="font-mono text-sm font-bold text-primary group-hover:text-primary/80 transition-colors">
                 {folio}
@@ -95,7 +116,7 @@ export function WorkOrderCard({
             </div>
             {action && <div className="mt-4 flex justify-end">{action}</div>}
           </div>
-          {!action && (
+          {!action && !selectable && (
             <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 hidden md:block" />
           )}
         </div>

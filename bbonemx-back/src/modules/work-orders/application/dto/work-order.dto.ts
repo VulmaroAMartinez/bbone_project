@@ -9,6 +9,8 @@ import {
   Min,
   ValidateIf,
   IsDateString,
+  ArrayNotEmpty,
+  IsArray,
 } from 'class-validator';
 import {
   WorkOrderStatus,
@@ -237,4 +239,18 @@ export class UpdateWorkOrderInput {
   @IsOptional()
   @IsString()
   observations?: string;
+}
+
+@InputType()
+export class BatchScheduleWorkOrdersInput {
+  @Field(() => [ID])
+  @IsArray()
+  @ArrayNotEmpty({ message: 'Debe proporcionar al menos una orden de trabajo' })
+  @IsUUID('4', { each: true, message: 'Cada ID debe ser un UUID válido' })
+  ids: string[];
+
+  @Field()
+  @IsNotEmpty({ message: 'La fecha programada es requerida' })
+  @IsDateString({}, { message: 'La fecha programada debe tener un formato de fecha válido' })
+  scheduledDate: string;
 }

@@ -361,3 +361,14 @@ export const CANCEL_WORK_ORDER_MUTATION = gql`
     }
   }
 `;
+
+export const BATCH_SCHEDULE_WORK_ORDERS_MUTATION = gql`
+  mutation BatchScheduleWorkOrders($input: BatchScheduleWorkOrdersInput!) {
+    batchScheduleWorkOrders(input: $input) {
+      id
+      maintenanceType
+      scheduledDate
+      status
+    }
+  }
+`;

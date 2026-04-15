@@ -171,6 +171,7 @@ type Documents = {
     "\n  query GetMachineSparePartsForWO($machineId: ID!) {\n    sparePartsByMachine(machineId: $machineId) {\n      id\n      partNumber\n      brand\n      model\n      unitOfMeasure\n      isActive\n    }\n  }\n": typeof types.GetMachineSparePartsForWoDocument,
     "\n  mutation ExportWorkOrderPdf($id: ID!) {\n    exportWorkOrderPdf(id: $id)\n  }\n": typeof types.ExportWorkOrderPdfDocument,
     "\n  mutation CancelWorkOrder($id: ID!) {\n    cancelWorkOrder(id: $id) {\n      id\n      status\n    }\n  }\n": typeof types.CancelWorkOrderDocument,
+    "\n  mutation BatchScheduleWorkOrders($input: BatchScheduleWorkOrdersInput!) {\n    batchScheduleWorkOrders(input: $input) {\n      id\n      maintenanceType\n      scheduledDate\n      status\n    }\n  }\n": typeof types.BatchScheduleWorkOrdersDocument,
 };
 const documents: Documents = {
     "\n  \n  \n  fragment ActivityItem on Activity {\n    id\n    activity\n    startDate\n    endDate\n    progress\n    status\n    comments\n    priority\n    isActive\n    createdAt\n    updatedAt\n    areaId\n    area {\n      ...AreaBasic\n    }\n    machineId\n    machine {\n      id\n      name\n      code\n    }\n    technicians {\n      id\n      technicianId\n      assignedAt\n      technician {\n        ...UserBasic\n      }\n    }\n  }\n": types.ActivityItemFragmentDoc,
@@ -330,6 +331,7 @@ const documents: Documents = {
     "\n  query GetMachineSparePartsForWO($machineId: ID!) {\n    sparePartsByMachine(machineId: $machineId) {\n      id\n      partNumber\n      brand\n      model\n      unitOfMeasure\n      isActive\n    }\n  }\n": types.GetMachineSparePartsForWoDocument,
     "\n  mutation ExportWorkOrderPdf($id: ID!) {\n    exportWorkOrderPdf(id: $id)\n  }\n": types.ExportWorkOrderPdfDocument,
     "\n  mutation CancelWorkOrder($id: ID!) {\n    cancelWorkOrder(id: $id) {\n      id\n      status\n    }\n  }\n": types.CancelWorkOrderDocument,
+    "\n  mutation BatchScheduleWorkOrders($input: BatchScheduleWorkOrdersInput!) {\n    batchScheduleWorkOrders(input: $input) {\n      id\n      maintenanceType\n      scheduledDate\n      status\n    }\n  }\n": types.BatchScheduleWorkOrdersDocument,
 };
 
 /**
@@ -974,6 +976,10 @@ export function gql(source: "\n  mutation ExportWorkOrderPdf($id: ID!) {\n    ex
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function gql(source: "\n  mutation CancelWorkOrder($id: ID!) {\n    cancelWorkOrder(id: $id) {\n      id\n      status\n    }\n  }\n"): (typeof documents)["\n  mutation CancelWorkOrder($id: ID!) {\n    cancelWorkOrder(id: $id) {\n      id\n      status\n    }\n  }\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\n  mutation BatchScheduleWorkOrders($input: BatchScheduleWorkOrdersInput!) {\n    batchScheduleWorkOrders(input: $input) {\n      id\n      maintenanceType\n      scheduledDate\n      status\n    }\n  }\n"): (typeof documents)["\n  mutation BatchScheduleWorkOrders($input: BatchScheduleWorkOrdersInput!) {\n    batchScheduleWorkOrders(input: $input) {\n      id\n      maintenanceType\n      scheduledDate\n      status\n    }\n  }\n"];
 
 export function gql(source: string) {
   return (documents as any)[source] ?? {};

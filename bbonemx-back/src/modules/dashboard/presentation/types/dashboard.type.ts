@@ -1,4 +1,4 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class TimeCount {
@@ -62,7 +62,7 @@ export class KeyValue {
   @Field()
   key: string;
 
-  @Field(() => Int)
+  @Field(() => Float)
   value: number;
 }
 

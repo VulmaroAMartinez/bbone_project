@@ -6,15 +6,18 @@ import {
   GetShiftsDocument,
   WorkOrderItemFragmentDoc,
   AreaBasicFragmentDoc,
+  SubAreaBasicFragmentDoc,
+  MachineBasicFragmentDoc,
   UserBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 import { GET_SCHEDULED_WORK_ORDERS_QUERY } from '@/lib/graphql/operations/work-orders';
+import { WorkOrderCard } from '@/components/work-orders/WorkOrderCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar, ChevronRight, ChevronLeft, MapPin, UserPlus, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronRight, ChevronLeft, CalendarDays } from 'lucide-react';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 
 const PAGE_SIZE = 12;
@@ -97,29 +100,37 @@ function OrdenesProgramadasPage() {
       <div className="space-y-3">
         {!loading && sortedOrders.length === 0 && (
           <Card>
-            <CardContent className="py-10 text-center text-muted-foreground">No hay órdenes programadas con los filtros seleccionados.</CardContent>
+            <CardContent className="py-10 text-center">
+              <CalendarDays className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">No hay órdenes programadas con los filtros seleccionados.</p>
+            </CardContent>
           </Card>
         )}
         {pageOrders.map((order) => {
           const area = unmaskFragment(AreaBasicFragmentDoc, order.area);
+          const subArea = order.subArea ? unmaskFragment(SubAreaBasicFragmentDoc, order.subArea) : null;
+          const machine = order.machine ? unmaskFragment(MachineBasicFragmentDoc, order.machine) : null;
           const leadTechRel = order.technicians?.find((t) => t.isLead);
-          const leadTech = unmaskFragment(UserBasicFragmentDoc, leadTechRel?.technician);
+          const leadTechnician = leadTechRel ? unmaskFragment(UserBasicFragmentDoc, leadTechRel.technician) : null;
+          const requester = order.requester ? unmaskFragment(UserBasicFragmentDoc, order.requester) : null;
 
           return (
-            <Card key={order.id} className="cursor-pointer hover:border-primary/50" onClick={() => navigate(`/admin/orden/${order.id}`)}>
-              <CardContent className="py-4 flex items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <p className="font-semibold text-primary">{order.folio}</p>
-                  <p className="text-sm line-clamp-1">{order.description}</p>
-                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" /> {order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString('es-MX', { timeZone: 'UTC' }) : '--'}</span>
-                    <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {area?.name || '--'}</span>
-                    <span className="inline-flex items-center gap-1"><UserPlus className="h-3 w-3" /> {leadTech?.fullName || 'Sin líder'}</span>
-                  </div>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </CardContent>
-            </Card>
+            <WorkOrderCard
+              key={order.id}
+              id={order.id}
+              folio={order.folio}
+              status={order.status}
+              priority={order.priority}
+              maintenanceType={order.maintenanceType}
+              description={order.description}
+              createdAt={order.createdAt}
+              area={area}
+              subArea={subArea}
+              machine={machine}
+              leadTechnician={leadTechnician}
+              requester={requester}
+              onClick={() => navigate(`/admin/orden/${order.id}`)}
+            />
           );
         })}
         {totalPages > 1 && (

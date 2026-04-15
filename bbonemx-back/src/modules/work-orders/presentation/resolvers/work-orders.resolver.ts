@@ -33,6 +33,7 @@ import {
   CreateWorkOrderSignatureInput,
   AddWorkOrderSparePartInput,
   AddWorkOrderMaterialInput,
+  BatchScheduleWorkOrdersInput,
 } from '../../application/dto';
 import {
   SortOrder,
@@ -285,6 +286,13 @@ export class WorkOrdersResolver {
     @Args('input') input: UpdateWorkOrderInput,
   ) {
     return this.workOrdersService.update(id, input);
+  }
+
+  @Mutation(() => [WorkOrderType])
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.BOSS)
+  batchScheduleWorkOrders(@Args('input') input: BatchScheduleWorkOrdersInput) {
+    return this.workOrdersService.batchScheduleWorkOrders(input);
   }
 
   @Mutation(() => Boolean)
