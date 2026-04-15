@@ -36,7 +36,11 @@
       "Bash(git ls-tree:*)",
       "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
       "Bash(grep -E \"\\\\.\\(ts|sql\\)$\")",
-      "Bash(ls C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/.env*)"
+      "Bash(ls C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/.env*)",
+      "Bash(git -C bbonemx-back log --oneline -5)",
+      "Bash(git -C bbonemx-front log --oneline -5)",
+      "Bash(git commit *)",
+      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")"
     ]
   }
 }

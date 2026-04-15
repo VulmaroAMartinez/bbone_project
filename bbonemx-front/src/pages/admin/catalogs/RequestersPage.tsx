@@ -14,6 +14,16 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, UserRound, Mail, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
 import RequesterFormModal from './modals/RequesterFormModal';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function RequestersPage() {
     const { data, loading, refetch } = useOfflineAwareQuery<GetRequestersDataQuery>(GetRequestersDataDocument);
@@ -26,6 +36,7 @@ export default function RequestersPage() {
     const [page, setPage] = useState(1);
     type RequesterItem = GetRequestersDataQuery['usersWithDeleted'][number];
     const [editingRequester, setEditingRequester] = useState<RequesterItem | null>(null);
+    const [deactivatingRequester, setDeactivatingRequester] = useState<{ id: string; name: string } | null>(null);
 
     const allUsers = data?.usersWithDeleted || [];
     const departments = data?.departmentsWithDeleted || [];
@@ -50,13 +61,26 @@ export default function RequestersPage() {
         setIsModalOpen(true);
     };
 
-    const toggleStatus = async (id: string, currentStatus: boolean) => {
+    const toggleStatus = (id: string, currentStatus: boolean, name: string) => {
+        if (currentStatus) {
+            setDeactivatingRequester({ id, name });
+        } else {
+            activateUser({ variables: { id } })
+                .then(() => { toast.success(`Solicitante "${name}" activado`); refetch(); })
+                .catch(() => toast.error('Error al activar el solicitante'));
+        }
+    };
+
+    const confirmDeactivate = async () => {
+        if (!deactivatingRequester) return;
         try {
-            if (currentStatus) await deactivateUser({ variables: { id } });
-            else await activateUser({ variables: { id } });
+            await deactivateUser({ variables: { id: deactivatingRequester.id } });
+            toast.success(`Solicitante "${deactivatingRequester.name}" desactivado`);
             refetch();
         } catch {
-            toast.error('Error al actualizar el estado');
+            toast.error('Error al desactivar el solicitante');
+        } finally {
+            setDeactivatingRequester(null);
         }
     };
 
@@ -121,7 +145,7 @@ export default function RequestersPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <Button variant="ghost" size="icon" onClick={() => openModal(req)}><Edit2 className="h-4 w-4 text-primary" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => toggleStatus(req.id, req.isActive)}>
+                                            <Button variant="ghost" size="icon" onClick={() => toggleStatus(req.id, req.isActive, req.fullName)}>
                                                 {req.isActive ? <PowerOff className="h-4 w-4 text-destructive" /> : <Power className="h-4 w-4 text-success" />}
                                             </Button>
                                         </td>
@@ -156,6 +180,23 @@ export default function RequestersPage() {
                 departments={departments as Array<{ id: string; name: string }>}
                 onSuccess={() => refetch()}
             />
+
+            <AlertDialog open={!!deactivatingRequester} onOpenChange={(open) => !open && setDeactivatingRequester(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Desactivar solicitante?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            El solicitante <strong>{deactivatingRequester?.name}</strong> será marcado como inactivo y no podrá iniciar sesión. Podrás reactivarlo más tarde.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive text-white hover:bg-destructive/90">
+                            Desactivar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

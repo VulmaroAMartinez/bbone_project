@@ -14,6 +14,16 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit2, Power, PowerOff, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import MaterialFormModal from './modals/MaterialFormModal';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function MaterialsPage() {
     const { data, loading, refetch } = useOfflineAwareQuery<GetMaterialsQuery>(GetMaterialsDocument);
@@ -26,6 +36,7 @@ export default function MaterialsPage() {
     const [page, setPage] = useState(1);
     type MaterialItem = GetMaterialsQuery['materialsWithDeleted'][number];
     const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
+    const [deactivatingMaterial, setDeactivatingMaterial] = useState<{ id: string; name: string } | null>(null);
 
     const materials = data?.materialsWithDeleted || [];
 
@@ -43,16 +54,26 @@ export default function MaterialsPage() {
         setIsModalOpen(true);
     };
 
-    const toggleStatus = async (id: string, currentStatus: boolean) => {
+    const toggleStatus = (id: string, currentStatus: boolean, name: string) => {
+        if (currentStatus) {
+            setDeactivatingMaterial({ id, name });
+        } else {
+            activateMaterial({ variables: { id } })
+                .then(() => { toast.success(`Material "${name}" activado`); refetch(); })
+                .catch(() => toast.error('Error al activar el material'));
+        }
+    };
+
+    const confirmDeactivate = async () => {
+        if (!deactivatingMaterial) return;
         try {
-            if (currentStatus) {
-                await deactivateMaterial({ variables: { id } });
-            } else {
-                await activateMaterial({ variables: { id } });
-            }
+            await deactivateMaterial({ variables: { id: deactivatingMaterial.id } });
+            toast.success(`Material "${deactivatingMaterial.name}" desactivado`);
             refetch();
         } catch {
-            toast.error('Error al actualizar el estado');
+            toast.error('Error al desactivar el material');
+        } finally {
+            setDeactivatingMaterial(null);
         }
     };
 
@@ -126,7 +147,7 @@ export default function MaterialsPage() {
                                                     </Button>
                                                     <Button
                                                         variant="ghost" size="icon"
-                                                        onClick={() => toggleStatus(mat.id, mat.isActive)}
+                                                        onClick={() => toggleStatus(mat.id, mat.isActive, mat.description)}
                                                         title={mat.isActive ? "Desactivar" : "Activar"}
                                                     >
                                                         {mat.isActive ? <PowerOff className="h-4 w-4 text-destructive" /> : <Power className="h-4 w-4 text-success" />}
@@ -163,6 +184,23 @@ export default function MaterialsPage() {
                 material={editingMaterial}
                 onSuccess={() => refetch()}
             />
+
+            <AlertDialog open={!!deactivatingMaterial} onOpenChange={(open) => !open && setDeactivatingMaterial(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Desactivar material?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            El material <strong>{deactivatingMaterial?.name}</strong> será marcado como inactivo. Podrás reactivarlo más tarde.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive text-white hover:bg-destructive/90">
+                            Desactivar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

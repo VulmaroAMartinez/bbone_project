@@ -18,6 +18,7 @@ import {
   WorkOrderFiltersInput,
   PaginationInput,
   WorkOrderSortInput,
+  BatchScheduleWorkOrdersInput,
 } from '../dto';
 import { WorkOrderStatus, StopType, MaintenanceType } from 'src/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -445,6 +446,20 @@ export class WorkOrdersService {
           : undefined,
     });
     return this.findByIdOrFail(id);
+  }
+
+  async batchScheduleWorkOrders(
+    input: BatchScheduleWorkOrdersInput,
+  ): Promise<WorkOrder[]> {
+    const results = await Promise.all(
+      input.ids.map((id) =>
+        this.update(id, {
+          maintenanceType: MaintenanceType.CORRECTIVE_SCHEDULED,
+          scheduledDate: input.scheduledDate,
+        }),
+      ),
+    );
+    return results;
   }
 
   async deactivate(id: string): Promise<boolean> {

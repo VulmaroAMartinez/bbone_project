@@ -213,6 +213,11 @@ input AssignWorkOrderInput {
   workType: WorkType!
 }
 
+input BatchScheduleWorkOrdersInput {
+  ids: [ID!]!
+  scheduledDate: String!
+}
+
 input BulkUpdatePreferencesInput {
   preferences: [UpdateNotificationPreferenceInput!]!
 }
@@ -690,7 +695,7 @@ type GenerateWorkOrdersResult {
 
 type KeyValue {
   key: String!
-  value: Int!
+  value: Float!
 }
 
 input LoginInput {
@@ -885,6 +890,7 @@ type Mutation {
   """
   assignWeekSchedule(input: AssignWeekScheduleInput!): [TechnicianSchedule!]!
   assignWorkOrder(id: ID!, input: AssignWorkOrderInput!): WorkOrder!
+  batchScheduleWorkOrders(input: BatchScheduleWorkOrdersInput!): [WorkOrder!]!
 
   """Actualiza múltiples preferencias de notificación en batch"""
   bulkUpdateNotificationPreferences(input: BulkUpdatePreferencesInput!): [NotificationPreference!]!

@@ -167,7 +167,6 @@ export default function ActivityFormPage() {
   // Populate form on edit
   useEffect(() => {
     if (isEditing && activity) {
-      console.log('[ActivityForm] Populating for edit:', activity);
       const a = activity;
       reset({
         areaId: a.areaId,
@@ -214,11 +213,9 @@ export default function ActivityFormPage() {
   );
 
   const onSubmit = async (values: FormValues) => {
-    console.log('[ActivityForm] Submitting values:', values);
     try {
       if (isEditing) {
-        console.log('[ActivityForm] Updating activity ID:', id);
-        const result = await updateActivity({
+        await updateActivity({
           variables: {
             id: id!,
             input: {
@@ -235,11 +232,9 @@ export default function ActivityFormPage() {
             },
           },
         });
-        console.log('[ActivityForm] Update result:', result);
         toast.success('Actividad actualizada');
       } else {
-        console.log('[ActivityForm] Creating activity');
-        const result = await createActivity({
+        await createActivity({
           variables: {
             input: {
               areaId: values.areaId,
@@ -255,12 +250,10 @@ export default function ActivityFormPage() {
             },
           },
         });
-        console.log('[ActivityForm] Create result:', result);
         toast.success('Actividad creada');
       }
       navigate('/admin/actividades');
     } catch (err: unknown) {
-      console.error('[ActivityForm] Error saving activity:', err);
       toast.error(err instanceof Error ? err.message : 'Error al guardar actividad');
     }
   };

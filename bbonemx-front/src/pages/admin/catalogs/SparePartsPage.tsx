@@ -17,6 +17,16 @@ import { Search, Plus, Edit2, Power, PowerOff, Loader2, Wrench, ChevronLeft, Che
 
 import SparePartFormModal from './modals/SparePartFormModal';
 import { toast } from 'sonner';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function SparePartsPage() {
     const { data, loading, refetch } = useOfflineAwareQuery<GetSparePartsQuery>(GetSparePartsDocument);
@@ -29,6 +39,7 @@ export default function SparePartsPage() {
     const [page, setPage] = useState(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingSparePart, setEditingSparePart] = useState<any>(null);
+    const [deactivatingPart, setDeactivatingPart] = useState<{ id: string; name: string } | null>(null);
 
     const rawSpareParts = useMemo(() => data?.sparePartsWithDeleted ?? [], [data?.sparePartsWithDeleted]);
 
@@ -56,16 +67,26 @@ export default function SparePartsPage() {
         setIsModalOpen(true);
     };
 
-    const toggleStatus = async (id: string, currentStatus: boolean) => {
+    const toggleStatus = (id: string, currentStatus: boolean, name: string) => {
+        if (currentStatus) {
+            setDeactivatingPart({ id, name });
+        } else {
+            activateSparePart({ variables: { id } })
+                .then(() => { toast.success(`Refacción "${name}" activada`); refetch(); })
+                .catch(() => toast.error('Error al activar la refacción'));
+        }
+    };
+
+    const confirmDeactivate = async () => {
+        if (!deactivatingPart) return;
         try {
-            if (currentStatus) {
-                await deactivateSparePart({ variables: { id } });
-            } else {
-                await activateSparePart({ variables: { id } });
-            }
+            await deactivateSparePart({ variables: { id: deactivatingPart.id } });
+            toast.success(`Refacción "${deactivatingPart.name}" desactivada`);
             refetch();
         } catch {
-            toast.error('Error al actualizar el estado');
+            toast.error('Error al desactivar la refacción');
+        } finally {
+            setDeactivatingPart(null);
         }
     };
 
@@ -159,7 +180,7 @@ export default function SparePartsPage() {
                                                     </Button>
                                                     <Button
                                                         variant="ghost" size="icon"
-                                                        onClick={() => toggleStatus(part.id, part.isActive)}
+                                                        onClick={() => toggleStatus(part.id, part.isActive, part.partNumber)}
                                                         title={part.isActive ? "Desactivar" : "Activar"}
                                                     >
                                                         {part.isActive ? <PowerOff className="h-4 w-4 text-destructive" /> : <Power className="h-4 w-4 text-success" />}
@@ -196,6 +217,23 @@ export default function SparePartsPage() {
                 sparePart={editingSparePart}
                 onSuccess={() => refetch()}
             />
+
+            <AlertDialog open={!!deactivatingPart} onOpenChange={(open) => !open && setDeactivatingPart(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Desactivar refacción?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            La refacción <strong>{deactivatingPart?.name}</strong> será marcada como inactiva. Podrás reactivarla más tarde.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive text-white hover:bg-destructive/90">
+                            Desactivar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

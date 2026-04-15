@@ -35,9 +35,18 @@ import { Badge } from '@/components/ui/badge';
 import type { OvertimeRecord, TechnicianOption } from '../overtime.constants';
 import { REASON_FOR_PAYMENT_OPTIONS, getReasonLabel } from '../overtime.constants';
 
+// ── Helpers ───────────────────────────────────────────
+const todayISO = () => new Date().toISOString().split('T')[0];
+
 // ── Schema ────────────────────────────────────────────
 const createOvertimeSchema = yup.object({
-  workDate: yup.string().required('La fecha es obligatoria'),
+  workDate: yup
+    .string()
+    .required('La fecha es obligatoria')
+    .test('not-future', 'La fecha no puede ser mayor a hoy', (value) => {
+      if (!value) return true;
+      return value <= todayISO();
+    }),
   startTime: yup
     .string()
     .required('La hora de inicio es obligatoria')
@@ -198,7 +207,7 @@ export function OvertimeFormModal({
             <h4 className="text-sm font-medium">Fecha y Horario</h4>
             <div className="space-y-1.5">
               <Label>Fecha *</Label>
-              <Input type="date" {...form.register('workDate')} />
+              <Input type="date" max={todayISO()} {...form.register('workDate')} />
               {form.formState.errors.workDate && (
                 <p className="text-xs text-destructive">{form.formState.errors.workDate.message}</p>
               )}

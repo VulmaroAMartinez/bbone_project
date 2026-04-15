@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
 import { WorkOrderCard } from '@/components/work-orders/WorkOrderCard';
+import { ScheduleOrdersModal } from '@/components/work-orders/ScheduleOrdersModal';
 import {
   Search,
   Filter,
@@ -36,6 +37,9 @@ import {
   ChevronRight,
   ChevronLeft,
   ClipboardList,
+  CalendarDays,
+  X,
+  CheckSquare,
 } from 'lucide-react';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 
@@ -78,6 +82,11 @@ function OrdenesPage() {
   const [shiftFilter, setShiftFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<WorkOrderPriority | 'all'>('all');
+
+  // Selection state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   const { data: shiftsData } = useQuery(GetShiftsDocument);
   const { data: areasData } = useQuery(GetAreasDocument);
@@ -152,6 +161,51 @@ function OrdenesPage() {
 
   const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
   const pageOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // An order is selectable if it is NOT already CORRECTIVE_SCHEDULED
+  const selectableOnPage = pageOrders.filter((o) => o.maintenanceType !== 'CORRECTIVE_SCHEDULED');
+  const hasSelectableOrders = selectableOnPage.length > 0;
+
+  const allOnPageSelected =
+    selectableOnPage.length > 0 && selectableOnPage.every((o) => selectedIds.has(o.id));
+
+  function handleExitSelectionMode() {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }
+
+  function handleSelectChange(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }
+
+  function handleToggleSelectAll() {
+    if (allOnPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        selectableOnPage.forEach((o) => next.delete(o.id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        selectableOnPage.forEach((o) => next.add(o.id));
+        return next;
+      });
+    }
+  }
+
+  function handleScheduleSuccess() {
+    setScheduleModalOpen(false);
+    handleExitSelectionMode();
+  }
 
   if (loading && !data) return <WorkOrderListSkeleton count={5} />;
 
@@ -238,7 +292,7 @@ function OrdenesPage() {
             </div>
           </div>
         </CardContent>
-        <div className="px-5">
+        <div className="px-5 pb-4">
           <Select value={priorityFilter} onValueChange={(val) => { setPriorityFilter(val as WorkOrderPriority | 'all'); setPage(1); }}>
             <SelectTrigger className="w-[160px] shrink-0">
               <SelectValue placeholder="Prioridad" />
@@ -251,6 +305,51 @@ function OrdenesPage() {
           </Select>
         </div>
       </Card>
+
+      {/* Selection toolbar */}
+      {!selectionMode && hasSelectableOrders && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectionMode(true)}
+          >
+            <CheckSquare className="mr-2 h-4 w-4" />
+            Seleccionar órdenes
+          </Button>
+        </div>
+      )}
+
+      {selectionMode && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={handleToggleSelectAll} className="text-sm">
+                {allOnPageSelected ? 'Deseleccionar página' : 'Seleccionar página'}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.size > 0
+                  ? `${selectedIds.size} orden(es) seleccionada(s)`
+                  : 'Ninguna seleccionada'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                disabled={selectedIds.size === 0}
+                onClick={() => setScheduleModalOpen(true)}
+              >
+                <CalendarDays className="mr-2 h-4 w-4" />
+                Programar seleccionadas
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleExitSelectionMode}>
+                <X className="mr-2 h-4 w-4" />
+                Cancelar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Orders List */}
       <div className="space-y-3">
@@ -268,21 +367,29 @@ function OrdenesPage() {
             const machine = unmaskFragment(MachineBasicFragmentDoc, order.machine);
             const leadTechRel = order.technicians?.find((t) => t.isLead);
             const leadTechnician = unmaskFragment(UserBasicFragmentDoc, leadTechRel?.technician);
+            const isSelectable = selectionMode && order.maintenanceType !== 'CORRECTIVE_SCHEDULED';
             return (
-              <WorkOrderCard
+              <div
                 key={order.id}
-                id={order.id}
-                folio={order.folio}
-                status={order.status}
-                priority={order.priority}
-                maintenanceType={order.maintenanceType}
-                description={order.description}
-                createdAt={order.createdAt}
-                area={area}
-                machine={machine}
-                leadTechnician={leadTechnician}
-                onClick={() => navigate(`/admin/orden/${order.id}`)}
-              />
+                className={selectionMode && !isSelectable ? 'opacity-40 pointer-events-none' : ''}
+              >
+                <WorkOrderCard
+                  id={order.id}
+                  folio={order.folio}
+                  status={order.status}
+                  priority={order.priority}
+                  maintenanceType={order.maintenanceType}
+                  description={order.description}
+                  createdAt={order.createdAt}
+                  area={area}
+                  machine={machine}
+                  leadTechnician={leadTechnician}
+                  selectable={isSelectable}
+                  selected={selectedIds.has(order.id)}
+                  onSelectChange={handleSelectChange}
+                  onClick={() => navigate(`/admin/orden/${order.id}`)}
+                />
+              </div>
             );
           })
         )}
@@ -298,6 +405,13 @@ function OrdenesPage() {
           </div>
         )}
       </div>
+
+      <ScheduleOrdersModal
+        open={scheduleModalOpen}
+        selectedIds={Array.from(selectedIds)}
+        onClose={() => setScheduleModalOpen(false)}
+        onSuccess={handleScheduleSuccess}
+      />
     </div>
   );
 }
