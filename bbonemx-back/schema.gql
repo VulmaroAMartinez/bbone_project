@@ -343,15 +343,11 @@ input CreateMaterialRequestInput {
   boss: String!
   category: String!
   comments: String
-  customMachineBrand: String!
-  customMachineManufacturer: String!
-  customMachineModel: String!
-  customMachineName: String!
   description: String
   importance: String!
   items: [CreateMaterialRequestItemInput!]
   justification: String
-  machineIds: [ID!]!
+  machines: [CreateMaterialRequestMachineInput!]!
   priority: String!
   requesterId: ID!
   suggestedSupplier: String
@@ -372,6 +368,13 @@ input CreateMaterialRequestItemInput {
   sku: String
   sparePartId: ID
   unitOfMeasure: String
+}
+
+input CreateMaterialRequestMachineInput {
+  customMachineManufacturer: String
+  customMachineModel: String
+  customMachineName: String
+  machineId: ID
 }
 
 input CreateMaterialRequestPhotoInput {
@@ -840,9 +843,12 @@ type MaterialRequestItem {
 }
 
 type MaterialRequestMachine {
+  customMachineManufacturer: String
+  customMachineModel: String
+  customMachineName: String
   id: ID!
-  machine: Machine!
-  machineId: ID!
+  machine: Machine
+  machineId: ID
 }
 
 type MaterialRequestPhoto {
@@ -1724,16 +1730,12 @@ input UpdateMaterialRequestInput {
   boss: String
   category: String
   comments: String
-  customMachineBrand: String
-  customMachineManufacturer: String
-  customMachineModel: String
-  customMachineName: String
   description: String
   id: ID!
   importance: String
   items: [CreateMaterialRequestItemInput!]
   justification: String
-  machineIds: [ID!]
+  machines: [CreateMaterialRequestMachineInput!]
   priority: String
   requesterId: ID
   suggestedSupplier: String

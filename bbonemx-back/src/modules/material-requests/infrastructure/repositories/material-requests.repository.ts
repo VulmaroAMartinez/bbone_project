@@ -154,7 +154,10 @@ export class MaterialRequestsRepository {
       const entries = newMachines.map((m) =>
         this.machineRepository.create({
           materialRequestId: id,
-          machineId: m.machineId,
+          machineId: m.machineId ?? undefined,
+          customMachineName: m.customMachineName ?? undefined,
+          customMachineModel: m.customMachineModel ?? undefined,
+          customMachineManufacturer: m.customMachineManufacturer ?? undefined,
         }),
       );
       await this.machineRepository.save(entries);

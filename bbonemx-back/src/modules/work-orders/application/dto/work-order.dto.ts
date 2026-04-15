@@ -251,6 +251,9 @@ export class BatchScheduleWorkOrdersInput {
 
   @Field()
   @IsNotEmpty({ message: 'La fecha programada es requerida' })
-  @IsDateString({}, { message: 'La fecha programada debe tener un formato de fecha válido' })
+  @IsDateString(
+    {},
+    { message: 'La fecha programada debe tener un formato de fecha válido' },
+  )
   scheduledDate: string;
 }
