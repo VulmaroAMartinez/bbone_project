@@ -49,6 +49,7 @@ export interface CreateWorkOrderTask extends SyncTaskBase {
   payload: {
     areaId: string;
     subAreaId?: string;
+    machineId?: string;
     description: string;
     photo?: FilePayload;
   };

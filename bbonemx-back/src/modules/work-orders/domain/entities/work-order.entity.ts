@@ -156,6 +156,21 @@ export class WorkOrder extends BaseEntity {
   @JoinColumn({ name: 'preventive_task_id' })
   preventiveTask?: PreventiveTask;
 
+  /** true mientras la OT espera respuesta de conformidad del solicitante */
+  @Column({ name: 'pending_conformity', type: 'boolean', default: false })
+  pendingConformity: boolean;
+
+  /** Número de ciclos de no-conformidad completados (0 = primer intento) */
+  @Column({ name: 'conformity_cycle_count', type: 'integer', default: 0 })
+  conformityCycleCount: number;
+
+  /**
+   * Descripción de nuevos cambios realizados en re-trabajos (ciclo > 0).
+   * Obligatoria cuando conformityCycleCount > 0 al completar.
+   */
+  @Column({ name: 'new_changes_description', type: 'text', nullable: true })
+  newChangesDescription?: string;
+
   canStart(): boolean {
     return this.status === WorkOrderStatus.PENDING;
   }

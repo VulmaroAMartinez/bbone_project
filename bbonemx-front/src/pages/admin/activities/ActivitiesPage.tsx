@@ -152,6 +152,7 @@ export default function ActivitiesPage() {
       filters: {
         areaId: areaFilter || undefined,
         machineId: machineFilter || undefined,
+        technicianId: technicianFilter || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         priority: priorityFilter || undefined,
         search: searchTerm || undefined,

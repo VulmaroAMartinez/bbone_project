@@ -420,7 +420,13 @@ function AdminOrdenDetallePage() {
   // Firmas
   const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
   const adminSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN');
-  const needsMySignature = (isTemporaryRepair || order.status === 'FINISHED') && !adminSignature;
+
+  // Requester signed first check
+  const requesterIsAdmin = requester?.roles?.some(r => r.name === 'ADMIN') ?? false;
+  const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.id === requester?.id);
+  const requesterHasSigned = requesterIsAdmin || !!requesterSignature;
+
+  const needsMySignature = (isTemporaryRepair || order.status === 'FINISHED') && !adminSignature && requesterHasSigned;
 
   // Fotos
   const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
@@ -887,7 +893,7 @@ function AdminOrdenDetallePage() {
                       height={48}
                       className="h-12 object-contain"
                     />
-                  ) : (
+                  ) : requesterHasSigned ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -896,6 +902,10 @@ function AdminOrdenDetallePage() {
                     >
                       <Pen className="h-3 w-3 mr-2" /> Firmar
                     </Button>
+                  ) : (
+                    <span className="text-xs text-center px-2 py-1 rounded text-amber-600 bg-amber-50 border border-amber-200">
+                      Esperando firma del solicitante
+                    </span>
                   )}
                 </div>
               </div>

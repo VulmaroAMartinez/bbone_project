@@ -59,6 +59,12 @@ export class WorkOrderSignaturesService {
     )
       throw new BadRequestException('No se puede firmar la OT en este estado');
 
+    if (wo.pendingConformity) {
+      throw new BadRequestException(
+        'La OT está pendiente de respuesta de conformidad del solicitante. Las firmas se habilitarán una vez que el solicitante acepte la conformidad.',
+      );
+    }
+
     // Validate signer is related to this WO
     await this.validateSignerRelationship(wo, user);
 
@@ -104,25 +110,57 @@ export class WorkOrderSignaturesService {
 
   async isFullySigned(workOrderId: string): Promise<boolean> {
     const count = await this.countByWorkOrderId(workOrderId);
-    return count >= 3;
+    const wo = await this.workOrdersRepository.findById(workOrderId);
+    // Si el solicitante es admin → umbral 2 (técnico + admin)
+    const required = wo?.requester?.isAdmin?.() ? 2 : 3;
+    return count >= required;
   }
 
   private async validateSignerRelationship(
     wo: WorkOrder,
     user: User,
   ): Promise<void> {
-    if (user.isAdmin()) return;
+    const requesterIsAdmin = wo.requester?.isAdmin?.() ?? false;
 
+    // El solicitante siempre puede firmar primero
     if (wo.requesterId === user.id) return;
 
+    // Para técnico líder y admin: la firma del solicitante debe ir primero
+    // (excepto cuando el propio admin es el solicitante)
+    if (!requesterIsAdmin) {
+      const requesterSigned = await this.workOrderSignaturesRepository.hasUserSigned(
+        wo.id,
+        wo.requesterId,
+      );
+      if (!requesterSigned) {
+        throw new ForbiddenException(
+          'El solicitante debe firmar primero antes de que el técnico o el administrador puedan firmar',
+        );
+      }
+    }
+
+    if (user.isAdmin()) return;
+
     if (user.isTechnician() || user.isBoss()) {
-      const isAssigned =
-        await this.woTechniciansRepository.isTechnicianAssigned(wo.id, user.id);
-      if (isAssigned) return;
+      const isLead = await this.woTechniciansRepository.isTechnicianLead(
+        wo.id,
+        user.id,
+      );
+      if (isLead) return;
+
+      const isAssigned = await this.woTechniciansRepository.isTechnicianAssigned(
+        wo.id,
+        user.id,
+      );
+      if (isAssigned) {
+        throw new ForbiddenException(
+          'Solo el técnico líder de la OT puede firmarla',
+        );
+      }
     }
 
     throw new ForbiddenException(
-      'Solo el solicitante, jefes, técnicos asignados o administradores pueden firmar la OT',
+      'Solo el solicitante, el técnico líder o un administrador pueden firmar la OT',
     );
   }
 }

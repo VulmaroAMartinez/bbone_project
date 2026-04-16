@@ -251,8 +251,23 @@ input CompleteWorkOrderInput {
 
   """FINISHED o TEMPORARY_REPAIR"""
   finalStatus: WorkOrderStatus! = FINISHED
+  newChangesDescription: String
   observations: String
   toolsUsed: String
+}
+
+"""
+Respuesta a P1: ¿El equipo/estructura quedó en condiciones operativas adecuadas?
+"""
+enum ConformityQ1Answer {
+  """No"""
+  NO
+
+  """No aplica"""
+  NOT_APPLICABLE
+
+  """Sí"""
+  YES
 }
 
 input CopyWeekSchedulesInput {
@@ -987,6 +1002,7 @@ type Mutation {
   removeMaterialRequestPhoto(id: ID!): Boolean!
   removeWorkOrderMaterial(id: ID!): Boolean!
   removeWorkOrderSparePart(id: ID!): Boolean!
+  respondConformity(input: RespondConformityInput!): WorkOrderConformityRecord!
   resumePreventiveTasksCron: Boolean!
   resumeTechnicianBirthdaysCron: Boolean!
   resumeWorkOrder(id: ID!): WorkOrder!
@@ -1090,6 +1106,9 @@ enum NotificationType {
 
   """Requester creó una nueva OT"""
   WORK_ORDER_CREATED_BY_REQUESTER
+
+  """OT rechazada por no-conformidad — re-trabajo requerido"""
+  WORK_ORDER_NON_CONFORMITY
 
   """OT reparación temporal — recordatorio para firmar"""
   WORK_ORDER_TEMPORARY_REPAIR
@@ -1222,6 +1241,7 @@ type Query {
   areas: [Area!]!
   areasActive: [Area!]!
   areasWithDeleted: [Area!]!
+  conformityRecords(workOrderId: String!): [WorkOrderConformityRecord!]!
   dashboardData(input: DashboardInput!): DashboardData!
   department(id: ID!): Department
   departments: [Department!]!
@@ -1424,6 +1444,15 @@ enum RequestPriority {
 
   """Urgente"""
   URGENT
+}
+
+input RespondConformityInput {
+  isConforming: Boolean!
+  question1Answer: ConformityQ1Answer!
+  question2Answer: Boolean!
+  question3Answer: Boolean!
+  reason: String
+  workOrderId: String!
 }
 
 type ResponsibleActivityMetric {
@@ -1844,6 +1873,7 @@ input UpdateTechnicianInput {
 }
 
 input UpdateUserInput {
+  areaId: String
   departmentId: String
   email: String
   employeeNumber: String
@@ -1853,6 +1883,7 @@ input UpdateUserInput {
   phone: String
   roleId: String @deprecated(reason: "Usar roleIds")
   roleIds: [String!]
+  subAreaId: String
 }
 
 input UpdateWorkOrderInput {
@@ -1872,6 +1903,7 @@ input UpdateWorkOrderInput {
 }
 
 type User {
+  areaId: ID
   createdAt: DateTime!
   department: Department!
   departmentId: ID!
@@ -1891,6 +1923,7 @@ type User {
   roleId: ID
   roleIds: [String!]!
   roles: [Role!]!
+  subAreaId: ID
   updatedAt: DateTime!
 }
 
@@ -1922,6 +1955,8 @@ type WorkOrder {
   assignedShiftId: ID
   breakdownDescription: String
   cause: String
+  conformityCycleCount: Int!
+  conformityRecords: [WorkOrderConformityRecord!]
   createdAt: DateTime!
   customMaterial: String
   customSparePart: String
@@ -1939,8 +1974,10 @@ type WorkOrder {
   machineId: ID
   maintenanceType: MaintenanceType
   materials: [WorkOrderMaterial!]!
+  newChangesDescription: String
   observations: String
   pauseReason: String
+  pendingConformity: Boolean!
   photos: [WorkOrderPhoto!]!
   photosAfterStart: [WorkOrderPhoto!]!
   photosBeforeStart: [WorkOrderPhoto!]!
@@ -1963,6 +2000,22 @@ type WorkOrder {
   toolsUsed: String
   updatedAt: DateTime!
   workType: WorkType
+}
+
+type WorkOrderConformityRecord {
+  createdAt: DateTime!
+  cycleNumber: Int!
+  id: ID!
+  isConforming: Boolean!
+  previousStatus: String!
+  question1Answer: ConformityQ1Answer!
+  question2Answer: Boolean!
+  question3Answer: Boolean!
+  reason: String
+  respondedAt: DateTime!
+  respondedBy: User!
+  respondedById: ID!
+  workOrderId: ID!
 }
 
 input WorkOrderFiltersInput {

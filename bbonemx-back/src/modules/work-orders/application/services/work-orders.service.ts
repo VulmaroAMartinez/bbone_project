@@ -61,10 +61,12 @@ const VALID_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
   ],
   [WorkOrderStatus.FINISHED]: [
     WorkOrderStatus.COMPLETED,
+    WorkOrderStatus.IN_PROGRESS, // reinicio por no-conformidad (uso interno)
     WorkOrderStatus.CANCELLED,
   ],
   [WorkOrderStatus.TEMPORARY_REPAIR]: [
     WorkOrderStatus.COMPLETED,
+    WorkOrderStatus.IN_PROGRESS, // reinicio por no-conformidad (uso interno)
     WorkOrderStatus.CANCELLED,
   ],
   [WorkOrderStatus.COMPLETED]: [],
@@ -143,6 +145,7 @@ export class WorkOrdersService {
   async create(
     input: CreateWorkOrderInput,
     requesterId: string,
+    requester?: import('src/modules/users/domain/entities').User,
   ): Promise<WorkOrder> {
     // Validar que el área exista
     await this.areasService.findByIdOrFail(input.areaId);
@@ -157,6 +160,34 @@ export class WorkOrdersService {
         );
       }
     }
+
+    // Restricción de área para el solicitante
+    if (requester?.areaId) {
+      if (input.areaId !== requester.areaId) {
+        throw new BadRequestException(
+          'Solo puedes crear solicitudes para el área que tienes asignada',
+        );
+      }
+      if (requester.subAreaId && input.subAreaId !== requester.subAreaId) {
+        throw new BadRequestException(
+          'Solo puedes crear solicitudes para la sub-área que tienes asignada',
+        );
+      }
+    }
+
+    // Límite de OTs pendientes de conformidad (solo REQUESTER)
+    if (requester?.isRequester() && !requester.isAdmin()) {
+      const pendingCount =
+        await this.workOrdersRepository.countPendingConformityByRequester(
+          requesterId,
+        );
+      if (pendingCount >= 10) {
+        throw new BadRequestException(
+          'Tienes 10 órdenes pendientes de evaluación de conformidad. Responde las evaluaciones antes de crear nuevas solicitudes.',
+        );
+      }
+    }
+
     const wo = await this.workOrdersRepository.create({
       ...input,
       requesterId,
@@ -364,6 +395,13 @@ export class WorkOrdersService {
         'No se puede completar la OT en este estado',
       );
 
+    // En re-trabajos (ciclo > 0) la descripción de cambios es obligatoria
+    if (wo.conformityCycleCount > 0 && !input.newChangesDescription?.trim()) {
+      throw new BadRequestException(
+        'La descripción de nuevos cambios realizados es obligatoria en re-trabajos',
+      );
+    }
+
     const now = new Date();
     const segmentMinutes = this.calculateSegmentMinutes(wo.lastResumedAt, now);
     const functionalTImeMinutes =
@@ -382,6 +420,9 @@ export class WorkOrdersService {
       customSparePart: input.customSparePart ?? null,
       customMaterial: input.customMaterial ?? null,
       downtimeMinutes: input.downtimeMinutes,
+      newChangesDescription: input.newChangesDescription ?? undefined,
+      // Marcar como pendiente de conformidad del solicitante
+      pendingConformity: true,
     });
 
     const updated = await this.findByIdOrFail(id);
@@ -518,9 +559,12 @@ export class WorkOrdersService {
 
     const signaturesCount =
       await this.woSignaturesRepository.countByWorkOrderId(id);
-    if (signaturesCount < 3) {
+
+    // Si el solicitante es admin, se requieren solo 2 firmas (técnico + admin)
+    const requiredSignatures = workOrder.requester?.isAdmin?.() ? 2 : 3;
+    if (signaturesCount < requiredSignatures) {
       throw new BadRequestException(
-        'La orden de trabajo debe tener al menos 3 firmas para exportar a PDF',
+        `La orden de trabajo debe tener al menos ${requiredSignatures} firma(s) para exportar a PDF`,
       );
     }
 

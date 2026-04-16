@@ -4,3 +4,4 @@ export * from './work-order-photo.entity';
 export * from './work-order-signature.entity';
 export * from './work-order-spare-part.entity';
 export * from './work-order-material.entity';
+export * from './work-order-conformity-record.entity';

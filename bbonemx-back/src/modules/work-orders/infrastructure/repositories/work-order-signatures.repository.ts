@@ -72,6 +72,18 @@ export class WorkOrderSignaturesRepository {
     });
   }
 
+  /** Soft-delete de todas las firmas activas de una OT (al reiniciar por no-conformidad) */
+  async softDeleteAllByWorkOrderId(workOrderId: string): Promise<void> {
+    const signatures = await this.repository.find({
+      where: { workOrderId, isActive: true },
+    });
+    if (signatures.length === 0) return;
+    const now = new Date();
+    await this.repository.save(
+      signatures.map((s) => ({ ...s, isActive: false, deletedAt: now })),
+    );
+  }
+
   async hasUserSigned(workOrderId: string, signerId: string): Promise<boolean> {
     const count = await this.repository.count({
       where: { workOrderId: workOrderId, signerId: signerId, isActive: true },

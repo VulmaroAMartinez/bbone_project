@@ -105,6 +105,13 @@ export default function TecnicoOrdenPage() {
   
   const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
   const techSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN' || s.signer.roles?.some((r: { name: string }) => r.name === 'BOSS'));
+
+  // Requester must sign before technician can sign (unless requester is admin)
+  const requester = (workOrderRaw as { requester?: { id: string; roles?: { name: string }[] } })?.requester;
+  const requesterIsAdmin = requester?.roles?.some((r) => r.name === 'ADMIN') ?? false;
+  const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.id === requester?.id);
+  const requesterHasSigned = requesterIsAdmin || !!requesterSignature;
+
   const needsMySignature = (order?.status === 'FINISHED' || order?.status === 'TEMPORARY_REPAIR') && !techSignature;
 
   // ─── Handlers
@@ -417,15 +424,21 @@ export default function TecnicoOrdenPage() {
 
       {/* Panel: Firma requerida */}
       {needsMySignature && (
-        <Card className="bg-primary/5 border-primary/30 shadow-sm">
+        <Card className={requesterHasSigned ? "bg-primary/5 border-primary/30 shadow-sm" : "bg-amber-50 border-amber-200 shadow-sm"}>
           <CardContent className="flex justify-between items-center">
             <div>
               <h3 className="font-semibold text-foreground">Firma Requerida</h3>
               <p className="text-sm text-muted-foreground">
-                La orden fue cerrada. Firme para certificar su intervención.
+                {requesterHasSigned
+                  ? 'La orden fue cerrada. Firme para certificar su intervención.'
+                  : 'Esperando que el solicitante firme primero antes de poder continuar.'}
               </p>
             </div>
-            <Button onClick={() => setIsSignModalOpen(true)} className="gap-2">
+            <Button
+              onClick={() => setIsSignModalOpen(true)}
+              className="gap-2"
+              disabled={!requesterHasSigned}
+            >
               <Pen className="h-4 w-4" /> Firmar
             </Button>
           </CardContent>

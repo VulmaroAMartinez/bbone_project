@@ -11,6 +11,7 @@ import { AreaType } from '../../../catalogs/areas/presentation/types';
 import { SubAreaType } from '../../../catalogs/sub-areas/presentation/types';
 import { ShiftType } from '../../../catalogs/shifts/presentation/types';
 import { MachineType } from '../../../catalogs/machines/presentation/types';
+import { WorkOrderConformityRecordType } from './work-order-conformity-record.type';
 
 @ObjectType('WorkOrder')
 export class WorkOrderType {
@@ -54,6 +55,22 @@ export class WorkOrderType {
   @Field() isActive: boolean;
   @Field() createdAt: Date;
   @Field() updatedAt: Date;
+
+  /** true mientras la OT espera respuesta del cuestionario de conformidad */
+  @Field() pendingConformity: boolean;
+
+  /** Número de ciclos de no-conformidad (0 = primer intento) */
+  @Field(() => Int) conformityCycleCount: number;
+
+  /** Descripción de cambios en re-trabajo (obligatorio cuando ciclo > 0) */
+  @Field({ nullable: true }) newChangesDescription?: string;
+
+  /** true si la OT tiene las firmas requeridas */
+  @Field() isFullySigned: boolean;
+
+  /** Historial de respuestas de conformidad (resuelto por ResolveField) */
+  @Field(() => [WorkOrderConformityRecordType], { nullable: true })
+  conformityRecords?: WorkOrderConformityRecordType[];
 }
 
 @ObjectType()

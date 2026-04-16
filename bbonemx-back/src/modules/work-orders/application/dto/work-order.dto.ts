@@ -184,6 +184,15 @@ export class CompleteWorkOrderInput {
   })
   @IsEnum(WorkOrderStatus)
   finalStatus: WorkOrderStatus;
+
+  /**
+   * Descripción de cambios realizados en re-trabajo.
+   * Obligatorio cuando conformityCycleCount > 0 (validado en servicio).
+   */
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  newChangesDescription?: string;
 }
 
 @InputType()

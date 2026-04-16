@@ -4,3 +4,4 @@ export * from './work-order-signatures.repository';
 export * from './work-order-photos.repository';
 export * from './work-order-spare-parts.repository';
 export * from './work-order-materials.repository';
+export * from './work-order-conformity-records.repository';

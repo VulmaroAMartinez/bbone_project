@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useMutation } from '@apollo/client/react';
+import { useMutation, useQuery, useLazyQuery } from '@apollo/client/react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -7,16 +7,20 @@ import { toast } from 'sonner';
 import {
     CreateUserDocument,
     UpdateUserDocument,
+    GetAreasDocument,
+    GetSubAreasByAreaDocument,
     type CreateUserInput,
     type UpdateUserInput,
 } from '@/lib/graphql/generated/graphql';
+import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
+import { AreaBasicFragmentDoc, SubAreaBasicFragmentDoc } from '@/lib/graphql/generated/graphql';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
 
 interface RequesterFormModalProps {
     open: boolean;
@@ -29,6 +33,8 @@ interface RequesterFormModalProps {
         department?: { id: string } | null;
         email?: string | null;
         phone?: string | null;
+        areaId?: string | null;
+        subAreaId?: string | null;
     } | null;
     requesterRoleId: string | undefined;
     departments: Array<{ id: string; name: string }>;
@@ -43,6 +49,8 @@ const createSchema = (isEditing: boolean) =>
         departmentId: yup.string().required('Debe seleccionar un departamento'),
         email: yup.string().trim().email('Email no válido').default(''),
         phone: yup.string().trim().default(''),
+        areaId: yup.string().default(''),
+        subAreaId: yup.string().default(''),
         password: isEditing
             ? yup.string().default('')
             : yup
@@ -66,11 +74,21 @@ export default function RequesterFormModal({
     const [createUser, { loading: creating }] = useMutation(CreateUserDocument);
     const [updateUser, { loading: updating }] = useMutation(UpdateUserDocument);
 
+    const { data: areasData } = useQuery(GetAreasDocument);
+    const [getSubAreas, { data: subAreasData }] = useLazyQuery(GetSubAreasByAreaDocument);
+
+    const areas = areasData?.areas ? unmaskFragment(AreaBasicFragmentDoc, areasData.areas) : [];
+    const subAreas = subAreasData?.subAreasByArea
+        ? unmaskFragment(SubAreaBasicFragmentDoc, subAreasData.subAreasByArea)
+        : [];
+
     const {
         register,
         handleSubmit,
         reset,
         control,
+        watch,
+        setValue,
         formState: { errors },
     } = useForm<FormValues>({
         resolver: yupResolver(createSchema(isEditing)),
@@ -81,9 +99,26 @@ export default function RequesterFormModal({
             departmentId: '',
             email: '',
             phone: '',
+            areaId: '',
+            subAreaId: '',
             password: '',
         },
     });
+
+    const selectedAreaId = watch('areaId');
+    const selectedArea = areas.find(a => a.id === selectedAreaId);
+    const isOperational = selectedArea?.type === 'OPERATIONAL';
+
+    const handleAreaChange = (value: string) => {
+        setValue('areaId', value);
+        setValue('subAreaId', '');
+        if (value) {
+            const area = areas.find(a => a.id === value);
+            if (area?.type === 'OPERATIONAL') {
+                getSubAreas({ variables: { areaId: value } });
+            }
+        }
+    };
 
     useEffect(() => {
         if (open) {
@@ -95,8 +130,13 @@ export default function RequesterFormModal({
                     departmentId: requester.department?.id || '',
                     email: requester.email || '',
                     phone: requester.phone || '',
+                    areaId: requester.areaId || '',
+                    subAreaId: requester.subAreaId || '',
                     password: '',
                 });
+                if (requester.areaId) {
+                    getSubAreas({ variables: { areaId: requester.areaId } });
+                }
             } else {
                 reset({
                     employeeNumber: '',
@@ -105,11 +145,13 @@ export default function RequesterFormModal({
                     departmentId: '',
                     email: '',
                     phone: '',
+                    areaId: '',
+                    subAreaId: '',
                     password: '',
                 });
             }
         }
-    }, [open, requester, reset]);
+    }, [open, requester, reset, getSubAreas]);
 
     const onSubmit = async (values: FormValues) => {
         if (!requesterRoleId) {
@@ -118,14 +160,16 @@ export default function RequesterFormModal({
         }
 
         try {
-            const input: UpdateUserInput = {
+            const input = {
                 firstName: values.firstName,
                 lastName: values.lastName,
                 employeeNumber: values.employeeNumber,
                 departmentId: values.departmentId,
                 email: values.email || undefined,
                 phone: values.phone || undefined,
-            };
+                areaId: values.areaId || undefined,
+                subAreaId: values.subAreaId || undefined,
+            } as UpdateUserInput & { areaId?: string; subAreaId?: string };
 
             if (requester) {
                 if (values.password?.trim()) input.password = values.password;
@@ -220,6 +264,56 @@ export default function RequesterFormModal({
                                 <Input type="tel" {...register('phone')} placeholder="10 dígitos" />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Alcance de Solicitudes */}
+                    <div className="space-y-4 p-4 rounded-lg border border-border">
+                        <h4 className="font-semibold text-sm text-primary uppercase tracking-wider flex items-center gap-2">
+                            <MapPin className="h-4 w-4" /> Alcance de Solicitudes
+                        </h4>
+                        <p className="text-xs text-muted-foreground -mt-2">
+                            Opcional. Si se asigna, el solicitante solo podrá crear órdenes para esta área/sub-área.
+                        </p>
+                        <div className="space-y-2">
+                            <Label>Área</Label>
+                            <Controller
+                                name="areaId"
+                                control={control}
+                                render={({ field }) => (
+                                    <Combobox
+                                        options={[
+                                            { value: '', label: 'Sin restricción' },
+                                            ...areas.map(a => ({ value: a.id, label: a.name })),
+                                        ]}
+                                        value={field.value}
+                                        onValueChange={handleAreaChange}
+                                        placeholder="Sin restricción"
+                                        searchPlaceholder="Buscar área..."
+                                    />
+                                )}
+                            />
+                        </div>
+                        {isOperational && selectedAreaId && (
+                            <div className="space-y-2">
+                                <Label>Sub-área</Label>
+                                <Controller
+                                    name="subAreaId"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Combobox
+                                            options={[
+                                                { value: '', label: 'Cualquier sub-área del área' },
+                                                ...subAreas.map(sa => ({ value: sa.id, label: sa.name })),
+                                            ]}
+                                            value={field.value}
+                                            onValueChange={field.onChange}
+                                            placeholder="Cualquier sub-área"
+                                            searchPlaceholder="Buscar sub-área..."
+                                        />
+                                    )}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* Seguridad */}

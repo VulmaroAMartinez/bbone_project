@@ -74,4 +74,16 @@ export class UpdateUserInput {
   @IsOptional()
   @IsUUID('4', { message: 'El ID del departamento debe ser un UUID válido' })
   departmentId?: string;
+
+  /** Área de alcance del REQUESTER (null = sin restricción) */
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsUUID('4', { message: 'El ID del área debe ser un UUID válido' })
+  areaId?: string;
+
+  /** Sub-área de alcance del REQUESTER (requiere areaId) */
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsUUID('4', { message: 'El ID de la sub-área debe ser un UUID válido' })
+  subAreaId?: string;
 }
