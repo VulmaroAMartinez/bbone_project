@@ -32,11 +32,14 @@ export interface MaterialRequestCardData {
   isActive?: boolean | null;
   requester?: { fullName: string } | null;
   machines?: Array<{
-    machine: {
+    machine?: {
       name: string;
       area?: { name: string } | null;
       subArea?: { area?: { name: string } | null } | null;
-    };
+    } | null;
+    customMachineName?: string | null;
+    customMachineModel?: string | null;
+    customMachineManufacturer?: string | null;
   }> | null;
   items?: MaterialRequestItem[] | null;
 }
@@ -60,14 +63,17 @@ export function MaterialRequestCard({
   onClick,
   onViewItems,
 }: MaterialRequestCardProps) {
-  const machineEntities = (machines ?? []).map((mrm) => mrm.machine);
+  const machineList = machines ?? [];
   const areaNames = new Set(
-    machineEntities.map((m) => m.area?.name ?? m.subArea?.area?.name).filter(Boolean)
+    machineList
+      .map((mrm) => mrm.machine?.area?.name ?? mrm.machine?.subArea?.area?.name)
+      .filter(Boolean)
   );
   const areaName =
     areaNames.size === 1 ? [...areaNames][0] : areaNames.size > 1 ? 'Diversas áreas' : undefined;
-  const firstMachine = machineEntities[0];
-  const extraCount = machineEntities.length - 1;
+  const firstEntry = machineList[0];
+  const firstMachineName = firstEntry?.machine?.name ?? firstEntry?.customMachineName ?? null;
+  const extraCount = machineList.length - 1;
 
   return (
     <Card
@@ -129,10 +135,10 @@ export function MaterialRequestCard({
                   {requester.fullName}
                 </span>
               )}
-              {firstMachine && (
+              {firstMachineName && (
                 <span className="flex items-center gap-1">
                   <Cog className="h-3 w-3 shrink-0" />
-                  {firstMachine.name}
+                  {firstMachineName}
                   {extraCount > 0 && (
                     <span className="text-xs text-muted-foreground/70">(+{extraCount})</span>
                   )}

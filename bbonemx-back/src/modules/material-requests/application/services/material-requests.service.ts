@@ -284,16 +284,37 @@ export class MaterialRequestsService {
     return this.materialRequestsRepository.findByMachineId(machineId);
   }
 
+  /** Validates that each machine entry without a machineId has at least a customMachineName. */
+  private validateMachines(
+    machines: Array<{
+      machineId?: string;
+      customMachineName?: string;
+    }>,
+  ): void {
+    for (let i = 0; i < machines.length; i++) {
+      const m = machines[i];
+      if (!m.machineId && !m.customMachineName?.trim()) {
+        throw new BadRequestException(
+          `La máquina ${i + 1} es de tipo "Otro" y requiere un nombre personalizado`,
+        );
+      }
+    }
+  }
+
   // ─── Mutations ───────────────────────────────────────────────────────────────
 
   async create(input: CreateMaterialRequestInput): Promise<MaterialRequest> {
     for (const item of input.items ?? []) {
       await this.validateItem(item, input.category);
     }
-    const { machineIds, ...rest } = input;
-    const machines = machineIds.map(
-      (machineId) => ({ machineId }) as unknown as { machineId: string },
-    );
+    this.validateMachines(input.machines);
+    const { machines: machineInputs, ...rest } = input;
+    const machines = machineInputs.map((m) => ({
+      machineId: m.machineId ?? undefined,
+      customMachineName: m.customMachineName ?? undefined,
+      customMachineModel: m.customMachineModel ?? undefined,
+      customMachineManufacturer: m.customMachineManufacturer ?? undefined,
+    }));
     return this.materialRequestsRepository.create({
       ...rest,
       machines,
@@ -311,13 +332,19 @@ export class MaterialRequestsService {
     for (const item of input.items ?? []) {
       await this.validateItem(item, category);
     }
-    const { machineIds, ...rest } = input;
+    if (input.machines) {
+      this.validateMachines(input.machines);
+    }
+    const { machines: machineInputs, ...rest } = input;
     const data: Partial<MaterialRequest> = {
       ...rest,
     } as Partial<MaterialRequest>;
-    if (machineIds) {
-      data.machines = machineIds.map((machineId) => ({
-        machineId,
+    if (machineInputs) {
+      data.machines = machineInputs.map((m) => ({
+        machineId: m.machineId ?? undefined,
+        customMachineName: m.customMachineName ?? undefined,
+        customMachineModel: m.customMachineModel ?? undefined,
+        customMachineManufacturer: m.customMachineManufacturer ?? undefined,
       })) as unknown as MaterialRequestMachine[];
     }
     return this.materialRequestsRepository.update(id, data);
@@ -430,10 +457,10 @@ export class MaterialRequestsService {
       );
     }
 
-    const machineEntities = (request.machines ?? []).map((mrm) => mrm.machine);
+    const machineMachines = request.machines ?? [];
     const areaNames = new Set<string>();
-    for (const m of machineEntities) {
-      const name = m?.area?.name ?? m?.subArea?.area?.name;
+    for (const mrm of machineMachines) {
+      const name = mrm.machine?.area?.name ?? mrm.machine?.subArea?.area?.name;
       if (name) areaNames.add(name);
     }
     const derivedAreaName =
@@ -514,13 +541,14 @@ export class MaterialRequestsService {
       priority: PRIORITY_LABELS[request.priority] ?? request.priority,
       importance: IMPORTANCE_LABELS[request.importance] ?? request.importance,
       derivedAreaName,
-      machines: machineEntities.map((m) => ({
-        name: m?.name ?? '',
-        brand: m?.brand,
-        model: m?.model,
-        manufacturer: m?.manufacturer,
-        areaName: m?.area?.name ?? m?.subArea?.area?.name,
-        subAreaName: m?.subArea?.name,
+      machines: machineMachines.map((mrm) => ({
+        name: mrm.customMachineName ?? mrm.machine?.name ?? '',
+        brand: mrm.machine?.brand,
+        model: mrm.customMachineModel ?? mrm.machine?.model,
+        manufacturer:
+          mrm.customMachineManufacturer ?? mrm.machine?.manufacturer,
+        areaName: mrm.machine?.area?.name ?? mrm.machine?.subArea?.area?.name,
+        subAreaName: mrm.machine?.subArea?.name,
       })),
       description: request.description,
       justification: request.justification,

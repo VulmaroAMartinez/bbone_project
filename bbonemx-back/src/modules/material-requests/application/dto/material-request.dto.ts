@@ -18,17 +18,41 @@ import {
 } from 'src/common';
 
 @InputType()
+export class CreateMaterialRequestMachineInput {
+  @Field(() => ID, { nullable: true })
+  @IsOptional()
+  @IsUUID()
+  machineId?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  customMachineName?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  customMachineModel?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  customMachineManufacturer?: string;
+}
+
+@InputType()
 export class CreateMaterialRequestInput {
   @Field(() => ID)
   @IsNotEmpty({ message: 'El solicitante es requerido' })
   @IsUUID()
   requesterId: string;
 
-  @Field(() => [ID])
+  @Field(() => [CreateMaterialRequestMachineInput])
   @IsArray()
   @ArrayMinSize(1, { message: 'Debe seleccionar al menos una máquina' })
-  @IsUUID('4', { each: true })
-  machineIds: string[];
+  @ValidateNested({ each: true })
+  @Type(() => CreateMaterialRequestMachineInput)
+  machines: CreateMaterialRequestMachineInput[];
 
   @Field(() => [CreateMaterialRequestItemInput], { nullable: true })
   @IsOptional()
@@ -55,26 +79,6 @@ export class CreateMaterialRequestInput {
   @IsNotEmpty({ message: 'La prioridad es requerida' })
   @IsEnum(RequestPriority)
   priority: RequestPriority;
-
-  @Field()
-  @IsOptional()
-  @IsString()
-  customMachineName?: string;
-
-  @Field()
-  @IsOptional()
-  @IsString()
-  customMachineBrand?: string;
-
-  @Field()
-  @IsOptional()
-  @IsString()
-  customMachineModel?: string;
-
-  @Field()
-  @IsOptional()
-  @IsString()
-  customMachineManufacturer?: string;
 
   @Field({ nullable: true })
   @IsOptional()

@@ -89,11 +89,11 @@ const SERVICE_CATEGORIES = new Set(['SERVICE', 'SERVICE_WITH_MATERIAL']);
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function deriveArea(
-  machines: Array<{ machine: { area?: { name: string } | null; subArea?: { area?: { name: string } | null } | null } }>,
+  machines: Array<{ machine?: { area?: { name: string } | null; subArea?: { area?: { name: string } | null } | null } | null }>,
 ): string | undefined {
   const names = new Set<string>();
   for (const mrm of machines) {
-    const name = mrm.machine.area?.name ?? mrm.machine.subArea?.area?.name;
+    const name = mrm.machine?.area?.name ?? mrm.machine?.subArea?.area?.name;
     if (name) names.add(name);
   }
   if (names.size === 1) return [...names][0];
@@ -200,7 +200,9 @@ export default function MaterialRequestHistoryPage() {
         r.folio.toLowerCase().includes(search.toLowerCase()) ||
         r.requester.fullName.toLowerCase().includes(search.toLowerCase()) ||
         (r.machines ?? []).some((mrm) =>
-          mrm.machine.name.toLowerCase().includes(search.toLowerCase()),
+          (mrm.machine?.name ?? mrm.customMachineName ?? '')
+            .toLowerCase()
+            .includes(search.toLowerCase()),
         );
       const h = r.histories?.[0];
       const matchStatus = filterStatus === 'all' || h?.status === filterStatus;
@@ -420,7 +422,9 @@ export default function MaterialRequestHistoryPage() {
                   {filtered.map((req) => {
                     const h = req.histories?.[0];
                     const area = deriveArea(req.machines ?? []);
-                    const machineNames = (req.machines ?? []).map((m) => m.machine.name);
+                    const machineNames = (req.machines ?? []).map(
+                      (m) => m.machine?.name ?? m.customMachineName ?? '—',
+                    );
                     const progress = getProgressValue(req.emailSentAt, req.histories);
 
                     return (

@@ -40,7 +40,8 @@
       "Bash(git -C bbonemx-back log --oneline -5)",
       "Bash(git -C bbonemx-front log --oneline -5)",
       "Bash(git commit *)",
-      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
+      "Bash(npx eslint *)"
     ]
   }
 }

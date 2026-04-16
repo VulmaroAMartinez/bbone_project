@@ -54,7 +54,9 @@ export default function MaterialRequestsPage() {
         r.folio.toLowerCase().includes(search.toLowerCase()) ||
         r.requester.fullName.toLowerCase().includes(search.toLowerCase()) ||
         (r.machines ?? []).some((mrm) =>
-          mrm.machine.name.toLowerCase().includes(search.toLowerCase())
+          (mrm.machine?.name ?? mrm.customMachineName ?? '')
+            .toLowerCase()
+            .includes(search.toLowerCase())
         );
       const matchPriority = filterPriority === 'all' || r.priority === filterPriority;
       const matchCategory = filterCategory === 'all' || r.category === filterCategory;

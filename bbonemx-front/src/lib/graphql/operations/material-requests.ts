@@ -92,6 +92,9 @@ export const GET_MATERIAL_REQUESTS_QUERY = gql`
       machines {
         id
         machineId
+        customMachineName
+        customMachineModel
+        customMachineManufacturer
         machine {
           id
           name
@@ -140,9 +143,6 @@ export const GET_MATERIAL_REQUEST_QUERY = gql`
       importance
       boss
       description
-      customMachineBrand
-      customMachineModel
-      customMachineManufacturer
       suggestedSupplier
       justification
       comments
@@ -158,6 +158,9 @@ export const GET_MATERIAL_REQUEST_QUERY = gql`
       machines {
         id
         machineId
+        customMachineName
+        customMachineModel
+        customMachineManufacturer
         machine {
           id
           name
@@ -247,6 +250,9 @@ export const CREATE_MATERIAL_REQUEST_MUTATION = gql`
       machines {
         id
         machineId
+        customMachineName
+        customMachineModel
+        customMachineManufacturer
         machine {
           id
           name
@@ -337,6 +343,9 @@ export const GET_MATERIAL_REQUEST_HISTORIES_QUERY = gql`
       machines {
         id
         machineId
+        customMachineName
+        customMachineModel
+        customMachineManufacturer
         machine {
           id
           name

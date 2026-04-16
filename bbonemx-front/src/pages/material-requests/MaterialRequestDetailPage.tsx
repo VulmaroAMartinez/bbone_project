@@ -218,9 +218,11 @@ export default function MaterialRequestDetailPage() {
     }
 
     // ── Data ──────────────────────────────────────────────────────────────────
-    const machineEntities = (request.machines ?? []).map((mrm) => mrm.machine);
+    const machineEntries = request.machines ?? [];
     const areaNames = new Set(
-        machineEntities.map((m) => m?.area?.name ?? m?.subArea?.area?.name).filter(Boolean),
+        machineEntries
+            .map((mrm) => mrm.machine?.area?.name ?? mrm.machine?.subArea?.area?.name)
+            .filter(Boolean),
     );
     const derivedAreaName = areaNames.size === 1
         ? [...areaNames][0]
@@ -346,20 +348,24 @@ export default function MaterialRequestDetailPage() {
                             <p className="text-sm font-medium">{derivedAreaName}</p>
                         </div>
                     )}
-                    {machineEntities.map((machine, idx: number) => {
+                    {machineEntries.map((mrm, idx: number) => {
+                        const machine = mrm.machine;
+                        const displayName = machine?.name ?? mrm.customMachineName ?? '—';
+                        const displayBrand = machine?.brand ?? mrm.customMachineManufacturer;
+                        const displayModel = machine?.model ?? mrm.customMachineModel;
                         const mArea = machine?.area?.name ?? machine?.subArea?.area?.name;
                         const mSubArea = machine?.subArea?.name;
                         return (
-                            <div key={machine?.id ?? idx} className="flex items-start gap-2.5">
+                            <div key={mrm.id ?? idx} className="flex items-start gap-2.5">
                                 <Cog className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                                 <div>
-                                    <p className="font-medium">{machine?.name}</p>
-                                    {(machine?.brand || machine?.model) && (
+                                    <p className="font-medium">{displayName}</p>
+                                    {(displayBrand || displayModel) && (
                                         <p className="text-xs text-muted-foreground">
-                                            {[machine?.brand, machine?.model].filter(Boolean).join(' · ')}
+                                            {[displayBrand, displayModel].filter(Boolean).join(' · ')}
                                         </p>
                                     )}
-                                    {mArea && machineEntities.length > 1 && (
+                                    {mArea && machineEntries.length > 1 && (
                                         <p className="text-xs text-muted-foreground">
                                             {mArea}{mSubArea && ` › ${mSubArea}`}
                                         </p>

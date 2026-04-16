@@ -96,16 +96,20 @@ const itemSchema = yup.object({
     isGenericAllowed: yup.boolean().default(false),
 });
 
+const machineEntrySchema = yup.object({
+    /** UUID del catálogo o 'OTHER' para equipo manual */
+    machineId: yup.string().required(),
+    customMachineName: yup.string().trim().default(''),
+    customMachineModel: yup.string().trim().default(''),
+    customMachineManufacturer: yup.string().trim().default(''),
+});
+
 const schema = yup.object({
     requesterId: yup.string().required('Selecciona el solicitante'),
     category: yup.string().required('Selecciona la categoría'),
     priority: yup.string().required('Selecciona la prioridad'),
     boss: yup.string().trim().required('Selecciona el jefe a cargo'),
-    machineIds: yup.array(yup.string().required()).min(1, 'Selecciona al menos una máquina').required(),
-    // Campos editables del equipo (se guardan en material_requests)
-    customMachineBrand: yup.string().trim().default(''),
-    customMachineModel: yup.string().trim().default(''),
-    customMachineManufacturer: yup.string().trim().default(''),
+    machines: yup.array(machineEntrySchema).min(1, 'Selecciona al menos una máquina').required(),
     importance: yup.string().required('Selecciona la importancia'),
     description: yup.string().trim().default(''),
     justification: yup.string().trim().default(''),
@@ -115,6 +119,7 @@ const schema = yup.object({
 });
 
 type FormValues = yup.InferType<typeof schema>;
+type MachineEntry = FormValues['machines'][0];
 
 const EMPTY_ITEM: FormValues['items'][0] = {
     dbId: '',
@@ -209,11 +214,12 @@ export default function CreateMaterialRequestPage() {
             category: string;
             priority: string;
             boss: string;
-            machines?: Array<{ machine: { id: string } }>;
-            machine: { brand?: string | null; model?: string | null; manufacturer?: string | null };
-            customMachineBrand?: string | null;
-            customMachineModel?: string | null;
-            customMachineManufacturer?: string | null;
+            machines?: Array<{
+                machine?: { id: string } | null;
+                customMachineName?: string | null;
+                customMachineModel?: string | null;
+                customMachineManufacturer?: string | null;
+            }>;
             importance: string;
             description?: string | null;
             justification?: string | null;
@@ -295,10 +301,7 @@ export default function CreateMaterialRequestPage() {
             category: '',
             priority: '',
             boss: '',
-            machineIds: [],
-            customMachineBrand: '',
-            customMachineModel: '',
-            customMachineManufacturer: '',
+            machines: [],
             importance: '',
             description: '',
             justification: '',
@@ -309,6 +312,11 @@ export default function CreateMaterialRequestPage() {
     });
 
     const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+    const {
+        fields: machineFields,
+        append: appendMachine,
+        remove: removeMachine,
+    } = useFieldArray({ control, name: 'machines' });
 
     // ── Datos derivados ───────────────────────────────────────────────────────
     const technicians = formData?.techniciansActive ?? [];
@@ -325,7 +333,7 @@ export default function CreateMaterialRequestPage() {
         [allUsers],
     );
 
-    const watchedMachineIds = watch('machineIds');
+    const watchedMachines = watch('machines');
     const watchedCategory = watch('category');
 
     const isService = SERVICE_CATEGORIES.has(watchedCategory);
@@ -334,43 +342,33 @@ export default function CreateMaterialRequestPage() {
     const isSKUCategory = SKU_CATEGORIES.has(watchedCategory);
     const showItems = !isService && !!watchedCategory;
 
-    // Máquinas seleccionadas
-    const selectedMachines = useMemo(
-        () => (watchedMachineIds ?? []).map((id: string) => machines.find((m) => m.id === id)).filter((m): m is NonNullable<typeof m> => Boolean(m)),
-        [machines, watchedMachineIds],
+    // IDs de catálogo ya seleccionados (excluye 'OTHER')
+    const selectedCatalogIds = useMemo(
+        () => new Set((watchedMachines ?? []).map((m) => m.machineId).filter((id) => id !== 'OTHER')),
+        [watchedMachines],
     );
 
-    // Para compatibilidad: la primera máquina seleccionada (usada en customMachine auto-fill)
-    const selectedMachine = selectedMachines[0] ?? null;
-
-    // Nombre del área derivada de las máquinas
-    const derivedAreaName = useMemo(() => {
-        const areas = new Set(
-            selectedMachines.map((m) => m.area?.name ?? m.subArea?.area?.name).filter(Boolean),
-        );
-        if (areas.size === 1) return [...areas][0];
-        if (areas.size > 1) return 'Diversas áreas';
-        return '';
-    }, [selectedMachines]);
-
-    // Etiqueta de la máquina en el select
+    // Etiqueta de máquina de catálogo en el combobox
     const machineLabel = useCallback((m: typeof machines[0]) => {
         const suffix = m.subArea?.name ?? m.area?.name ?? '';
         return suffix ? `${m.name} - ${suffix}` : m.name;
     }, []);
 
-    // ── Auto-rellenar campos al cambiar máquina (solo si hay 1) ─────────────
-    useEffect(() => {
-        if (selectedMachines.length === 1 && selectedMachine) {
-            setValue('customMachineBrand', selectedMachine.brand ?? 'N/A');
-            setValue('customMachineModel', selectedMachine.model ?? 'N/A');
-            setValue('customMachineManufacturer', selectedMachine.manufacturer ?? 'N/A');
-        } else if (selectedMachines.length > 1) {
-            setValue('customMachineBrand', '');
-            setValue('customMachineModel', '');
-            setValue('customMachineManufacturer', '');
-        }
-    }, [selectedMachines, selectedMachine, setValue]);
+    // Área derivada de las máquinas de catálogo seleccionadas
+    const derivedAreaName = useMemo(() => {
+        const catalogEntries = (watchedMachines ?? []).filter((m) => m.machineId !== 'OTHER');
+        const areas = new Set(
+            catalogEntries
+                .map((entry) => {
+                    const cat = machines.find((m) => m.id === entry.machineId);
+                    return cat?.area?.name ?? cat?.subArea?.area?.name;
+                })
+                .filter((n): n is string => Boolean(n)),
+        );
+        if (areas.size === 1) return [...areas][0];
+        if (areas.size > 1) return 'Diversas áreas';
+        return '';
+    }, [watchedMachines, machines]);
 
     // Track the previous category so we can detect catalog-type switches.
     const prevCategoryRef = useRef<string>('');
@@ -419,10 +417,12 @@ export default function CreateMaterialRequestPage() {
             category: req.category,
             priority: req.priority,
             boss: req.boss,
-            machineIds: (req.machines ?? []).map((mrm) => mrm.machine.id),
-            customMachineBrand: req.customMachineBrand ?? req.machine.brand ?? 'N/A',
-            customMachineModel: req.customMachineModel ?? req.machine.model ?? 'N/A',
-            customMachineManufacturer: req.customMachineManufacturer ?? req.machine.manufacturer ?? 'N/A',
+            machines: (req.machines ?? []).map((mrm) => ({
+                machineId: mrm.machine?.id ?? 'OTHER',
+                customMachineName: mrm.customMachineName ?? '',
+                customMachineModel: mrm.customMachineModel ?? '',
+                customMachineManufacturer: mrm.customMachineManufacturer ?? '',
+            })),
             importance: req.importance,
             description: req.description ?? '',
             justification: req.justification ?? '',
@@ -565,11 +565,12 @@ export default function CreateMaterialRequestPage() {
                 priority: values.priority,
                 importance: values.importance,
                 boss: values.boss,
-                machineIds: values.machineIds,
-                customMachineBrand: values.customMachineBrand || 'N/A',
-                customMachineModel: values.customMachineModel || 'N/A',
-                customMachineManufacturer: values.customMachineManufacturer || 'N/A',
-                customMachineName: selectedMachine?.name ?? '',
+                machines: values.machines.map((m) => ({
+                    machineId: m.machineId !== 'OTHER' ? m.machineId : undefined,
+                    customMachineName: m.machineId === 'OTHER' ? (m.customMachineName || undefined) : (m.customMachineName || undefined),
+                    customMachineModel: m.customMachineModel || undefined,
+                    customMachineManufacturer: m.customMachineManufacturer || undefined,
+                })),
                 description: values.description || undefined,
                 justification: values.justification || undefined,
                 comments: values.comments || undefined,
@@ -851,61 +852,109 @@ export default function CreateMaterialRequestPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
 
-                        {/* Máquinas seleccionadas */}
+                        {/* Lista de máquinas ya seleccionadas */}
                         <div className="space-y-1.5">
                             <Label>Máquina(s) / Equipo(s) <span className="text-destructive">*</span></Label>
 
-                            {/* Lista de máquinas ya seleccionadas */}
-                                {selectedMachines.length > 0 && (
-                                <div className="space-y-1.5 mb-2">
-                                    {selectedMachines.map((m) => (
-                                        <div
-                                            key={m.id}
-                                            className="flex items-center justify-between bg-muted/40 rounded-md px-3 py-1.5 text-sm border border-border/50"
-                                        >
-                                            <span>{machineLabel(m)}</span>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                                                onClick={() => {
-                                                    const current = watchedMachineIds ?? [];
-                                                    setValue('machineIds', current.filter((id: string) => id !== m.id), { shouldValidate: true });
-                                                }}
+                            {machineFields.length > 0 && (
+                                <div className="space-y-2 mb-2">
+                                    {machineFields.map((mf, idx) => {
+                                        const entryMachineId = watch(`machines.${idx}.machineId`);
+                                        const isOther = entryMachineId === 'OTHER';
+                                        const catalogMachine = machines.find((m) => m.id === entryMachineId);
+                                        const displayName = isOther
+                                            ? (watch(`machines.${idx}.customMachineName`) || 'Otro equipo')
+                                            : (catalogMachine ? machineLabel(catalogMachine) : entryMachineId);
+
+                                        return (
+                                            <div
+                                                key={mf.id}
+                                                className="border border-border rounded-lg p-3 space-y-2 bg-muted/20"
                                             >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </div>
-                                    ))}
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm font-medium">{displayName}</span>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                                        onClick={() => removeMachine(idx)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+
+                                                {/* Nombre personalizado — requerido para Otro */}
+                                                {isOther && (
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">
+                                                            Nombre del equipo <span className="text-destructive">*</span>
+                                                        </Label>
+                                                        <Input
+                                                            className="h-8 text-xs"
+                                                            placeholder="Nombre del equipo no registrado"
+                                                            {...register(`machines.${idx}.customMachineName`)}
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {/* Modelo y fabricante — opcionales para catálogo, opcionales para Otro */}
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Modelo</Label>
+                                                        <Input
+                                                            className="h-8 text-xs"
+                                                            placeholder={catalogMachine?.model ?? 'N/A'}
+                                                            {...register(`machines.${idx}.customMachineModel`)}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-xs">Fabricante</Label>
+                                                        <Input
+                                                            className="h-8 text-xs"
+                                                            placeholder={catalogMachine?.manufacturer ?? 'N/A'}
+                                                            {...register(`machines.${idx}.customMachineManufacturer`)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
 
-                            {/* Combobox para agregar */}
+                            {/* Combobox para agregar — catálogo + Otro */}
                             <Combobox
-                                options={machines
-                                    .filter((m) => !(watchedMachineIds ?? []).includes(m.id))
-                                    .map((m) => ({
-                                        value: m.id,
-                                        label: machineLabel(m),
-                                    }))}
+                                options={[
+                                    { value: 'OTHER', label: 'Otro (equipo no registrado)' },
+                                    ...machines
+                                        .filter((m) => !selectedCatalogIds.has(m.id))
+                                        .map((m) => ({ value: m.id, label: machineLabel(m) })),
+                                ]}
                                 value=""
                                 onValueChange={(val: string) => {
-                                    if (val) {
-                                        const current = watchedMachineIds ?? [];
-                                        setValue('machineIds', [...current, val], { shouldValidate: true });
-                                    }
+                                    if (!val) return;
+                                    const catalogMachine = machines.find((m) => m.id === val);
+                                    const newEntry: MachineEntry = {
+                                        machineId: val,
+                                        customMachineName: '',
+                                        customMachineModel: catalogMachine?.model ?? '',
+                                        customMachineManufacturer: catalogMachine?.manufacturer ?? '',
+                                    };
+                                    appendMachine(newEntry);
                                 }}
-                                placeholder="Agregar máquina..."
+                                placeholder="Agregar máquina o equipo..."
                                 searchPlaceholder="Buscar máquina..."
                             />
-                            {errors.machineIds && (
-                                <p className="text-xs text-destructive">{(errors.machineIds as unknown as { message?: string }).message ?? 'Selecciona al menos una máquina'}</p>
+                            {errors.machines && (
+                                <p className="text-xs text-destructive">
+                                    {(errors.machines as unknown as { message?: string }).message ?? 'Selecciona al menos una máquina'}
+                                </p>
                             )}
                         </div>
 
-                        {/* Área — derivada automáticamente de las máquinas */}
-                        {selectedMachines.length > 0 && (
+                        {/* Área — derivada de las máquinas de catálogo */}
+                        {derivedAreaName && (
                             <div className="space-y-1.5">
                                 <Label className="text-muted-foreground text-xs">Área (derivada del equipo)</Label>
                                 <Input
@@ -913,41 +962,6 @@ export default function CreateMaterialRequestPage() {
                                     readOnly
                                     className="bg-muted/30 text-muted-foreground cursor-default"
                                 />
-                            </div>
-                        )}
-
-                        {/* Datos editables del equipo (solo si hay exactamente 1 máquina) */}
-                        {selectedMachines.length === 1 && (
-                            <div className="space-y-3 pt-1">
-                                <p className="text-xs text-muted-foreground">
-                                    Datos del equipo (editables — no afectan el catálogo original)
-                                </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div className="space-y-1">
-                                        <Label className="text-xs">Marca</Label>
-                                        <Input
-                                            className="h-9 text-sm"
-                                            placeholder="N/A"
-                                            {...register('customMachineBrand')}
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs">Modelo</Label>
-                                        <Input
-                                            className="h-9 text-sm"
-                                            placeholder="N/A"
-                                            {...register('customMachineModel')}
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs">Fabricante</Label>
-                                        <Input
-                                            className="h-9 text-sm"
-                                            placeholder="N/A"
-                                            {...register('customMachineManufacturer')}
-                                        />
-                                    </div>
-                                </div>
                             </div>
                         )}
                         </CardContent>
