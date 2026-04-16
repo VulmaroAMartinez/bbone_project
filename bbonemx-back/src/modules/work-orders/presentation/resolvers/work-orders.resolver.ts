@@ -208,7 +208,7 @@ export class WorkOrdersResolver {
     @Args('input') input: CreateWorkOrderInput,
     @CurrentUser() user: User,
   ) {
-    const wo = await this.workOrdersService.create(input, user.id);
+    const wo = await this.workOrdersService.create(input, user.id, user);
 
     // Solo notificar si quien crea es REQUESTER
     if (user.hasRole('REQUESTER')) {

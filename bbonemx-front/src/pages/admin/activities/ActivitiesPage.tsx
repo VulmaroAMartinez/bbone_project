@@ -152,6 +152,7 @@ export default function ActivitiesPage() {
       filters: {
         areaId: areaFilter || undefined,
         machineId: machineFilter || undefined,
+        technicianId: technicianFilter || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         priority: priorityFilter || undefined,
         search: searchTerm || undefined,
@@ -183,6 +184,7 @@ export default function ActivitiesPage() {
           filters: {
             areaId: areaFilter || undefined,
             machineId: machineFilter || undefined,
+            technicianId: technicianFilter || undefined,
             status: statusFilter !== 'all' ? statusFilter : undefined,
             priority: priorityFilter || undefined,
             search: searchTerm || undefined,
@@ -263,7 +265,7 @@ export default function ActivitiesPage() {
   );
 
   const technicianOptions = useMemo(
-    () => (filtersData?.techniciansActive || []).map((t: { id: string; user: { fullName: string } }) => ({ value: t.id, label: t.user.fullName })),
+    () => (filtersData?.techniciansActive || []).map((t: { id: string; user: { id: string; fullName: string } }) => ({ value: t.user.id, label: t.user.fullName })),
     [filtersData],
   );
 

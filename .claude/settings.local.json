@@ -41,7 +41,8 @@
       "Bash(git -C bbonemx-front log --oneline -5)",
       "Bash(git commit *)",
       "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(grep -n \"machinesByArea\\\\|machinesByAreaOrSubArea\" \"C:/Users/vulma/Downloads/bbmaintenance/bbonemx-front/src/lib/graphql/operations/\"*.ts)"
     ]
   }
 }

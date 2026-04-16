@@ -163,6 +163,10 @@ export class UsersService {
       ...(input.departmentId !== undefined && {
         departmentId: input.departmentId,
       }),
+      ...(input.areaId !== undefined && { areaId: input.areaId || undefined }),
+      ...(input.subAreaId !== undefined && {
+        subAreaId: input.subAreaId || undefined,
+      }),
       ...rolePatch,
     };
 

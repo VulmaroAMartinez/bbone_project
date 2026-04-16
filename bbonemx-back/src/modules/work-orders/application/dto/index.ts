@@ -5,3 +5,4 @@ export * from './work-order-photo.dto';
 export * from './work-order-filters.dto';
 export * from './work-order-spare-part.dto';
 export * from './work-order-material.dto';
+export * from './conformity.dto';

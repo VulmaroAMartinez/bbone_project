@@ -8,6 +8,7 @@ import {
   WorkOrderSignature,
   WorkOrderSparePart,
   WorkOrderMaterial,
+  WorkOrderConformityRecord,
 } from './domain/entities';
 
 import {
@@ -17,6 +18,7 @@ import {
   WorkOrderSignaturesRepository,
   WorkOrderSparePartsRepository,
   WorkOrderMaterialsRepository,
+  WorkOrderConformityRecordsRepository,
 } from './infrastructure/repositories';
 
 import {
@@ -27,9 +29,13 @@ import {
   WorkOrderSparePartsService,
   WorkOrderMaterialsService,
   WorkOrderPdfService,
+  WorkOrderConformityService,
 } from './application/services';
 
-import { WorkOrdersResolver } from './presentation/resolvers';
+import {
+  WorkOrdersResolver,
+  WorkOrderConformityResolver,
+} from './presentation/resolvers';
 import { AreasModule } from '../catalogs/areas/areas.module';
 import { SubAreasModule } from '../catalogs/sub-areas/sub-areas.module';
 import { UsersModule } from '../users/users.module';
@@ -57,6 +63,7 @@ import { ShiftsModule } from '../catalogs/shifts/shifts.module';
       WorkOrderSignature,
       WorkOrderSparePart,
       WorkOrderMaterial,
+      WorkOrderConformityRecord,
     ]),
     AreasModule,
     SubAreasModule,
@@ -71,6 +78,7 @@ import { ShiftsModule } from '../catalogs/shifts/shifts.module';
     WorkOrderSignaturesRepository,
     WorkOrderSparePartsRepository,
     WorkOrderMaterialsRepository,
+    WorkOrderConformityRecordsRepository,
     WorkOrdersService,
     WorkOrderPhotosService,
     WorkOrderTechniciansService,
@@ -78,7 +86,9 @@ import { ShiftsModule } from '../catalogs/shifts/shifts.module';
     WorkOrderSparePartsService,
     WorkOrderMaterialsService,
     WorkOrderPdfService,
+    WorkOrderConformityService,
     WorkOrdersResolver,
+    WorkOrderConformityResolver,
   ],
   exports: [
     WorkOrdersService,
@@ -87,6 +97,7 @@ import { ShiftsModule } from '../catalogs/shifts/shifts.module';
     WorkOrderSignaturesService,
     WorkOrderSparePartsService,
     WorkOrderMaterialsService,
+    WorkOrderConformityService,
     TypeOrmModule,
   ],
 })

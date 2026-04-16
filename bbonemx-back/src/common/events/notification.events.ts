@@ -59,6 +59,20 @@ export class WorkOrderCreatedByRequesterEvent {
   ) {}
 }
 
+export class WorkOrderNonConformityEvent {
+  constructor(
+    public readonly workOrderId: string,
+    public readonly workOrderFolio: string,
+    public readonly description: string,
+    /** IDs de técnicos asignados que deben re-trabajar */
+    public readonly technicianUserIds: string[],
+    /** Razón de no conformidad indicada por el solicitante */
+    public readonly reason: string,
+    /** Ciclo de no-conformidad (1-based) */
+    public readonly cycleNumber: number,
+  ) {}
+}
+
 /** Constantes de nombres de eventos para el EventEmitter */
 export const NOTIFICATION_EVENTS = {
   WORK_ORDER_ASSIGNED: 'notification.work_order.assigned',
@@ -66,4 +80,5 @@ export const NOTIFICATION_EVENTS = {
   PREVENTIVE_TASK_WO_GENERATED: 'notification.preventive_task.wo_generated',
   WORK_ORDER_CREATED_BY_REQUESTER:
     'notification.work_order.created_by_requester',
+  WORK_ORDER_NON_CONFORMITY: 'notification.work_order.non_conformity',
 } as const;

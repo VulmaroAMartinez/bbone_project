@@ -10,6 +10,8 @@ import { BaseEntity } from '../../../../infrastructure/database/base.entity';
 import { Role } from '../../../catalogs/roles/domain/entities';
 import { Department } from '../../../catalogs/departments/domain/entities';
 import { UserRole } from './user-role.entity';
+import { Area } from '../../../catalogs/areas/domain/entities';
+import { SubArea } from '../../../catalogs/sub-areas/domain/entities';
 
 @Entity({ name: 'users' })
 export class User extends BaseEntity {
@@ -102,6 +104,26 @@ export class User extends BaseEntity {
   @ManyToOne(() => Department)
   @JoinColumn({ name: 'department_id' })
   department: Department;
+
+  /**
+   * Área de alcance del REQUESTER (opcional).
+   * Si está definida, el REQUESTER solo puede crear OTs en esta área.
+   * ADMIN no tiene restricción.
+   */
+  @Column({ name: 'area_id', type: 'uuid', nullable: true })
+  areaId?: string;
+
+  @ManyToOne(() => Area, { nullable: true })
+  @JoinColumn({ name: 'area_id' })
+  area?: Area;
+
+  /** Sub-área de alcance del REQUESTER (opcional, requiere areaId). */
+  @Column({ name: 'sub_area_id', type: 'uuid', nullable: true })
+  subAreaId?: string;
+
+  @ManyToOne(() => SubArea, { nullable: true })
+  @JoinColumn({ name: 'sub_area_id' })
+  subArea?: SubArea;
 
   get fullName(): string {
     return `${this.firstName} ${this.lastName}`;

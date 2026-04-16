@@ -174,6 +174,8 @@ export const GET_WORK_ORDER_BY_ID_QUERY = gql`
       }
       customSparePart
       customMaterial
+      pendingConformity
+      conformityCycleCount
       spareParts {
         id
         quantity
@@ -358,6 +360,44 @@ export const CANCEL_WORK_ORDER_MUTATION = gql`
     cancelWorkOrder(id: $id) {
       id
       status
+    }
+  }
+`;
+
+export const RESPOND_CONFORMITY_MUTATION = gql`
+  mutation RespondConformity($input: RespondConformityInput!) {
+    respondConformity(input: $input) {
+      id
+      workOrderId
+      cycleNumber
+      question1Answer
+      question2Answer
+      question3Answer
+      isConforming
+      reason
+      respondedAt
+      previousStatus
+    }
+  }
+`;
+
+export const GET_CONFORMITY_RECORDS_QUERY = gql`
+  query ConformityRecords($workOrderId: String!) {
+    conformityRecords(workOrderId: $workOrderId) {
+      id
+      cycleNumber
+      question1Answer
+      question2Answer
+      question3Answer
+      isConforming
+      reason
+      respondedAt
+      previousStatus
+      respondedBy {
+        id
+        firstName
+        lastName
+      }
     }
   }
 `;

@@ -13,15 +13,17 @@ import {
   type WorkOrderSignature,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated';
+import { RESPOND_CONFORMITY_MUTATION } from '@/lib/graphql/operations/work-orders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { SignatureDialog } from '@/components/ui/signature-dialog';
+import { ConformityDialog, type ConformityFormValues } from '@/components/ui/conformity-dialog';
 import { WorkOrderDetailSkeleton } from '@/components/ui/skeleton-loaders';
 import {
   ArrowLeft, Calendar, MapPin, Clock, Wrench, FileText,
-  CheckCircle, AlertTriangle, Settings, Pen, User, Building2,
+  CheckCircle, AlertTriangle, Settings, Pen, User, Building2, ClipboardCheck,
 } from 'lucide-react';
 import { resolveBackendAssetUrl, uploadFileToBackend, dataUrlToFile } from '@/lib/utils/uploads';
 import { toast } from 'sonner';
@@ -32,6 +34,8 @@ export default function OrdenDetallePage() {
   const { user } = useAuth();
 
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+  const [isConformityOpen, setIsConformityOpen] = useState(false);
+  const [conformityLoading, setConformityLoading] = useState(false);
 
   const { data, loading, refetch } = useQuery(GetWorkOrderByIdDocument, {
     variables: { id: id! },
@@ -40,6 +44,7 @@ export default function OrdenDetallePage() {
   });
 
   const [signWorkOrder] = useMutation(SignWorkOrderDocument);
+  const [respondConformity] = useMutation(RESPOND_CONFORMITY_MUTATION);
 
   const workOrderRaw = (data as unknown as { workOrder?: Record<string, unknown> })?.workOrder;
   const order = unmaskFragment(WorkOrderItemFragmentDoc, workOrderRaw);
@@ -93,9 +98,48 @@ export default function OrdenDetallePage() {
 
 
 
+  const handleConformitySubmit = async (values: ConformityFormValues) => {
+    setConformityLoading(true);
+    try {
+      await respondConformity({
+        variables: {
+          input: {
+            workOrderId: order?.id,
+            question1Answer: values.question1Answer,
+            question2Answer: values.question2Answer,
+            question3Answer: values.question3Answer,
+            isConforming: values.isConforming,
+            reason: values.reason ?? null,
+          },
+        },
+      });
+      await refetch();
+      if (values.isConforming) {
+        toast.success('Conformidad confirmada. Firma la orden para continuar.');
+        setIsSignModalOpen(true);
+      } else {
+        toast.info('No conformidad registrada. La orden ha sido regresada a los técnicos.');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al responder conformidad';
+      toast.error(msg);
+      throw err;
+    } finally {
+      setConformityLoading(false);
+    }
+  };
+
   const signatures = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
   const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER');
-  const needsMySignature = (order.status === 'FINISHED' || order.status === 'TEMPORARY_REPAIR') && !requesterSignature;
+
+  const isFinishedOrRepair = order.status === 'FINISHED' || order.status === 'TEMPORARY_REPAIR';
+  const pendingConformity = (workOrderRaw as { pendingConformity?: boolean })?.pendingConformity ?? false;
+  const conformityCycleCount = (workOrderRaw as { conformityCycleCount?: number })?.conformityCycleCount ?? 0;
+
+  // Muestra cuestionario cuando OT finalizada y aún pendiente de conformidad
+  const needsConformity = isFinishedOrRepair && pendingConformity;
+  // Muestra botón de firma solo cuando ya pasó conformidad y aún no ha firmado
+  const needsMySignature = isFinishedOrRepair && !pendingConformity && !requesterSignature;
 
   const photoBefore = (workOrderRaw as { photos?: Array<{ photoType: string; filePath: string }> })?.photos?.find(p => p.photoType === 'BEFORE');
   const photoAfter = (workOrderRaw as { photos?: Array<{ photoType: string; filePath: string }> })?.photos?.find(p => p.photoType === 'AFTER');
@@ -116,6 +160,33 @@ export default function OrdenDetallePage() {
         </div>
       </div>
 
+      {/* Conformidad pendiente */}
+      {needsConformity && (
+        <Card className="bg-amber-500/5 border-amber-500/40 shadow-sm animate-in slide-in-from-top-2">
+          <CardContent>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <ClipboardCheck className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                  Evaluación de conformidad requerida
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  La orden ha sido completada. Responde el cuestionario de conformidad antes de firmar.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="gap-2 shrink-0 border-amber-500/50 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 bg-transparent"
+                onClick={() => setIsConformityOpen(true)}
+              >
+                <ClipboardCheck className="h-4 w-4" />
+                Responder conformidad
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sign prompt for solicitante */}
       {needsMySignature && (
         <Card className="bg-primary/5 border-primary/30 shadow-sm animate-in slide-in-from-top-2">
@@ -123,7 +194,7 @@ export default function OrdenDetallePage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="font-semibold text-foreground flex items-center gap-2"><AlertTriangle className='h-4 w-4 text-primary' aria-hidden="true" />Firma requerida</h3>
-                <p className="text-sm text-muted-foreground mt-1">Esta orden ha sido completada. Por favor valide y firme la orden.</p>
+                <p className="text-sm text-muted-foreground mt-1">Conformidad confirmada. Por favor valide y firme la orden.</p>
               </div>
               <Button className="gap-2 shrink-0" onClick={() => setIsSignModalOpen(true)}>
                 <Pen className="h-4 w-4" />
@@ -305,7 +376,7 @@ export default function OrdenDetallePage() {
       )}
 
       {/* Signatures (when completed) */}
-      {(order.status === 'COMPLETED' || order.status === 'TEMPORARY_REPAIR' || signatures.length > 0) && (
+      {(order.status === 'COMPLETED' || isFinishedOrRepair || signatures.length > 0) && (
         <Card className="bg-card border-border shadow-sm">
           <CardHeader className="pb-3 border-b border-border/50 flex flex-row items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
@@ -321,6 +392,10 @@ export default function OrdenDetallePage() {
                 <p className="text-sm font-medium text-muted-foreground mb-3">Solicitante</p>
                 {requesterSignature ? (
                   <img src={resolveBackendAssetUrl(requesterSignature.signatureImagePath)} alt="Firma" width={200} height={48} className="h-12 object-contain" />
+                ) : needsConformity ? (
+                  <Button variant="outline" size="sm" className="bg-transparent border-amber-500/50 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10" onClick={() => setIsConformityOpen(true)}>
+                    <ClipboardCheck className="h-3 w-3 mr-2" /> Conformidad
+                  </Button>
                 ) : needsMySignature ? (
                   <Button variant="outline" size="sm" className="bg-background shadow-sm" onClick={() => setIsSignModalOpen(true)}>
                     <Pen className="h-3 w-3 mr-2" /> Firmar
@@ -360,6 +435,15 @@ export default function OrdenDetallePage() {
         isOpen={isSignModalOpen}
         onClose={() => setIsSignModalOpen(false)}
         onSave={handleSaveSignature}
+      />
+
+      {/* Conformity Dialog */}
+      <ConformityDialog
+        isOpen={isConformityOpen}
+        onClose={() => setIsConformityOpen(false)}
+        onSubmit={handleConformitySubmit}
+        cycleNumber={conformityCycleCount + 1}
+        isLoading={conformityLoading}
       />
 
     </div>

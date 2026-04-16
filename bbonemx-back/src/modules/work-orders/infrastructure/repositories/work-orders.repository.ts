@@ -329,6 +329,17 @@ export class WorkOrdersRepository {
       .getRawMany();
   }
 
+  /** Cuenta OTs con pendingConformity=true para un solicitante dado */
+  async countPendingConformityByRequester(requesterId: string): Promise<number> {
+    return this.repository.count({
+      where: {
+        requesterId,
+        pendingConformity: true,
+        isActive: true,
+      },
+    });
+  }
+
   getRepository(): Repository<WorkOrder> {
     return this.repository;
   }

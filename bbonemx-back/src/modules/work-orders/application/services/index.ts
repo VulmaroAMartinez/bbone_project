@@ -5,3 +5,4 @@ export * from './work-order-signatures.service';
 export * from './work-order-spare-parts.service';
 export * from './work-order-materials.service';
 export * from './work-order-pdf.service';
+export * from './work-order-conformity.service';

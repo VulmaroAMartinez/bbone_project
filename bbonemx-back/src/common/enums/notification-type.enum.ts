@@ -15,6 +15,9 @@ export enum NotificationType {
 
   /** Requester creó una OT (Admin) */
   WORK_ORDER_CREATED_BY_REQUESTER = 'WORK_ORDER_CREATED_BY_REQUESTER',
+
+  /** OT rechazada por no-conformidad — técnicos deben re-trabajar */
+  WORK_ORDER_NON_CONFORMITY = 'WORK_ORDER_NON_CONFORMITY',
 }
 
 registerEnumType(NotificationType, {
@@ -33,6 +36,9 @@ registerEnumType(NotificationType, {
     },
     WORK_ORDER_CREATED_BY_REQUESTER: {
       description: 'Requester creó una nueva OT',
+    },
+    WORK_ORDER_NON_CONFORMITY: {
+      description: 'OT rechazada por no-conformidad — re-trabajo requerido',
     },
   },
 });

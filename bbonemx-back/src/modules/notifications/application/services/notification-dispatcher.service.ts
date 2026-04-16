@@ -17,6 +17,7 @@ import {
   WorkOrderCompletedEvent,
   PreventiveTaskWoGeneratedEvent,
   WorkOrderCreatedByRequesterEvent,
+  WorkOrderNonConformityEvent,
 } from 'src/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -136,6 +137,28 @@ export class NotificationDispatcherService {
 
     const adminIds = await this.getUserIdsByRole('ADMIN');
     await this.dispatchToUsers(adminIds, type, title, body, data);
+  }
+
+  @OnEvent(NOTIFICATION_EVENTS.WORK_ORDER_NON_CONFORMITY)
+  async handleWorkOrderNonConformity(
+    event: WorkOrderNonConformityEvent,
+  ): Promise<void> {
+    this.logger.log(
+      `Evento: OT ${event.workOrderFolio} rechazada por no-conformidad (ciclo ${event.cycleNumber})`,
+    );
+
+    const type = NotificationType.WORK_ORDER_NON_CONFORMITY;
+    const title = `OT rechazada — Re-trabajo requerido (Ciclo ${event.cycleNumber})`;
+    const body = `La OT ${event.workOrderFolio} fue rechazada por el solicitante. Razón: ${this.truncate(event.reason, 100)}`;
+    const data = {
+      workOrderId: event.workOrderId,
+      workOrderFolio: event.workOrderFolio,
+      type: 'WORK_ORDER_NON_CONFORMITY',
+      cycleNumber: String(event.cycleNumber),
+      link: `/tecnico/ordenes/${event.workOrderId}`,
+    };
+
+    await this.dispatchToUsers(event.technicianUserIds, type, title, body, data);
   }
 
   private async dispatchToUsers(

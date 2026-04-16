@@ -48,6 +48,12 @@ export class UserType {
   @Field(() => DepartmentType)
   department: DepartmentType;
 
+  @Field(() => ID, { nullable: true })
+  areaId?: string;
+
+  @Field(() => ID, { nullable: true })
+  subAreaId?: string;
+
   @Field()
   isActive: boolean;
 
