@@ -17,7 +17,8 @@ import {
   SubAreaBasicFragmentDoc,
   MachineBasicFragmentDoc,
   TechnicianBasicFragmentDoc,
-  UserBasicFragmentDoc
+  UserBasicFragmentDoc,
+  RoleBasicFragmentDoc
 } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 import {
@@ -29,6 +30,7 @@ import {
   EXPORT_WORK_ORDER_PDF_MUTATION,
   CANCEL_WORK_ORDER_MUTATION,
 } from '@/lib/graphql/operations/work-orders';
+
 import { GET_TECH_IDS_FOR_SHIFT_QUERY } from '@/lib/graphql/operations/scheduling';
 import { downloadPdfFromBase64 } from '@/lib/utils/pdf-download';
 import { resolveBackendAssetUrl, uploadFileToBackend, dataUrlToFile } from '@/lib/utils/uploads';
@@ -422,7 +424,11 @@ function AdminOrdenDetallePage() {
   const adminSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN');
 
   // Requester signed first check
-  const requesterIsAdmin = requester?.roles?.some(r => r.name === 'ADMIN') ?? false;
+  const requesterIsAdmin = requester?.roles?.some(r => {
+    const role = unmaskFragment(RoleBasicFragmentDoc, r);
+    return role?.name === 'ADMIN';
+  }) ?? false;
+
   const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.id === requester?.id);
   const requesterHasSigned = requesterIsAdmin || !!requesterSignature;
 
@@ -523,159 +529,43 @@ function AdminOrdenDetallePage() {
         {/* Columna principal (izquierda) */}
         <div className="space-y-6 lg:col-span-2">
           <Card className={cn("bg-card shadow-sm transition-opacity", isCancelled && "opacity-60")}>
-          <CardHeader className="border-b border-border/50">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FileText className="h-5 w-5 text-primary" /> Datos de la Solicitud
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">
-                Descripción reportada
-              </p>
-              <p className="text-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded-md border border-border/50">
-                {order.description}
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 text-sm">
-              <div>
-                <p className="text-muted-foreground">Área</p>
-                <p className="font-medium text-foreground">{area?.name}</p>
-              </div>
-              {subArea && (
-                <div>
-                  <p className="text-muted-foreground">Sub-área</p>
-                  <p className="font-medium text-foreground">{subArea.name}</p>
-                </div>
-              )}
-            </div>
-            {photoBefore && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Evidencia inicial (Antes)
-                </p>
-                <img
-                  src={resolveBackendAssetUrl(photoBefore.filePath)}
-                  alt="Antes"
-                  width={800}
-                  height={256}
-                  className="max-h-64 rounded-lg border border-border object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className={cn("bg-card shadow-sm transition-opacity", isCancelled && "opacity-60")}>
-          <CardHeader className="border-b border-border/50 pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Settings className="h-5 w-5 text-primary" /> Parámetros de Gestión
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Prioridad</span>
-                {order.priority ? (
-                  <PriorityBadge priority={order.priority} />
-                ) : (
-                  <span className="text-muted-foreground italic">--</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Tipo de parada</span>
-                {order.stopType ? (
-                  <StopTypeBadge stopType={order.stopType} />
-                ) : (
-                  <span className="text-muted-foreground italic">--</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Tipo de mantenimiento</span>
-                {order.maintenanceType ? (
-                  <MaintenanceTypeBadge type={order.maintenanceType} />
-                ) : (
-                  <span className="text-muted-foreground italic">--</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Equipo/Estructura</span>
-                <span className="font-medium">
-                  {machine ? `${machine.name} [${machine.code}]` : '--'}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Reporte de cierre técnico */}
-        {(workOrderRaw as { endDate?: string })?.endDate && (
-          <Card className="bg-card shadow-sm border-primary/20">
             <CardHeader className="border-b border-border/50">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Wrench className="h-5 w-5 text-primary" /> Reporte de Cierre
-                Técnico
+                <FileText className="h-5 w-5 text-primary" /> Datos de la Solicitud
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              {(order.stopType === 'BREAKDOWN' || order.stopType === 'OTHER') && (() => {
-                const raw = workOrderRaw as { cause?: string; actionTaken?: string; toolsUsed?: string };
-                const hasBreakdownContent = raw.cause || raw.actionTaken || raw.toolsUsed;
-                const showBox = order.stopType === 'BREAKDOWN' || (order.stopType === 'OTHER' && hasBreakdownContent);
-                if (!showBox) return null;
-                return (
-                  <div className="grid md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-lg border border-border/50">
-                    {raw.cause && (
-                      <div>
-                        <p className="text-muted-foreground font-medium mb-1">
-                          Causa Raíz
-                        </p>
-                        <p>{raw.cause}</p>
-                      </div>
-                    )}
-                    {raw.actionTaken && (
-                      <div>
-                        <p className="text-muted-foreground font-medium mb-1">
-                          Acción Realizada
-                        </p>
-                        <p>{raw.actionTaken}</p>
-                      </div>
-                    )}
-                    {raw.toolsUsed && (
-                      <div className="md:col-span-2">
-                        <p className="text-muted-foreground font-medium mb-1">
-                          Herramientas / Materiales
-                        </p>
-                        <p>{raw.toolsUsed}</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-              {(workOrderRaw as { observations?: string })?.observations && (
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Descripción reportada
+                </p>
+                <p className="text-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded-md border border-border/50">
+                  {order.description}
+                </p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 text-sm">
                 <div>
-                  <p className="text-muted-foreground font-medium mb-1">
-                    Observaciones Generales
-                  </p>
-                  <p className="bg-muted p-3 rounded-md">
-                    {(workOrderRaw as { observations?: string }).observations}
-                  </p>
+                  <p className="text-muted-foreground">Área</p>
+                  <p className="font-medium text-foreground">{area?.name}</p>
                 </div>
-              )}
-              {photoAfter && (
+                {subArea && (
+                  <div>
+                    <p className="text-muted-foreground">Sub-área</p>
+                    <p className="font-medium text-foreground">{subArea.name}</p>
+                  </div>
+                )}
+              </div>
+              {photoBefore && (
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Evidencia Final (Después)
+                    Evidencia inicial (Antes)
                   </p>
                   <img
-                    src={resolveBackendAssetUrl(photoAfter.filePath)}
-                    alt="Después"
+                    src={resolveBackendAssetUrl(photoBefore.filePath)}
+                    alt="Antes"
                     width={800}
-                    height={192}
-                    className="max-h-48 rounded-lg border border-border object-cover"
+                    height={256}
+                    className="max-h-64 rounded-lg border border-border object-cover"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
@@ -684,7 +574,123 @@ function AdminOrdenDetallePage() {
               )}
             </CardContent>
           </Card>
-        )}
+
+          <Card className={cn("bg-card shadow-sm transition-opacity", isCancelled && "opacity-60")}>
+            <CardHeader className="border-b border-border/50 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Settings className="h-5 w-5 text-primary" /> Parámetros de Gestión
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Prioridad</span>
+                  {order.priority ? (
+                    <PriorityBadge priority={order.priority} />
+                  ) : (
+                    <span className="text-muted-foreground italic">--</span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Tipo de parada</span>
+                  {order.stopType ? (
+                    <StopTypeBadge stopType={order.stopType} />
+                  ) : (
+                    <span className="text-muted-foreground italic">--</span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Tipo de mantenimiento</span>
+                  {order.maintenanceType ? (
+                    <MaintenanceTypeBadge type={order.maintenanceType} />
+                  ) : (
+                    <span className="text-muted-foreground italic">--</span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Equipo/Estructura</span>
+                  <span className="font-medium">
+                    {machine ? `${machine.name} [${machine.code}]` : '--'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Reporte de cierre técnico */}
+          {(workOrderRaw as { endDate?: string })?.endDate && (
+            <Card className="bg-card shadow-sm border-primary/20">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Wrench className="h-5 w-5 text-primary" /> Reporte de Cierre
+                  Técnico
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                {(order.stopType === 'BREAKDOWN' || order.stopType === 'OTHER') && (() => {
+                  const raw = workOrderRaw as { cause?: string; actionTaken?: string; toolsUsed?: string };
+                  const hasBreakdownContent = raw.cause || raw.actionTaken || raw.toolsUsed;
+                  const showBox = order.stopType === 'BREAKDOWN' || (order.stopType === 'OTHER' && hasBreakdownContent);
+                  if (!showBox) return null;
+                  return (
+                    <div className="grid md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-lg border border-border/50">
+                      {raw.cause && (
+                        <div>
+                          <p className="text-muted-foreground font-medium mb-1">
+                            Causa Raíz
+                          </p>
+                          <p>{raw.cause}</p>
+                        </div>
+                      )}
+                      {raw.actionTaken && (
+                        <div>
+                          <p className="text-muted-foreground font-medium mb-1">
+                            Acción Realizada
+                          </p>
+                          <p>{raw.actionTaken}</p>
+                        </div>
+                      )}
+                      {raw.toolsUsed && (
+                        <div className="md:col-span-2">
+                          <p className="text-muted-foreground font-medium mb-1">
+                            Herramientas / Materiales
+                          </p>
+                          <p>{raw.toolsUsed}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+                {(workOrderRaw as { observations?: string })?.observations && (
+                  <div>
+                    <p className="text-muted-foreground font-medium mb-1">
+                      Observaciones Generales
+                    </p>
+                    <p className="bg-muted p-3 rounded-md">
+                      {(workOrderRaw as { observations?: string }).observations}
+                    </p>
+                  </div>
+                )}
+                {photoAfter && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Evidencia Final (Después)
+                    </p>
+                    <img
+                      src={resolveBackendAssetUrl(photoAfter.filePath)}
+                      alt="Después"
+                      width={800}
+                      height={192}
+                      className="max-h-48 rounded-lg border border-border object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Columna lateral (derecha) */}
