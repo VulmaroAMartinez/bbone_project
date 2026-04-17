@@ -158,7 +158,13 @@ export class NotificationDispatcherService {
       link: `/tecnico/ordenes/${event.workOrderId}`,
     };
 
-    await this.dispatchToUsers(event.technicianUserIds, type, title, body, data);
+    await this.dispatchToUsers(
+      event.technicianUserIds,
+      type,
+      title,
+      body,
+      data,
+    );
   }
 
   private async dispatchToUsers(

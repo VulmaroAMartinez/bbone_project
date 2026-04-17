@@ -128,10 +128,11 @@ export class WorkOrderSignaturesService {
     // Para técnico líder y admin: la firma del solicitante debe ir primero
     // (excepto cuando el propio admin es el solicitante)
     if (!requesterIsAdmin) {
-      const requesterSigned = await this.workOrderSignaturesRepository.hasUserSigned(
-        wo.id,
-        wo.requesterId,
-      );
+      const requesterSigned =
+        await this.workOrderSignaturesRepository.hasUserSigned(
+          wo.id,
+          wo.requesterId,
+        );
       if (!requesterSigned) {
         throw new ForbiddenException(
           'El solicitante debe firmar primero antes de que el técnico o el administrador puedan firmar',
@@ -148,10 +149,8 @@ export class WorkOrderSignaturesService {
       );
       if (isLead) return;
 
-      const isAssigned = await this.woTechniciansRepository.isTechnicianAssigned(
-        wo.id,
-        user.id,
-      );
+      const isAssigned =
+        await this.woTechniciansRepository.isTechnicianAssigned(wo.id, user.id);
       if (isAssigned) {
         throw new ForbiddenException(
           'Solo el técnico líder de la OT puede firmarla',
