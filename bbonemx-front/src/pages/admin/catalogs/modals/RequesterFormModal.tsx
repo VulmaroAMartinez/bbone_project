@@ -75,7 +75,9 @@ export default function RequesterFormModal({
     const [updateUser, { loading: updating }] = useMutation(UpdateUserDocument);
 
     const { data: areasData } = useQuery(GetAreasDocument);
-    const [getSubAreas, { data: subAreasData }] = useLazyQuery(GetSubAreasByAreaDocument);
+    const [getSubAreas, { data: subAreasData }] = useLazyQuery(GetSubAreasByAreaDocument, {
+        fetchPolicy: 'network-only',
+    });
 
     const areas = areasData?.areas ? unmaskFragment(AreaBasicFragmentDoc, areasData.areas) : [];
     const subAreas = subAreasData?.subAreasByArea
@@ -106,17 +108,12 @@ export default function RequesterFormModal({
     });
 
     const selectedAreaId = watch('areaId');
-    const selectedArea = areas.find(a => a.id === selectedAreaId);
-    const isOperational = selectedArea?.type === 'OPERATIONAL';
 
     const handleAreaChange = (value: string) => {
         setValue('areaId', value);
         setValue('subAreaId', '');
         if (value) {
-            const area = areas.find(a => a.id === value);
-            if (area?.type === 'OPERATIONAL') {
-                getSubAreas({ variables: { areaId: value } });
-            }
+            getSubAreas({ variables: { areaId: value } });
         }
     };
 
@@ -293,7 +290,7 @@ export default function RequesterFormModal({
                                 )}
                             />
                         </div>
-                        {isOperational && selectedAreaId && (
+                        {selectedAreaId && (subAreas.length > 0 || !!watch('subAreaId')) && (
                             <div className="space-y-2">
                                 <Label>Sub-área</Label>
                                 <Controller
