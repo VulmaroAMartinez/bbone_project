@@ -95,6 +95,7 @@ const schema = yup.object({
   status: yup
     .mixed<ActivityStatus>()
     .oneOf(['PENDING', 'IN_PROGRESS', 'COMPLETED'])
+    .required()
     .default('PENDING'),
   comments: yup.string().optional().default(''),
   priority: yup.boolean().default(false),
@@ -175,7 +176,7 @@ export default function ActivityFormPage() {
         startDate: a.startDate ? a.startDate.split('T')[0] : '',
         endDate: a.endDate ? a.endDate.split('T')[0] : undefined,
         progress: a.progress,
-        status: a.status,
+        status: a.status ?? 'PENDING',
         comments: a.comments || '',
         priority: a.priority,
         technicianIds: a.technicians?.map((t) => t.technicianId) || [],
