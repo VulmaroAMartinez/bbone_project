@@ -62,6 +62,11 @@ export class WorkOrderFiltersInput {
   @Field(() => ID, { nullable: true })
   @IsOptional()
   @IsUUID()
+  subAreaId?: string;
+
+  @Field(() => ID, { nullable: true })
+  @IsOptional()
+  @IsUUID()
   requesterId?: string;
 
   @Field(() => ID, { nullable: true })

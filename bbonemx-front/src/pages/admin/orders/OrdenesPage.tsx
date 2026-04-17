@@ -1,20 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useLazyQuery } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
-  GetWorkOrdersFilteredDocument,
   GetShiftsDocument,
   GetAreasDocument,
+  GetSubAreasByAreaDocument,
   type WorkOrderStatus,
   type WorkOrderPriority,
   WorkOrderItemFragmentDoc,
   AreaBasicFragmentDoc,
+  SubAreaBasicFragmentDoc,
   MachineBasicFragmentDoc,
   UserBasicFragmentDoc,
+  type GetWorkOrdersFilteredQuery,
+  type GetWorkOrdersFilteredQueryVariables,
 } from '@/lib/graphql/generated/graphql';
 import { useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
+import { GET_WORK_ORDERS_FILTERED_QUERY } from '@/lib/graphql/operations/work-orders';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,6 +85,7 @@ function OrdenesPage() {
   );
   const [shiftFilter, setShiftFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState<string>('all');
+  const [subAreaFilter, setSubAreaFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<WorkOrderPriority | 'all'>('all');
 
   // Selection state
@@ -90,6 +95,9 @@ function OrdenesPage() {
 
   const { data: shiftsData } = useQuery(GetShiftsDocument);
   const { data: areasData } = useQuery(GetAreasDocument);
+  const [getSubAreas, { data: subAreasData }] = useLazyQuery(GetSubAreasByAreaDocument, {
+    fetchPolicy: 'network-only',
+  });
   const areas = useMemo(() => {
     const raw = areasData?.areas ? unmaskFragment(AreaBasicFragmentDoc, areasData.areas) : [];
     const seen = new Set<string>();
@@ -107,6 +115,21 @@ function OrdenesPage() {
       ...areas.map((a) => ({ value: a.id, label: a.name })),
     ],
     [areas],
+  );
+
+  const subAreas = useMemo(
+    () => subAreasData?.subAreasByArea
+      ? unmaskFragment(SubAreaBasicFragmentDoc, subAreasData.subAreasByArea)
+      : [],
+    [subAreasData],
+  );
+
+  const subAreaComboboxOptions = useMemo(
+    () => [
+      { value: 'all', label: 'Todas las sub-áreas' },
+      ...subAreas.map((s) => ({ value: s.id, label: s.name })),
+    ],
+    [subAreas],
   );
 
   useEffect(() => {
@@ -136,12 +159,16 @@ function OrdenesPage() {
     }
   };
 
-  const { data, loading, error, isOffline } = useOfflineAwareQuery(GetWorkOrdersFilteredDocument, {
+  const { data, loading, error, isOffline } = useOfflineAwareQuery<
+    GetWorkOrdersFilteredQuery,
+    GetWorkOrdersFilteredQueryVariables
+  >(GET_WORK_ORDERS_FILTERED_QUERY, {
     variables: {
       status: statusFilter !== 'all' ? statusFilter : undefined,
       priority: priorityFilter !== 'all' ? priorityFilter : undefined,
       assignedShiftId: shiftFilter !== 'all' ? shiftFilter : undefined,
       areaId: areaFilter !== 'all' ? areaFilter : undefined,
+      subAreaId: subAreaFilter !== 'all' ? subAreaFilter : undefined,
     },
   });
 
@@ -259,7 +286,11 @@ function OrdenesPage() {
                 value={areaFilter}
                 onValueChange={(val) => {
                   setAreaFilter(val);
+                  setSubAreaFilter('all');
                   setPage(1);
+                  if (val !== 'all') {
+                    getSubAreas({ variables: { areaId: val } });
+                  }
                 }}
                 placeholder="Área"
                 searchPlaceholder="Buscar área..."
@@ -267,6 +298,18 @@ function OrdenesPage() {
                 triggerClassName="w-[160px] shrink-0 justify-between"
                 listClassName="max-h-[min(20rem,45vh)]"
               />
+              {areaFilter !== 'all' && subAreas.length > 0 && (
+                <Combobox
+                  options={subAreaComboboxOptions}
+                  value={subAreaFilter}
+                  onValueChange={(val) => { setSubAreaFilter(val); setPage(1); }}
+                  placeholder="Sub-área"
+                  searchPlaceholder="Buscar sub-área..."
+                  emptyText="Sin coincidencias"
+                  triggerClassName="w-[160px] shrink-0 justify-between"
+                  listClassName="max-h-[min(20rem,45vh)]"
+                />
+              )}
               <Select value={statusFilter} onValueChange={(val) => handleStatusChange(val as WorkOrderStatus | 'all')}>
                 <SelectTrigger className="w-[160px] shrink-0">
                   <Filter className="mr-2 h-4 w-4" />

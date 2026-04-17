@@ -2041,6 +2041,7 @@ input WorkOrderFiltersInput {
   search: String
   status: WorkOrderStatus
   statuses: [WorkOrderStatus!]
+  subAreaId: ID
   technicianId: ID
   workType: WorkType
 }
