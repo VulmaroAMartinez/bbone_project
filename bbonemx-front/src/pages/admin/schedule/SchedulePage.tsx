@@ -463,9 +463,11 @@ export default function SchedulePage() {
                                                         onChange={(e) => handleCellChange(uid, dateStr, e.target.value)}
                                                         className={cn(
                                                             "w-full h-9 text-xs rounded-md border px-2 py-1 outline-none transition-colors appearance-none cursor-pointer",
-                                                            cell?.type === 'SHIFT' ? 'bg-primary/10 border-primary/20 text-primary font-medium' :
-                                                                cell?.type === 'ABSENCE' ? 'bg-destructive/10 border-destructive/20 text-destructive font-medium' :
-                                                                    'bg-background border-border text-muted-foreground hover:border-primary/50'
+                                                            cell?.type === 'SHIFT'
+                                                                ? 'bg-primary/15 border-primary/30 text-primary font-medium dark:bg-primary/30 dark:border-primary/50'
+                                                                : cell?.type === 'ABSENCE'
+                                                                    ? 'bg-destructive/15 border-destructive/30 text-destructive font-medium dark:bg-destructive/30 dark:border-destructive/50'
+                                                                    : 'bg-background border-border text-muted-foreground hover:border-primary/50'
                                                         )}
                                                     >
                                                         <option value="">-- Libre --</option>
