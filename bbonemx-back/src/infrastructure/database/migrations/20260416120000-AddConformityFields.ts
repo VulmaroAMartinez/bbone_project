@@ -57,9 +57,7 @@ export class AddConformityFields20260416120000 implements MigrationInterface {
     );
 
     // --- users: area y sub-área opcionales ---
-    await queryRunner.query(
-      `ALTER TABLE "users" ADD COLUMN "area_id" uuid`,
-    );
+    await queryRunner.query(`ALTER TABLE "users" ADD COLUMN "area_id" uuid`);
     await queryRunner.query(
       `ALTER TABLE "users" ADD COLUMN "sub_area_id" uuid`,
     );
@@ -142,9 +140,7 @@ export class AddConformityFields20260416120000 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "work_order_conformity_records"`);
 
     // Revertir work_orders
-    await queryRunner.query(
-      `DROP INDEX "idx_wo_pending_conformity"`,
-    );
+    await queryRunner.query(`DROP INDEX "idx_wo_pending_conformity"`);
     await queryRunner.query(
       `ALTER TABLE "work_orders" DROP COLUMN "new_changes_description"`,
     );

@@ -18,9 +18,10 @@ import {
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import { canEditFinding, filterMachinesByArea, buildMachineLabel } from '@/lib/findings/finding-logic';
+import { resolveBackendAssetUrl, uploadFileToBackend } from '@/lib/utils/uploads';
+import { MAX_FILE_BYTES } from '@/lib/offline-sync';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +33,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle2, ImageIcon } from 'lucide-react';
 import { Combobox } from '@/components/ui/combobox';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -69,8 +70,26 @@ function FindingFeedbackForm({
         photoPath: (finding as unknown as { photoPath?: string | null })?.photoPath || '',
     }));
 
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
     const handleChange = (field: keyof typeof form, value: string) => {
         setForm((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > MAX_FILE_BYTES) {
+            toast.error(`La imagen no puede superar ${MAX_FILE_BYTES / 1_048_576} MB`);
+            e.target.value = '';
+            return;
+        }
+        setPhotoFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setPhotoPreview(reader.result as string);
+        reader.readAsDataURL(file);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -82,12 +101,24 @@ function FindingFeedbackForm({
         }
 
         try {
+            let resolvedPhotoPath = form.photoPath;
+
+            if (photoFile) {
+                setUploading(true);
+                try {
+                    const uploaded = await uploadFileToBackend(photoFile);
+                    resolvedPhotoPath = uploaded.url;
+                } finally {
+                    setUploading(false);
+                }
+            }
+
             const input: UpdateFindingInput = {
                 areaId: form.areaId,
                 shiftId: form.shiftId,
                 description: form.description.trim(),
                 ...(form.machineId ? { machineId: form.machineId } : {}),
-                ...(form.photoPath ? { photoPath: form.photoPath } : {}),
+                ...(resolvedPhotoPath ? { photoPath: resolvedPhotoPath } : {}),
             };
 
             await onSubmitUpdate(input);
@@ -163,21 +194,61 @@ function FindingFeedbackForm({
             </div>
 
             <div className="space-y-2">
-                <Label>Ruta de Foto (Opcional)</Label>
-                <Input
-                    value={form.photoPath}
-                    onChange={(e) => handleChange('photoPath', e.target.value)}
-                    placeholder="Ruta o URL de la evidencia fotográfica"
-                    disabled={isReadOnly}
-                />
+                <Label>Evidencia Fotográfica (Opcional)</Label>
+                {photoPreview ? (
+                    <div className="relative">
+                        <img src={photoPreview} alt="Vista previa" className="w-full h-48 object-cover rounded-lg border" />
+                        {!isReadOnly && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-2 right-2"
+                                onClick={() => { setPhotoPreview(null); setPhotoFile(null); }}
+                            >
+                                Cambiar
+                            </Button>
+                        )}
+                    </div>
+                ) : form.photoPath ? (
+                    <div className="relative">
+                        <img
+                            src={resolveBackendAssetUrl(form.photoPath)}
+                            alt="Foto del hallazgo"
+                            className="w-full h-48 object-cover rounded-lg border"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                        {!isReadOnly && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-2 right-2"
+                                onClick={() => handleChange('photoPath', '')}
+                            >
+                                Cambiar
+                            </Button>
+                        )}
+                    </div>
+                ) : !isReadOnly ? (
+                    <label className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border p-8 cursor-pointer hover:border-primary/50 transition-colors bg-muted/10">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                        <span className="text-sm font-medium">Capturar o subir foto del hallazgo</span>
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoChange} />
+                    </label>
+                ) : (
+                    <p className="text-sm text-muted-foreground italic">Sin foto registrada</p>
+                )}
             </div>
 
             <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={() => navigate(-1)} className="flex-1" disabled={updating}>
+                <Button type="button" variant="outline" onClick={() => navigate(-1)} className="flex-1" disabled={updating || uploading}>
                     Cancelar
                 </Button>
-                <Button type="submit" disabled={updating || isReadOnly} className="flex-1">
-                    {updating
+                <Button type="submit" disabled={updating || uploading || isReadOnly} className="flex-1">
+                    {uploading
+                        ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Subiendo foto...</>
+                        : updating
                         ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>
                         : <><Save className="mr-2 h-4 w-4" /> Guardar Cambios</>
                     }

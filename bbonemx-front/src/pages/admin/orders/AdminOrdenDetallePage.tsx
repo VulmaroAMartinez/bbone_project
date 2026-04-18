@@ -29,6 +29,7 @@ import {
   ASSIGN_WORK_ORDER_MUTATION,
   EXPORT_WORK_ORDER_PDF_MUTATION,
   CANCEL_WORK_ORDER_MUTATION,
+  RESPOND_CONFORMITY_MUTATION,
 } from '@/lib/graphql/operations/work-orders';
 
 import { GET_TECH_IDS_FOR_SHIFT_QUERY } from '@/lib/graphql/operations/scheduling';
@@ -50,6 +51,7 @@ import {
 import { StatusBadge, PriorityBadge, MaintenanceTypeBadge, StopTypeBadge } from '@/components/ui/status-badge';
 import { WorkOrderDetailSkeleton } from '@/components/ui/skeleton-loaders';
 import { SignatureDialog } from '@/components/ui/signature-dialog';
+import { ConformityDialog, type ConformityFormValues } from '@/components/ui/conformity-dialog';
 import {
   ArrowLeft,
   Calendar,
@@ -64,6 +66,7 @@ import {
   CheckCircle,
   FileDown,
   XCircle,
+  ClipboardList,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -145,6 +148,8 @@ function AdminOrdenDetallePage() {
   const apolloClient = useApolloClient();
   const [manageOpen, setManageOpen] = useState(false);
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+  const [isConformityOpen, setIsConformityOpen] = useState(false);
+  const [conformityLoading, setConformityLoading] = useState(false);
   const [resumeConfirmOpen, setResumeConfirmOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [auxiliaryTechnicians, setAuxiliaryTechnicians] = useState<string[]>([]);
@@ -171,6 +176,7 @@ function AdminOrdenDetallePage() {
   const [resumeOrder, { loading: resuming }] = useMutation(RESUME_WORK_ORDER_MUTATION);
   const [cancelOrder, { loading: cancelling }] = useMutation(CANCEL_WORK_ORDER_MUTATION);
   const [signWorkOrder] = useMutation(SIGN_WORK_ORDER_MUTATION);
+  const [respondConformity] = useMutation(RESPOND_CONFORMITY_MUTATION);
   const [exportPdf, { loading: exportingPdf }] = useMutation<{ exportWorkOrderPdf: string }>(
     EXPORT_WORK_ORDER_PDF_MUTATION,
     {
@@ -395,6 +401,38 @@ function AdminOrdenDetallePage() {
     }
   }
 
+  const handleConformitySubmit = async (values: ConformityFormValues) => {
+    setConformityLoading(true);
+    try {
+      await respondConformity({
+        variables: {
+          input: {
+            workOrderId: order?.id,
+            question1Answer: values.question1Answer,
+            question2Answer: values.question2Answer,
+            question3Answer: values.question3Answer,
+            isConforming: values.isConforming,
+            reason: values.reason ?? null,
+          },
+        },
+      });
+      await refetch();
+      setIsConformityOpen(false);
+      if (values.isConforming) {
+        toast.success('Conformidad confirmada. Ya puedes firmar la orden.');
+        setIsSignModalOpen(true);
+      } else {
+        toast.info('No conformidad registrada. La orden ha sido regresada a los técnicos.');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al responder conformidad';
+      toast.error(msg);
+      throw err;
+    } finally {
+      setConformityLoading(false);
+    }
+  };
+
   if (loading) return <WorkOrderDetailSkeleton />;
 
   if (error || !order || !workOrderRaw) {
@@ -432,7 +470,12 @@ function AdminOrdenDetallePage() {
   const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.id === requester?.id);
   const requesterHasSigned = requesterIsAdmin || !!requesterSignature;
 
-  const needsMySignature = (isTemporaryRepair || order.status === 'FINISHED') && !adminSignature && requesterHasSigned;
+  const pendingConformity = (workOrderRaw as { pendingConformity?: boolean })?.pendingConformity ?? false;
+  const conformityCycleCount = (workOrderRaw as { conformityCycleCount?: number })?.conformityCycleCount ?? 0;
+
+  // Admin es el solicitante y debe responder conformidad primero
+  const needsConformityAsRequester = (isTemporaryRepair || order.status === 'FINISHED') && requesterIsAdmin && pendingConformity;
+  const needsMySignature = (isTemporaryRepair || order.status === 'FINISHED') && !pendingConformity && !adminSignature && requesterHasSigned;
 
   // Fotos
   const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
@@ -476,6 +519,12 @@ function AdminOrdenDetallePage() {
             {cancelling ? 'Cancelando...' : 'Cancelar Orden'}
           </Button>
         )}
+        {needsConformityAsRequester && (
+          <Button onClick={() => setIsConformityOpen(true)} className="gap-2 bg-amber-500 hover:bg-amber-600 text-white shadow-sm">
+            <ClipboardList className="h-4 w-4" />
+            Responder Conformidad
+          </Button>
+        )}
         {needsMySignature && (
           <Button onClick={() => setIsSignModalOpen(true)} className="gap-2 bg-success hover:bg-success/90 text-success-foreground shadow-sm">
             <Pen className="h-4 w-4" />
@@ -487,7 +536,7 @@ function AdminOrdenDetallePage() {
           size="sm"
           onClick={() => exportPdf({ variables: { id: order.id } })}
           disabled={!order.isFullySigned || exportingPdf}
-          title={!order.isFullySigned ? 'Requiere 3 firmas para exportar' : 'Exportar PDF'}
+          title={!order.isFullySigned ? `Requiere ${requesterIsAdmin ? 2 : 3} firmas para exportar` : 'Exportar PDF'}
           className="gap-2 ml-auto"
         >
           <FileDown className="h-4 w-4" />
@@ -837,14 +886,20 @@ function AdminOrdenDetallePage() {
               <CardTitle className="flex items-center gap-2 text-base">
                 <Pen className="h-5 w-5 text-primary" /> Conformidad y Firmas
               </CardTitle>
-              {signatures.length > 0 && (
+              {order.isFullySigned && (
                 <Badge variant="default" className="bg-success">
                   Completamente Firmada
                 </Badge>
               )}
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
+              {requesterIsAdmin && pendingConformity && (
+                <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                  Pendiente de evaluación de conformidad. Usa el botón "Responder Conformidad" para continuar.
+                </p>
+              )}
+              <div className={`grid gap-4 ${requesterIsAdmin ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+                {!requesterIsAdmin && (
                 <div className="text-center p-4 rounded-xl border border-border bg-muted/10 h-32 flex flex-col justify-center items-center">
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     Solicitante
@@ -866,6 +921,7 @@ function AdminOrdenDetallePage() {
                     </span>
                   )}
                 </div>
+                )}
                 <div className="text-center p-4 rounded-xl border border-border bg-muted/10 h-32 flex flex-col justify-center items-center">
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     Técnico
@@ -889,7 +945,7 @@ function AdminOrdenDetallePage() {
                 </div>
                 <div className="text-center p-4 rounded-xl border border-border bg-primary/5 h-32 flex flex-col justify-center items-center relative">
                   <p className="text-sm font-medium text-primary mb-2">
-                    Administrador (Tú)
+                    {requesterIsAdmin ? 'Solicitante / Administrador (Tú)' : 'Administrador (Tú)'}
                   </p>
                   {adminSignature ? (
                     <img
@@ -899,6 +955,10 @@ function AdminOrdenDetallePage() {
                       height={48}
                       className="h-12 object-contain"
                     />
+                  ) : pendingConformity && requesterIsAdmin ? (
+                    <span className="text-xs text-center px-2 py-1 rounded text-amber-600 bg-amber-50 border border-amber-200">
+                      Responder conformidad primero
+                    </span>
                   ) : requesterHasSigned ? (
                     <Button
                       variant="outline"
@@ -997,7 +1057,16 @@ function AdminOrdenDetallePage() {
         isOpen={isSignModalOpen}
         onClose={() => setIsSignModalOpen(false)}
         onSave={handleSaveSignature}
-        title="Firma del Administrador"
+        title={requesterIsAdmin ? 'Firma del Solicitante / Administrador' : 'Firma del Administrador'}
+      />
+
+      {/* Modal Conformidad — cuando el admin es el solicitante */}
+      <ConformityDialog
+        isOpen={isConformityOpen}
+        onClose={() => setIsConformityOpen(false)}
+        onSubmit={handleConformitySubmit}
+        cycleNumber={conformityCycleCount + 1}
+        isLoading={conformityLoading}
       />
     </div>
   );

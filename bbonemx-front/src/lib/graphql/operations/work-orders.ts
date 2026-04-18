@@ -68,9 +68,9 @@ export const MY_ASSIGNED_WORK_ORDERS_QUERY = gql`
 
 export const GET_WORK_ORDERS_FILTERED_QUERY = gql`
   ${WORK_ORDER_ITEM_FRAGMENT}
-  query GetWorkOrdersFiltered($status: WorkOrderStatus, $priority: WorkOrderPriority, $assignedShiftId: ID, $areaId: ID) {
+  query GetWorkOrdersFiltered($status: WorkOrderStatus, $priority: WorkOrderPriority, $assignedShiftId: ID, $areaId: ID, $subAreaId: ID) {
     workOrdersFiltered(
-      filters: { status: $status, priority: $priority, assignedShiftId: $assignedShiftId, areaId: $areaId }
+      filters: { status: $status, priority: $priority, assignedShiftId: $assignedShiftId, areaId: $areaId, subAreaId: $subAreaId }
       pagination: { limit: 100, page: 1 }
     ) {
       data {

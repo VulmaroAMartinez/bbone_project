@@ -300,9 +300,7 @@ export class WorkOrdersService {
       technicianId,
     );
     if (!isLead)
-      throw new ForbiddenException(
-        'Solo el técnico líder puede iniciar la OT',
-      );
+      throw new ForbiddenException('Solo el técnico líder puede iniciar la OT');
     if (!wo.canStart())
       throw new BadRequestException('No se puede iniciar la OT en este estado');
 
@@ -336,9 +334,7 @@ export class WorkOrdersService {
       technicianId,
     );
     if (!isLead)
-      throw new ForbiddenException(
-        'Solo el técnico líder puede pausar la OT',
-      );
+      throw new ForbiddenException('Solo el técnico líder puede pausar la OT');
     if (!wo.canPause())
       throw new BadRequestException('No se puede pausar la OT en este estado');
 

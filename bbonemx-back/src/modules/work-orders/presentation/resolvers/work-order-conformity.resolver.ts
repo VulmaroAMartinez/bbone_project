@@ -7,20 +7,12 @@ import {
   Parent,
 } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import {
-  JwtAuthGuard,
-  RolesGuard,
-  Role,
-  Roles,
-  CurrentUser,
-} from 'src/common';
+import { JwtAuthGuard, RolesGuard, Role, Roles, CurrentUser } from 'src/common';
 import { User } from 'src/modules/users/domain/entities';
 import { WorkOrderConformityService } from '../../application/services/work-order-conformity.service';
 import { WorkOrderSignaturesService } from '../../application/services';
 import { RespondConformityInput } from '../../application/dto/conformity.dto';
-import {
-  WorkOrderConformityRecordType,
-} from '../types/work-order-conformity-record.type';
+import { WorkOrderConformityRecordType } from '../types/work-order-conformity-record.type';
 import { WorkOrderType } from '../types/work-order.type';
 
 @Resolver(() => WorkOrderType)
@@ -29,7 +21,7 @@ export class WorkOrderConformityResolver {
   constructor(
     private readonly conformityService: WorkOrderConformityService,
     private readonly signaturesService: WorkOrderSignaturesService,
-  ) { }
+  ) {}
 
   /**
    * Responde el cuestionario de conformidad de una OT.
@@ -42,10 +34,10 @@ export class WorkOrderConformityResolver {
     @Args('input') input: RespondConformityInput,
     @CurrentUser() user: User,
   ): Promise<WorkOrderConformityRecordType> {
-    return await this.conformityService.respondConformity(
+    return (await this.conformityService.respondConformity(
       input,
       user,
-    ) as unknown as WorkOrderConformityRecordType;
+    )) as unknown as WorkOrderConformityRecordType;
   }
 
   /**
@@ -56,9 +48,9 @@ export class WorkOrderConformityResolver {
   async conformityRecords(
     @Args('workOrderId') workOrderId: string,
   ): Promise<WorkOrderConformityRecordType[]> {
-    return await this.conformityService.findByWorkOrderId(
+    return (await this.conformityService.findByWorkOrderId(
       workOrderId,
-    ) as unknown as WorkOrderConformityRecordType[];
+    )) as unknown as WorkOrderConformityRecordType[];
   }
 
   /** ResolveField: historial de conformidad embebido en WorkOrder */
@@ -68,9 +60,9 @@ export class WorkOrderConformityResolver {
   async resolveConformityRecords(
     @Parent() workOrder: WorkOrderType,
   ): Promise<WorkOrderConformityRecordType[]> {
-    return await this.conformityService.findByWorkOrderId(
+    return (await this.conformityService.findByWorkOrderId(
       workOrder.id,
-    ) as unknown as WorkOrderConformityRecordType[];
+    )) as unknown as WorkOrderConformityRecordType[];
   }
 
   /** ResolveField: indica si la OT tiene las firmas requeridas */

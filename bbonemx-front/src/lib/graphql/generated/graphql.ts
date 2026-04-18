@@ -3920,6 +3920,7 @@ export type GetWorkOrdersFilteredQueryVariables = Exact<{
   priority?: InputMaybe<WorkOrderPriority>;
   assignedShiftId?: InputMaybe<Scalars['ID']['input']>;
   areaId?: InputMaybe<Scalars['ID']['input']>;
+  subAreaId?: InputMaybe<Scalars['ID']['input']>;
 }>;
 
 

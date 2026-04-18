@@ -211,6 +211,11 @@ export class WorkOrdersRepository {
       if (filters.areaId) {
         qb.andWhere('wo.area_id = :areaId', { areaId: filters.areaId });
       }
+      if (filters.subAreaId) {
+        qb.andWhere('wo.sub_area_id = :subAreaId', {
+          subAreaId: filters.subAreaId,
+        });
+      }
       if (filters.requesterId) {
         qb.andWhere('wo.requester_id = :requesterId', {
           requesterId: filters.requesterId,
@@ -330,7 +335,9 @@ export class WorkOrdersRepository {
   }
 
   /** Cuenta OTs con pendingConformity=true para un solicitante dado */
-  async countPendingConformityByRequester(requesterId: string): Promise<number> {
+  async countPendingConformityByRequester(
+    requesterId: string,
+  ): Promise<number> {
     return this.repository.count({
       where: {
         requesterId,

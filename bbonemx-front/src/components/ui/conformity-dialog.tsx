@@ -100,7 +100,7 @@ export function ConformityDialog({
                   className={cn(
                     'flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors',
                     values.question1Answer === value
-                      ? 'border-primary bg-primary/5'
+                      ? 'border-primary bg-primary/10 dark:bg-primary/25 ring-1 ring-primary/40'
                       : 'border-border bg-card hover:bg-muted/40',
                   )}
                 >
@@ -142,7 +142,7 @@ export function ConformityDialog({
                 className={cn(
                   'flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-5 transition-all',
                   values.isConforming
-                    ? 'border-success bg-success/10 text-success'
+                    ? 'border-success bg-success/15 dark:bg-success/30 text-success ring-1 ring-success/50'
                     : 'border-border bg-card text-muted-foreground hover:bg-muted/40',
                 )}
               >
@@ -155,7 +155,7 @@ export function ConformityDialog({
                 className={cn(
                   'flex flex-col items-center justify-center gap-2 rounded-xl border-2 py-5 transition-all',
                   !values.isConforming
-                    ? 'border-destructive bg-destructive/10 text-destructive'
+                    ? 'border-destructive bg-destructive/15 dark:bg-destructive/30 text-destructive ring-1 ring-destructive/50'
                     : 'border-border bg-card text-muted-foreground hover:bg-muted/40',
                 )}
               >
@@ -238,8 +238,8 @@ function BoolQuestion({
               'flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm transition-colors',
               value === opt
                 ? opt
-                  ? 'border-success bg-success/10 text-success font-semibold'
-                  : 'border-destructive bg-destructive/10 text-destructive font-semibold'
+                  ? 'border-success bg-success/15 dark:bg-success/30 text-success font-semibold ring-1 ring-success/40'
+                  : 'border-destructive bg-destructive/15 dark:bg-destructive/30 text-destructive font-semibold ring-1 ring-destructive/40'
                 : 'border-border bg-card text-muted-foreground hover:bg-muted/40',
             )}
           >

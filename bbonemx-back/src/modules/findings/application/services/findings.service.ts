@@ -1,23 +1,30 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { FindingsRepository } from '../../infrastructure/repositories';
-import { WorkOrdersService } from 'src/modules/work-orders';
+import {
+  WorkOrdersService,
+  WorkOrderPhotosService,
+} from 'src/modules/work-orders';
 import { Finding } from '../../domain/entities';
 import {
   FindingFiltersInput,
   FindingPaginationInput,
   FindingSortInput,
 } from '../dto';
-import { FindingStatus, MaintenanceType } from 'src/common';
+import { FindingStatus, MaintenanceType, PhotoType } from 'src/common';
 
 @Injectable()
 export class FindingsService {
+  private readonly logger = new Logger(FindingsService.name);
+
   constructor(
     private readonly findingsRepository: FindingsRepository,
     private readonly workOrdersService: WorkOrdersService,
+    private readonly workOrderPhotosService: WorkOrderPhotosService,
   ) {}
 
   findAll(): Promise<Finding[]> {
@@ -107,6 +114,35 @@ export class FindingsService {
     });
 
     await this.workOrdersService.linkFinding(workOrder.id, id);
+
+    if (finding.photoPath) {
+      try {
+        const fileName =
+          finding.photoPath.split('/').pop() || 'finding-photo.jpg';
+        const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+        const mimeType =
+          ext === 'png'
+            ? 'image/png'
+            : ext === 'jpg' || ext === 'jpeg'
+              ? 'image/jpeg'
+              : 'image/jpeg';
+
+        await this.workOrderPhotosService.create(
+          {
+            workOrderId: workOrder.id,
+            photoType: PhotoType.BEFORE,
+            filePath: finding.photoPath,
+            fileName,
+            mimeType,
+          },
+          finding.createdBy || '',
+        );
+      } catch (err) {
+        this.logger.warn(
+          `No se pudo copiar foto del hallazgo ${id} a OT ${workOrder.id}: ${err}`,
+        );
+      }
+    }
 
     await this.findingsRepository.update(id, {
       status: FindingStatus.CONVERTED_TO_WO,
