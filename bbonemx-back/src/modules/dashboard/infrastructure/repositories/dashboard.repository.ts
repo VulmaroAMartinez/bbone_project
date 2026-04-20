@@ -9,6 +9,8 @@ import { ActivityTechnician } from 'src/modules/activities/domain/entities/activ
 import { WorkOrderStatus, FindingStatus, MaintenanceType } from 'src/common';
 import {
   AreaMetric,
+  FindingAreaStat,
+  FindingCollectionStat,
   KeyValue,
   MachineMetric,
   MixPoint,
@@ -428,6 +430,75 @@ export class DashboardRepository {
       areaId: r.areaId,
       areaName: r.areaName,
       value: Number(r.value),
+    }));
+  }
+
+  async getFindingsByCollection(
+    input: DashboardInput,
+  ): Promise<FindingCollectionStat[]> {
+    const { dateFrom, dateToExclusive } = this.getDateBounds(input);
+
+    const qb = this.findingsRepo
+      .createQueryBuilder('f')
+      .leftJoin('f.area', 'area')
+      .leftJoin('f.convertedToWo', 'wo')
+      .where('f.is_active = true')
+      .andWhere(
+        'f.created_at >= :dateFrom AND f.created_at < :dateToExclusive',
+        { dateFrom, dateToExclusive },
+      );
+
+    if (input.areaIds?.length)
+      qb.andWhere('f.area_id IN (:...areaIds)', { areaIds: input.areaIds });
+    if (input.shiftIds?.length)
+      qb.andWhere('f.shift_id IN (:...shiftIds)', { shiftIds: input.shiftIds });
+
+    const rows = await qb
+      .select(
+        "COALESCE(NULLIF(f.collection, ''), 'Sin colección')",
+        'collection',
+      )
+      .addSelect('f.area_id', 'areaId')
+      .addSelect("COALESCE(area.name, 'Sin área')", 'areaName')
+      .addSelect('COUNT(*)::int', 'total')
+      .addSelect(
+        "COUNT(CASE WHEN wo.status IN ('PENDING','IN_PROGRESS','PAUSED') THEN 1 END)::int",
+        'pending',
+      )
+      .addSelect(
+        "COUNT(CASE WHEN wo.status IN ('FINISHED','TEMPORARY_REPAIR','COMPLETED') THEN 1 END)::int",
+        'done',
+      )
+      .groupBy("COALESCE(NULLIF(f.collection, ''), 'Sin colección')")
+      .addGroupBy('f.area_id')
+      .addGroupBy('area.name')
+      .orderBy('collection', 'ASC')
+      .addOrderBy('"areaName"', 'ASC')
+      .getRawMany<{
+        collection: string;
+        areaId: string;
+        areaName: string;
+        total: string;
+        pending: string;
+        done: string;
+      }>();
+
+    const map = new Map<string, FindingAreaStat[]>();
+    for (const r of rows) {
+      const stat: FindingAreaStat = {
+        areaId: r.areaId,
+        areaName: r.areaName,
+        total: Number(r.total),
+        pending: Number(r.pending),
+        done: Number(r.done),
+      };
+      if (!map.has(r.collection)) map.set(r.collection, []);
+      map.get(r.collection)!.push(stat);
+    }
+
+    return Array.from(map.entries()).map(([collection, areas]) => ({
+      collection,
+      areas,
     }));
   }
 

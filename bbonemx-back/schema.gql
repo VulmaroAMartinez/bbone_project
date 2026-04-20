@@ -171,6 +171,13 @@ enum AreaType {
   SERVICE
 }
 
+input AssignCollectionByDateInput {
+  collection: String!
+
+  """Fecha en formato YYYY-MM-DD"""
+  date: String!
+}
+
 input AssignTechnicianInput {
   isLead: Boolean! = false
   technicianId: ID!
@@ -321,6 +328,7 @@ input CreateDepartmentInput {
 
 input CreateFindingInput {
   areaId: ID!
+  collection: String
   description: String!
   machineId: ID
   photoPath: String
@@ -538,6 +546,7 @@ type DashboardCharts {
   activitiesByResponsible: [ResponsibleActivityMetric!]!
   downtimeByAreaTop5: [AreaMetric!]!
   findingsByArea: [AreaMetric!]!
+  findingsByCollection: [FindingCollectionStat!]!
   findingsConversion: [KeyValue!]!
   maintenanceMixByPeriod: [MixPoint!]!
   throughputByWeek: [TimeCount!]!
@@ -617,6 +626,7 @@ enum DevicePlatform {
 
 type Finding {
   area: Area!
+  collection: String
   convertedToWo: WorkOrder
   createdAt: DateTime!
   description: String!
@@ -632,8 +642,24 @@ type Finding {
   updatedAt: DateTime!
 }
 
+type FindingAreaStat {
+  areaId: String!
+  areaName: String!
+  done: Int!
+  pending: Int!
+  total: Int!
+}
+
+type FindingCollectionStat {
+  areas: [FindingAreaStat!]!
+  collection: String!
+}
+
 input FindingFiltersInput {
   areaId: ID
+
+  """Filtrar por colección (coincidencia parcial)"""
+  collection: String
 
   """Filtrar por creador"""
   createdBy: ID
@@ -917,6 +943,7 @@ type Mutation {
   addMaterialToRequest(input: CreateMaterialRequestItemInput!, materialRequestId: ID!): MaterialRequestItem!
   addWorkOrderMaterial(input: AddWorkOrderMaterialInput!): WorkOrderMaterial!
   addWorkOrderSparePart(input: AddWorkOrderSparePartInput!): WorkOrderSparePart!
+  assignCollectionByDate(input: AssignCollectionByDateInput!): Int!
   assignTechnician(input: AssignTechnicianInput!): WorkOrderTechnician!
 
   """
@@ -1267,6 +1294,7 @@ type Query {
   finding(id: ID!): Finding
   findingByFolio(folio: String!): Finding
   findings: [Finding!]!
+  findingsCountByDate(date: String!): Int!
   findingsCountOpen: Int!
   findingsFiltered(filters: FindingFiltersInput, pagination: FindingPaginationInput, sort: FindingSortInput): FindingPaginatedResponse!
   findingsOpen: [Finding!]!
@@ -1726,6 +1754,7 @@ input UpdateDepartmentInput {
 
 input UpdateFindingInput {
   areaId: ID
+  collection: String
   description: String
   machineId: ID
   photoPath: String

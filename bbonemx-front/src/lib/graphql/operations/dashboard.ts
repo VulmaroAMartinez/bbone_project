@@ -49,6 +49,16 @@ query GetDashboardData($input: DashboardInput!) {
           totalActivities
           activitiesWithEndDate
         }
+        findingsByCollection {
+          collection
+          areas {
+            areaId
+            areaName
+            total
+            pending
+            done
+          }
+        }
       }
       rankings {
         topMachinesByDowntime {

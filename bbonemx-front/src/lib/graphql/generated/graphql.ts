@@ -182,6 +182,11 @@ export type AreaType =
   /** Área de servicio  */
   | 'SERVICE';
 
+export type AssignCollectionByDateInput = {
+  collection: Scalars['String']['input'];
+  date: Scalars['String']['input'];
+};
+
 export type AssignTechnicianInput = {
   isLead?: Scalars['Boolean']['input'];
   technicianId: Scalars['ID']['input'];
@@ -309,6 +314,7 @@ export type CreateDepartmentInput = {
 
 export type CreateFindingInput = {
   areaId: Scalars['ID']['input'];
+  collection?: InputMaybe<Scalars['String']['input']>;
   description: Scalars['String']['input'];
   machineId?: InputMaybe<Scalars['ID']['input']>;
   photoPath?: InputMaybe<Scalars['String']['input']>;
@@ -522,6 +528,7 @@ export type DashboardCharts = {
   activitiesByResponsible: Array<ResponsibleActivityMetric>;
   downtimeByAreaTop5: Array<AreaMetric>;
   findingsByArea: Array<AreaMetric>;
+  findingsByCollection: Array<FindingCollectionStat>;
   findingsConversion: Array<KeyValue>;
   maintenanceMixByPeriod: Array<MixPoint>;
   throughputByWeek: Array<TimeCount>;
@@ -604,17 +611,30 @@ export type Finding = {
   machine?: Maybe<Machine>;
   machineId?: Maybe<Scalars['ID']['output']>;
   photoPath?: Maybe<Scalars['String']['output']>;
-  photos?: Maybe<Array<FindingPhoto>>;
+  photos: Array<FindingPhoto>;
   sequence: Scalars['Int']['output'];
   shift: Shift;
   status: FindingStatus;
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type FindingAreaStat = {
+  __typename?: 'FindingAreaStat';
+  areaId: Scalars['String']['output'];
+  areaName: Scalars['String']['output'];
+  done: Scalars['Int']['output'];
+  pending: Scalars['Int']['output'];
+  total: Scalars['Int']['output'];
+};
+
+export type FindingCollectionStat = {
+  __typename?: 'FindingCollectionStat';
+  areas: Array<FindingAreaStat>;
+  collection: Scalars['String']['output'];
+};
+
 export type FindingFiltersInput = {
   areaId?: InputMaybe<Scalars['ID']['input']>;
-  /** Filtrar por colección (coincidencia parcial) */
-  collection?: InputMaybe<Scalars['String']['input']>;
   /** Filtrar por creador */
   createdBy?: InputMaybe<Scalars['ID']['input']>;
   /** Fecha de creación desde (ISO) */
@@ -626,12 +646,6 @@ export type FindingFiltersInput = {
   search?: InputMaybe<Scalars['String']['input']>;
   shiftId?: InputMaybe<Scalars['ID']['input']>;
   status?: InputMaybe<FindingStatus>;
-};
-
-export type AssignCollectionByDateInput = {
-  /** Fecha en formato YYYY-MM-DD */
-  date: Scalars['String']['input'];
-  collection: Scalars['String']['input'];
 };
 
 export type FindingPaginatedResponse = {
@@ -901,6 +915,7 @@ export type Mutation = {
   addMaterialToRequest: MaterialRequestItem;
   addWorkOrderMaterial: WorkOrderMaterial;
   addWorkOrderSparePart: WorkOrderSparePart;
+  assignCollectionByDate: Scalars['Int']['output'];
   assignTechnician: WorkOrderTechnician;
   /** Asigna la semana completa de un técnico (reemplaza asignaciones existentes) */
   assignWeekSchedule: Array<TechnicianSchedule>;
@@ -1125,6 +1140,11 @@ export type MutationAddWorkOrderMaterialArgs = {
 
 export type MutationAddWorkOrderSparePartArgs = {
   input: AddWorkOrderSparePartInput;
+};
+
+
+export type MutationAssignCollectionByDateArgs = {
+  input: AssignCollectionByDateInput;
 };
 
 
@@ -1827,6 +1847,7 @@ export type Query = {
   finding?: Maybe<Finding>;
   findingByFolio?: Maybe<Finding>;
   findings: Array<Finding>;
+  findingsCountByDate: Scalars['Int']['output'];
   findingsCountOpen: Scalars['Int']['output'];
   findingsFiltered: FindingPaginatedResponse;
   findingsOpen: Array<Finding>;
@@ -1979,6 +2000,11 @@ export type QueryFindingArgs = {
 
 export type QueryFindingByFolioArgs = {
   folio: Scalars['String']['input'];
+};
+
+
+export type QueryFindingsCountByDateArgs = {
+  date: Scalars['String']['input'];
 };
 
 
@@ -3386,14 +3412,14 @@ export type GetDashboardDataQueryVariables = Exact<{
 }>;
 
 
-export type GetDashboardDataQuery = { __typename?: 'Query', dashboardData: { __typename?: 'DashboardData', generatedAt: string, kpis: { __typename?: 'DashboardKpis', activeBacklog: number, totalWorkOrders: number, dueToday: number, overdue: number, countByStatus: Array<{ __typename?: 'StatusCount', status: string, count: number }> }, charts: { __typename?: 'DashboardCharts', downtimeByAreaTop5: Array<{ __typename?: 'AreaMetric', areaId: string, areaName: string, value: number }>, findingsConversion: Array<{ __typename?: 'KeyValue', key: string, value: number }>, findingsByArea: Array<{ __typename?: 'AreaMetric', areaId: string, areaName: string, value: number }>, workOrdersByArea: Array<{ __typename?: 'AreaMetric', areaId: string, areaName: string, value: number }>, maintenanceMixByPeriod: Array<{ __typename?: 'MixPoint', period: string, type: string, count: number }>, throughputByWeek: Array<{ __typename?: 'TimeCount', period: string, count: number }>, activitiesByResponsible: Array<{ __typename?: 'ResponsibleActivityMetric', responsibleId: string, responsibleName: string, totalActivities: number, activitiesWithEndDate: number }> }, rankings: { __typename?: 'DashboardRankings', topMachinesByDowntime: Array<{ __typename?: 'MachineMetric', machineId?: string | null, machineName: string, value: number }>, topTechniciansByClosures: Array<{ __typename?: 'TechnicianMetric', technicianId: string, technicianName: string, value: number }> } } };
+export type GetDashboardDataQuery = { __typename?: 'Query', dashboardData: { __typename?: 'DashboardData', generatedAt: string, kpis: { __typename?: 'DashboardKpis', activeBacklog: number, totalWorkOrders: number, dueToday: number, overdue: number, countByStatus: Array<{ __typename?: 'StatusCount', status: string, count: number }> }, charts: { __typename?: 'DashboardCharts', downtimeByAreaTop5: Array<{ __typename?: 'AreaMetric', areaId: string, areaName: string, value: number }>, findingsConversion: Array<{ __typename?: 'KeyValue', key: string, value: number }>, findingsByArea: Array<{ __typename?: 'AreaMetric', areaId: string, areaName: string, value: number }>, workOrdersByArea: Array<{ __typename?: 'AreaMetric', areaId: string, areaName: string, value: number }>, maintenanceMixByPeriod: Array<{ __typename?: 'MixPoint', period: string, type: string, count: number }>, throughputByWeek: Array<{ __typename?: 'TimeCount', period: string, count: number }>, activitiesByResponsible: Array<{ __typename?: 'ResponsibleActivityMetric', responsibleId: string, responsibleName: string, totalActivities: number, activitiesWithEndDate: number }>, findingsByCollection: Array<{ __typename?: 'FindingCollectionStat', collection: string, areas: Array<{ __typename?: 'FindingAreaStat', areaId: string, areaName: string, total: number, pending: number, done: number }> }> }, rankings: { __typename?: 'DashboardRankings', topMachinesByDowntime: Array<{ __typename?: 'MachineMetric', machineId?: string | null, machineName: string, value: number }>, topTechniciansByClosures: Array<{ __typename?: 'TechnicianMetric', technicianId: string, technicianName: string, value: number }> } } };
 
 export type FindingPhotoBasicFragment = { __typename?: 'FindingPhoto', id: string, findingId: string, filePath: string, fileName: string, mimeType: string, uploadedAt: string } & { ' $fragmentName'?: 'FindingPhotoBasicFragment' };
 
-export type FindingBasicFragment = { __typename?: 'Finding', id: string, folio: string, description: string, photoPath?: string | null, collection?: string | null, status: FindingStatus, createdAt: string, photos?: Array<(
+export type FindingBasicFragment = { __typename?: 'Finding', id: string, folio: string, description: string, photoPath?: string | null, collection?: string | null, status: FindingStatus, createdAt: string, photos: Array<(
     { __typename?: 'FindingPhoto' }
     & { ' $fragmentRefs'?: { 'FindingPhotoBasicFragment': FindingPhotoBasicFragment } }
-  )> | null, area: (
+  )>, area: (
     { __typename?: 'Area' }
     & { ' $fragmentRefs'?: { 'AreaBasicFragment': AreaBasicFragment } }
   ), machine?: (
@@ -3447,18 +3473,6 @@ export type ConvertToWorkOrderMutationVariables = Exact<{
 
 export type ConvertToWorkOrderMutation = { __typename?: 'Mutation', convertToWorkOrder: { __typename?: 'Finding', id: string, status: FindingStatus, convertedToWo?: { __typename?: 'WorkOrder', id: string, folio: string } | null } };
 
-export type GetFindingsCountByDateQueryVariables = Exact<{
-  date: Scalars['String']['input'];
-}>;
-
-export type GetFindingsCountByDateQuery = { __typename?: 'Query', findingsCountByDate: number };
-
-export type AssignCollectionByDateMutationVariables = Exact<{
-  input: AssignCollectionByDateInput;
-}>;
-
-export type AssignCollectionByDateMutation = { __typename?: 'Mutation', assignCollectionByDate: number };
-
 export type AddFindingPhotoMutationVariables = Exact<{
   findingId: Scalars['ID']['input'];
   filePath: Scalars['String']['input'];
@@ -3478,6 +3492,20 @@ export type RemoveFindingPhotoMutationVariables = Exact<{
 
 
 export type RemoveFindingPhotoMutation = { __typename?: 'Mutation', removeFindingPhoto: boolean };
+
+export type GetFindingsCountByDateQueryVariables = Exact<{
+  date: Scalars['String']['input'];
+}>;
+
+
+export type GetFindingsCountByDateQuery = { __typename?: 'Query', findingsCountByDate: number };
+
+export type AssignCollectionByDateMutationVariables = Exact<{
+  input: AssignCollectionByDateInput;
+}>;
+
+
+export type AssignCollectionByDateMutation = { __typename?: 'Mutation', assignCollectionByDate: number };
 
 export type RoleBasicFragment = { __typename?: 'Role', id: string, name: string } & { ' $fragmentName'?: 'RoleBasicFragment' };
 
@@ -4234,7 +4262,7 @@ export const CreateDepartmentDocument = {"kind":"Document","definitions":[{"kind
 export const UpdateDepartmentDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateDepartment"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateDepartmentInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateDepartment"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}}]}}]}}]} as unknown as DocumentNode<UpdateDepartmentMutation, UpdateDepartmentMutationVariables>;
 export const ActivateDepartmentDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ActivateDepartment"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"activateDepartment"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}}]}}]}}]} as unknown as DocumentNode<ActivateDepartmentMutation, ActivateDepartmentMutationVariables>;
 export const DeactivateDepartmentDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeactivateDepartment"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deactivateDepartment"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}]}}]} as unknown as DocumentNode<DeactivateDepartmentMutation, DeactivateDepartmentMutationVariables>;
-export const GetDashboardDataDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetDashboardData"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"DashboardInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"dashboardData"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"generatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"kpis"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"activeBacklog"}},{"kind":"Field","name":{"kind":"Name","value":"totalWorkOrders"}},{"kind":"Field","name":{"kind":"Name","value":"dueToday"}},{"kind":"Field","name":{"kind":"Name","value":"overdue"}},{"kind":"Field","name":{"kind":"Name","value":"countByStatus"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"charts"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"downtimeByAreaTop5"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"areaId"}},{"kind":"Field","name":{"kind":"Name","value":"areaName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"findingsConversion"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"findingsByArea"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"areaId"}},{"kind":"Field","name":{"kind":"Name","value":"areaName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"workOrdersByArea"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"areaId"}},{"kind":"Field","name":{"kind":"Name","value":"areaName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"maintenanceMixByPeriod"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"period"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"throughputByWeek"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"period"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"activitiesByResponsible"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"responsibleId"}},{"kind":"Field","name":{"kind":"Name","value":"responsibleName"}},{"kind":"Field","name":{"kind":"Name","value":"totalActivities"}},{"kind":"Field","name":{"kind":"Name","value":"activitiesWithEndDate"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"rankings"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"topMachinesByDowntime"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"machineId"}},{"kind":"Field","name":{"kind":"Name","value":"machineName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"topTechniciansByClosures"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"technicianId"}},{"kind":"Field","name":{"kind":"Name","value":"technicianName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetDashboardDataQuery, GetDashboardDataQueryVariables>;
+export const GetDashboardDataDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetDashboardData"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"DashboardInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"dashboardData"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"generatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"kpis"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"activeBacklog"}},{"kind":"Field","name":{"kind":"Name","value":"totalWorkOrders"}},{"kind":"Field","name":{"kind":"Name","value":"dueToday"}},{"kind":"Field","name":{"kind":"Name","value":"overdue"}},{"kind":"Field","name":{"kind":"Name","value":"countByStatus"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"charts"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"downtimeByAreaTop5"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"areaId"}},{"kind":"Field","name":{"kind":"Name","value":"areaName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"findingsConversion"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"findingsByArea"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"areaId"}},{"kind":"Field","name":{"kind":"Name","value":"areaName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"workOrdersByArea"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"areaId"}},{"kind":"Field","name":{"kind":"Name","value":"areaName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"maintenanceMixByPeriod"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"period"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"throughputByWeek"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"period"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"activitiesByResponsible"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"responsibleId"}},{"kind":"Field","name":{"kind":"Name","value":"responsibleName"}},{"kind":"Field","name":{"kind":"Name","value":"totalActivities"}},{"kind":"Field","name":{"kind":"Name","value":"activitiesWithEndDate"}}]}},{"kind":"Field","name":{"kind":"Name","value":"findingsByCollection"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"collection"}},{"kind":"Field","name":{"kind":"Name","value":"areas"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"areaId"}},{"kind":"Field","name":{"kind":"Name","value":"areaName"}},{"kind":"Field","name":{"kind":"Name","value":"total"}},{"kind":"Field","name":{"kind":"Name","value":"pending"}},{"kind":"Field","name":{"kind":"Name","value":"done"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"rankings"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"topMachinesByDowntime"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"machineId"}},{"kind":"Field","name":{"kind":"Name","value":"machineName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}},{"kind":"Field","name":{"kind":"Name","value":"topTechniciansByClosures"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"technicianId"}},{"kind":"Field","name":{"kind":"Name","value":"technicianName"}},{"kind":"Field","name":{"kind":"Name","value":"value"}}]}}]}}]}}]}}]} as unknown as DocumentNode<GetDashboardDataQuery, GetDashboardDataQueryVariables>;
 export const GetFindingsFilteredDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetFindingsFiltered"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filters"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"FindingFiltersInput"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"pagination"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"FindingPaginationInput"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"findingsFiltered"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"filters"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filters"}}},{"kind":"Argument","name":{"kind":"Name","value":"pagination"},"value":{"kind":"Variable","name":{"kind":"Name","value":"pagination"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"data"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"FindingBasic"}}]}},{"kind":"Field","name":{"kind":"Name","value":"total"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"FindingPhotoBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"FindingPhoto"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"findingId"}},{"kind":"Field","name":{"kind":"Name","value":"filePath"}},{"kind":"Field","name":{"kind":"Name","value":"fileName"}},{"kind":"Field","name":{"kind":"Name","value":"mimeType"}},{"kind":"Field","name":{"kind":"Name","value":"uploadedAt"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AreaBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Area"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"MachineBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Machine"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"brand"}},{"kind":"Field","name":{"kind":"Name","value":"model"}},{"kind":"Field","name":{"kind":"Name","value":"serialNumber"}},{"kind":"Field","name":{"kind":"Name","value":"installationDate"}},{"kind":"Field","name":{"kind":"Name","value":"machinePhotoUrl"}},{"kind":"Field","name":{"kind":"Name","value":"operationalManualUrl"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"subAreaId"}},{"kind":"Field","name":{"kind":"Name","value":"areaId"}},{"kind":"Field","name":{"kind":"Name","value":"subArea"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"area"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"area"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"FindingBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Finding"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"folio"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"photoPath"}},{"kind":"Field","name":{"kind":"Name","value":"collection"}},{"kind":"Field","name":{"kind":"Name","value":"photos"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"FindingPhotoBasic"}}]}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"area"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"AreaBasic"}}]}},{"kind":"Field","name":{"kind":"Name","value":"machine"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"MachineBasic"}}]}},{"kind":"Field","name":{"kind":"Name","value":"shift"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"convertedToWo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"folio"}}]}}]}}]} as unknown as DocumentNode<GetFindingsFilteredQuery, GetFindingsFilteredQueryVariables>;
 export const CreateFindingDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateFinding"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateFindingInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"createFinding"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"folio"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}}]}}]} as unknown as DocumentNode<CreateFindingMutation, CreateFindingMutationVariables>;
 export const GetFindingByIdDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"GetFindingById"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"finding"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"FindingBasic"}},{"kind":"Field","name":{"kind":"Name","value":"machineId"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"FindingPhotoBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"FindingPhoto"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"findingId"}},{"kind":"Field","name":{"kind":"Name","value":"filePath"}},{"kind":"Field","name":{"kind":"Name","value":"fileName"}},{"kind":"Field","name":{"kind":"Name","value":"mimeType"}},{"kind":"Field","name":{"kind":"Name","value":"uploadedAt"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AreaBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Area"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"MachineBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Machine"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"brand"}},{"kind":"Field","name":{"kind":"Name","value":"model"}},{"kind":"Field","name":{"kind":"Name","value":"serialNumber"}},{"kind":"Field","name":{"kind":"Name","value":"installationDate"}},{"kind":"Field","name":{"kind":"Name","value":"machinePhotoUrl"}},{"kind":"Field","name":{"kind":"Name","value":"operationalManualUrl"}},{"kind":"Field","name":{"kind":"Name","value":"isActive"}},{"kind":"Field","name":{"kind":"Name","value":"subAreaId"}},{"kind":"Field","name":{"kind":"Name","value":"areaId"}},{"kind":"Field","name":{"kind":"Name","value":"subArea"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"area"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"area"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"type"}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"FindingBasic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Finding"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"folio"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"photoPath"}},{"kind":"Field","name":{"kind":"Name","value":"collection"}},{"kind":"Field","name":{"kind":"Name","value":"photos"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"FindingPhotoBasic"}}]}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"area"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"AreaBasic"}}]}},{"kind":"Field","name":{"kind":"Name","value":"machine"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"MachineBasic"}}]}},{"kind":"Field","name":{"kind":"Name","value":"shift"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"convertedToWo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"folio"}}]}}]}}]} as unknown as DocumentNode<GetFindingByIdQuery, GetFindingByIdQueryVariables>;

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetDashboardDataDocument, GetShiftsDocument, type WorkOrderStatus } from '@/lib/graphql/generated/graphql';
@@ -23,6 +23,8 @@ import {
   Wrench,
   Ban,
   ClipboardCheck,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   BarChart,
@@ -128,6 +130,8 @@ export default function DashboardPage() {
   const [woStatusFilter, setWoStatusFilter] = useState<WorkOrderStatus | 'all'>('all');
   const [exportingCharts, setExportingCharts] = useState(false);
 
+  const [collectionIndex, setCollectionIndex] = useState(0);
+
   const refThroughput = useRef<HTMLDivElement>(null);
   const refMix = useRef<HTMLDivElement>(null);
   const refActivitiesResponsible = useRef<HTMLDivElement>(null);
@@ -135,6 +139,7 @@ export default function DashboardPage() {
   const refMachinesDowntime = useRef<HTMLDivElement>(null);
   const refFindingsArea = useRef<HTMLDivElement>(null);
   const refWorkOrdersArea = useRef<HTMLDivElement>(null);
+  const refFindingsCollection = useRef<HTMLDivElement>(null);
 
   const currentRange = useMemo(() => {
     return getDateRange(rangePreset as Parameters<typeof getDateRange>[0]);
@@ -179,6 +184,7 @@ export default function DashboardPage() {
       { el: refMachinesDowntime.current, title: 'Top Máquinas (Tiempo Muerto)' },
       { el: refFindingsArea.current, title: 'Hallazgos por Área' },
       { el: refWorkOrdersArea.current, title: 'Órdenes de Trabajo por Área' },
+      { el: refFindingsCollection.current, title: 'Hallazgos por Colección' },
     ];
 
     setExportingCharts(true);
@@ -268,6 +274,17 @@ export default function DashboardPage() {
       __color: WORK_ORDERS_AREA_COLORS[index % WORK_ORDERS_AREA_COLORS.length],
     }));
   }, [dashboardData?.charts?.workOrdersByArea]);
+
+  const findingsByCollection = useMemo(
+    () => dashboardData?.charts?.findingsByCollection ?? [],
+    [dashboardData?.charts?.findingsByCollection],
+  );
+
+  useEffect(() => {
+    setCollectionIndex(0);
+  }, [findingsByCollection]);
+
+  const currentCollectionStat = findingsByCollection[collectionIndex] ?? null;
 
   if (loading && !data) return <DashboardSkeleton />;
 
@@ -643,6 +660,80 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Hallazgos por Colección */}
+      <Card ref={refFindingsCollection} className="bg-card border-border shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-foreground flex items-center gap-2 text-base">
+              <LayoutList className="h-4 w-4 text-primary" /> Hallazgos por Colección
+            </CardTitle>
+            {findingsByCollection.length > 0 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCollectionIndex((i) => Math.max(0, i - 1))}
+                  disabled={collectionIndex === 0}
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Colección anterior"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <span className="text-sm font-medium min-w-[140px] text-center">
+                  {currentCollectionStat?.collection ?? '—'}
+                  <span className="text-muted-foreground text-xs ml-1">
+                    ({collectionIndex + 1}/{findingsByCollection.length})
+                  </span>
+                </span>
+                <button
+                  onClick={() => setCollectionIndex((i) => Math.min(findingsByCollection.length - 1, i + 1))}
+                  disabled={collectionIndex === findingsByCollection.length - 1}
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Colección siguiente"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {findingsByCollection.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+              No hay hallazgos con colección en el rango seleccionado
+            </div>
+          ) : currentCollectionStat && currentCollectionStat.areas.length > 0 ? (
+            <div role="img" aria-label={`Gráfica de hallazgos por área para la colección ${currentCollectionStat.collection}`}>
+              <ResponsiveContainer width="100%" height={300} minWidth={0}>
+                <BarChart data={currentCollectionStat.areas} margin={{ top: 4, right: 16, left: 0, bottom: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
+                  <XAxis
+                    dataKey="areaName"
+                    stroke="oklch(0.65 0 0)"
+                    tick={{ fontSize: 11, fill: 'oklch(0.65 0 0)' }}
+                    angle={-30}
+                    textAnchor="end"
+                    interval={0}
+                  />
+                  <YAxis stroke="oklch(0.65 0 0)" allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    labelStyle={{ color: tooltipStyle.color }}
+                    itemStyle={{ color: tooltipStyle.color }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: 8, fontSize: 12 }} />
+                  <Bar dataKey="total" name="Total" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="pending" name="Pendientes" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="done" name="Realizadas" fill="#22c55e" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+              Sin datos de áreas para esta colección
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Quick Actions (Manteniendo el menú original útil) */}
       <Card className="bg-card border-border shadow-sm">

@@ -109,6 +109,33 @@ export class DashboardKpis {
 }
 
 @ObjectType()
+export class FindingAreaStat {
+  @Field()
+  areaId: string;
+
+  @Field()
+  areaName: string;
+
+  @Field(() => Int)
+  total: number;
+
+  @Field(() => Int)
+  pending: number;
+
+  @Field(() => Int)
+  done: number;
+}
+
+@ObjectType()
+export class FindingCollectionStat {
+  @Field()
+  collection: string;
+
+  @Field(() => [FindingAreaStat])
+  areas: FindingAreaStat[];
+}
+
+@ObjectType()
 export class DashboardCharts {
   @Field(() => [TimeCount])
   throughputByWeek: TimeCount[];
@@ -130,6 +157,9 @@ export class DashboardCharts {
 
   @Field(() => [ResponsibleActivityMetric])
   activitiesByResponsible: ResponsibleActivityMetric[];
+
+  @Field(() => [FindingCollectionStat])
+  findingsByCollection: FindingCollectionStat[];
 }
 
 @ObjectType()
