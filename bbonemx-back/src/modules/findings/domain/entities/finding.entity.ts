@@ -5,7 +5,15 @@ import { Machine } from 'src/modules/catalogs/machines/domain/entities';
 import { Shift } from 'src/modules/catalogs/shifts/domain/entities';
 import { User } from 'src/modules/users/domain/entities';
 import { WorkOrder } from 'src/modules/work-orders/domain/entities/work-order.entity';
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
+import { FindingPhoto } from './finding-photo.entity';
 
 @Entity({ name: 'findings' })
 export class Finding extends BaseEntity {
@@ -62,6 +70,9 @@ export class Finding extends BaseEntity {
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'converted_by' })
   converter?: User;
+
+  @OneToMany(() => FindingPhoto, (photo) => photo.finding)
+  photos: FindingPhoto[];
 
   isOpen(): boolean {
     return this.status === FindingStatus.OPEN;

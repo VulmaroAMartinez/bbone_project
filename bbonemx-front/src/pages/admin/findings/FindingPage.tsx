@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import { useMutation } from '@apollo/client/react';
+import { useState, useMemo } from 'react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 
 import {
     GetFindingsFilteredDocument,
     ConvertToWorkOrderDocument,
+    GetAreasDocument,
+    AreaBasicFragmentDoc,
     type FindingStatus,
     FindingBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
-import { useFragment } from '@/lib/graphql/generated/fragment-masking';
+import { useFragment, useFragment as unmaskFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
+import { Combobox } from '@/components/ui/combobox';
 import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { toast } from 'sonner';
@@ -27,12 +30,34 @@ export default function FindingPage() {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusTab, setStatusTab] = useState<FindingStatus | 'ALL'>('ALL');
+    const [areaFilter, setAreaFilter] = useState<string>('all');
     const [page, setPage] = useState(1);
+
+    const { data: areasData } = useQuery(GetAreasDocument);
+    const areas = useMemo(() => {
+        const raw = areasData?.areas ? unmaskFragment(AreaBasicFragmentDoc, areasData.areas) : [];
+        const seen = new Set<string>();
+        return raw.filter((a) => {
+            const id = String(a.id ?? '');
+            if (!id || id === 'all' || seen.has(id)) return false;
+            seen.add(id);
+            return true;
+        });
+    }, [areasData?.areas]);
+
+    const areaComboboxOptions = useMemo(
+        () => [
+            { value: 'all', label: 'Todas las áreas' },
+            ...areas.map((a) => ({ value: a.id, label: a.name })),
+        ],
+        [areas],
+    );
 
     const { data, loading, error, refetch, isOffline } = useOfflineAwareQuery(GetFindingsFilteredDocument, {
         variables: {
             filters: {
-                status: statusTab !== 'ALL' ? statusTab : undefined
+                status: statusTab !== 'ALL' ? statusTab : undefined,
+                areaId: areaFilter !== 'all' ? areaFilter : undefined,
             },
             pagination: { limit: 100, page: 1 }
         },
@@ -100,6 +125,14 @@ export default function FindingPage() {
                         className="pl-9"
                     />
                 </div>
+
+                <Combobox
+                    options={areaComboboxOptions}
+                    value={areaFilter}
+                    onValueChange={(val: string) => { setAreaFilter(val || 'all'); setPage(1); }}
+                    placeholder="Filtrar por área"
+                    triggerClassName="w-full md:w-56"
+                />
 
                 <Tabs value={statusTab} onValueChange={(val) => { setStatusTab(val as FindingStatus | 'ALL'); setPage(1); }} className="w-full md:w-auto">
                     <TabsList className="w-full md:w-auto grid grid-cols-3">

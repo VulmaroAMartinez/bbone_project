@@ -1,6 +1,18 @@
-import { Resolver, Query, Mutation, Args, ID, Int } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ID,
+  Int,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { FindingsService } from '../../application/services';
+import {
+  FindingsService,
+  FindingPhotosService,
+} from '../../application/services';
 import {
   CreateFindingInput,
   UpdateFindingInput,
@@ -8,14 +20,23 @@ import {
   FindingPaginationInput,
   FindingSortInput,
 } from '../../application/dto';
-import { FindingType, FindingPaginatedResponse, FindingStats } from '../types';
-import { JwtAuthGuard, RolesGuard, Roles, Role } from 'src/common';
+import {
+  FindingType,
+  FindingPaginatedResponse,
+  FindingStats,
+  FindingPhotoType,
+} from '../types';
+import { JwtAuthGuard, RolesGuard, Roles, Role, CurrentUser } from 'src/common';
+import { Finding } from '../../domain/entities';
 
 @Resolver(() => FindingType)
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class FindingsResolver {
-  constructor(private readonly findingsService: FindingsService) {}
+  constructor(
+    private readonly findingsService: FindingsService,
+    private readonly findingPhotosService: FindingPhotosService,
+  ) {}
 
   @Query(() => [FindingType], { name: 'findings' })
   async findings() {
@@ -95,5 +116,35 @@ export class FindingsResolver {
   @Mutation(() => FindingType)
   convertToWorkOrder(@Args('id', { type: () => ID }) id: string) {
     return this.findingsService.convertToWorkOrder(id);
+  }
+
+  @ResolveField('photos', () => [FindingPhotoType])
+  resolvePhotos(@Parent() finding: Finding): Promise<FindingPhotoType[]> {
+    return this.findingPhotosService.findByFindingId(
+      finding.id,
+    ) as unknown as FindingPhotoType[];
+  }
+
+  @Mutation(() => FindingPhotoType)
+  addFindingPhoto(
+    @Args('findingId', { type: () => ID }) findingId: string,
+    @Args('filePath') filePath: string,
+    @Args('fileName') fileName: string,
+    @Args('mimeType') mimeType: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<FindingPhotoType> {
+    return this.findingPhotosService.create(
+      { findingId, filePath, fileName, mimeType },
+      userId,
+    ) as unknown as FindingPhotoType;
+  }
+
+  @Mutation(() => Boolean)
+  async removeFindingPhoto(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser('id') userId: string,
+  ): Promise<boolean> {
+    await this.findingPhotosService.delete(id, userId);
+    return true;
   }
 }

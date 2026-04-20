@@ -16,6 +16,7 @@ import {
   FindingSortInput,
 } from '../dto';
 import { FindingStatus, MaintenanceType, PhotoType } from 'src/common';
+import { FindingPhotosService } from './finding-photos.service';
 
 @Injectable()
 export class FindingsService {
@@ -25,6 +26,7 @@ export class FindingsService {
     private readonly findingsRepository: FindingsRepository,
     private readonly workOrdersService: WorkOrdersService,
     private readonly workOrderPhotosService: WorkOrderPhotosService,
+    private readonly findingPhotosService: FindingPhotosService,
   ) {}
 
   findAll(): Promise<Finding[]> {
@@ -115,25 +117,43 @@ export class FindingsService {
 
     await this.workOrdersService.linkFinding(workOrder.id, id);
 
-    if (finding.photoPath) {
-      try {
-        const fileName =
-          finding.photoPath.split('/').pop() || 'finding-photo.jpg';
-        const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
-        const mimeType =
-          ext === 'png'
-            ? 'image/png'
-            : ext === 'jpg' || ext === 'jpeg'
-              ? 'image/jpeg'
-              : 'image/jpeg';
+    const photoSources: Array<{
+      filePath: string;
+      fileName: string;
+      mimeType: string;
+    }> = [];
 
+    if (finding.photoPath) {
+      const fileName =
+        finding.photoPath.split('/').pop() || 'finding-photo.jpg';
+      const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+      const mimeType =
+        ext === 'png'
+          ? 'image/png'
+          : ext === 'webp'
+            ? 'image/webp'
+            : 'image/jpeg';
+      photoSources.push({ filePath: finding.photoPath, fileName, mimeType });
+    }
+
+    const findingPhotos = await this.findingPhotosService.findByFindingId(id);
+    for (const fp of findingPhotos) {
+      photoSources.push({
+        filePath: fp.filePath,
+        fileName: fp.fileName,
+        mimeType: fp.mimeType,
+      });
+    }
+
+    for (const source of photoSources) {
+      try {
         await this.workOrderPhotosService.create(
           {
             workOrderId: workOrder.id,
             photoType: PhotoType.BEFORE,
-            filePath: finding.photoPath,
-            fileName,
-            mimeType,
+            filePath: source.filePath,
+            fileName: source.fileName,
+            mimeType: source.mimeType,
           },
           finding.createdBy || '',
         );

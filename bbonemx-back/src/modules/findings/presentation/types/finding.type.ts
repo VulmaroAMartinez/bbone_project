@@ -2,6 +2,7 @@ import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
 import { FindingStatus } from 'src/common';
 import { AreaType, MachineType, ShiftType } from 'src/modules/catalogs';
 import { WorkOrderType } from 'src/modules/work-orders';
+import { FindingPhotoType } from './finding-photo.type';
 
 @ObjectType('Finding')
 export class FindingType {
@@ -14,6 +15,8 @@ export class FindingType {
   @Field(() => ShiftType) shift: ShiftType;
   @Field() description: string;
   @Field({ nullable: true }) photoPath?: string;
+  @Field(() => [FindingPhotoType], { nullable: true })
+  photos?: FindingPhotoType[];
   @Field(() => FindingStatus) status: FindingStatus;
   @Field(() => WorkOrderType, { nullable: true }) convertedToWo?: WorkOrderType;
   @Field() createdAt: Date;
