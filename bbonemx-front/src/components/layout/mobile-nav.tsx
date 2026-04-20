@@ -64,7 +64,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
     navigate('/', { replace: true });
   };
 
-  const getNavItems = (): NavItem[] => {
+const getNavItems = (): NavItem[] => {
     if (isAdmin) {
       return [
         { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -107,10 +107,9 @@ export function MobileNav({ onClose }: MobileNavProps) {
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
         { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
       ];
-      if (isBoss || isAdmin) {
+      if (isBoss) {
         items.push(
-          ...(isBoss ? [] : [{ href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle } as NavItem]),
-          { href: '/solicitud-material/nueva', label: 'Solicitud de Material', icon: FileCog2 },
+          { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
         );
       }
       return items;
