@@ -6,12 +6,16 @@ import { toast } from 'sonner';
 import {
     GetFindingByIdDocument,
     UpdateFindingDocument,
+    AddFindingPhotoDocument,
+    RemoveFindingPhotoDocument,
     GetAreasDocument,
     GetShiftsDocument,
     GetMachinesPageDataDocument,
     AreaBasicFragmentDoc,
     MachineBasicFragmentDoc,
     FindingBasicFragmentDoc,
+    FindingPhotoBasicFragmentDoc,
+    type FindingPhotoBasicFragment,
     type GetMachinesPageDataQuery,
     type UpdateFindingInput,
 } from '@/lib/graphql/generated/graphql';
@@ -19,7 +23,6 @@ import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
 import { canEditFinding, filterMachinesByArea, buildMachineLabel } from '@/lib/findings/finding-logic';
 import { resolveBackendAssetUrl, uploadFileToBackend } from '@/lib/utils/uploads';
-import { MAX_FILE_BYTES } from '@/lib/offline-sync';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -33,13 +36,134 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle2, ImageIcon } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+} from '@/components/ui/dialog';
+import { ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle2, ImageIcon, X, Plus } from 'lucide-react';
 import { Combobox } from '@/components/ui/combobox';
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     OPEN: { label: 'Abierto', className: 'bg-yellow-100 text-yellow-700' },
     CONVERTED_TO_WO: { label: 'Convertido a OT', className: 'bg-green-100 text-green-700' },
 };
+
+function PhotoLightbox({ src, onClose }: { src: string | null; onClose: () => void }) {
+    return (
+        <Dialog open={!!src} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <DialogContent className="max-w-[90vw] max-h-[90vh] p-2 flex items-center justify-center bg-black/90 border-0">
+                {src && (
+                    <img
+                        src={src}
+                        alt="Vista ampliada"
+                        className="max-h-[85vh] max-w-[86vw] object-contain rounded"
+                    />
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function AdditionalPhotos({
+    findingId,
+    photos,
+    isReadOnly,
+    onPhotoClick,
+    refetchFinding,
+}: {
+    findingId: string;
+    photos: Array<{ id: string; filePath: string; fileName: string; mimeType: string }>;
+    isReadOnly: boolean;
+    onPhotoClick: (src: string) => void;
+    refetchFinding: () => void;
+}) {
+    const [uploading, setUploading] = useState(false);
+
+    const [addPhoto] = useMutation(AddFindingPhotoDocument);
+    const [removePhoto] = useMutation(RemoveFindingPhotoDocument);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        if (file.size > MAX_PHOTO_BYTES) {
+            toast.error('La imagen no puede superar 5 MB');
+            return;
+        }
+        try {
+            setUploading(true);
+            const uploaded = await uploadFileToBackend(file);
+            await addPhoto({
+                variables: {
+                    findingId,
+                    filePath: uploaded.url,
+                    fileName: file.name,
+                    mimeType: file.type,
+                },
+            });
+            refetchFinding();
+            toast.success('Foto agregada');
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Error al subir la foto');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleRemove = async (id: string) => {
+        try {
+            await removePhoto({ variables: { id } });
+            refetchFinding();
+            toast.success('Foto eliminada');
+        } catch {
+            toast.error('Error al eliminar la foto');
+        }
+    };
+
+    if (photos.length === 0 && isReadOnly) return null;
+
+    return (
+        <div className="space-y-3">
+            <Label>Fotos Adicionales</Label>
+            <div className="grid grid-cols-3 gap-2">
+                {photos.map((photo) => (
+                    <div key={photo.id} className="relative group aspect-square">
+                        <img
+                            src={resolveBackendAssetUrl(photo.filePath)}
+                            alt={photo.fileName}
+                            className="w-full h-full object-cover rounded-lg border cursor-pointer"
+                            onClick={() => onPhotoClick(resolveBackendAssetUrl(photo.filePath))}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                        {!isReadOnly && (
+                            <button
+                                type="button"
+                                onClick={() => handleRemove(photo.id)}
+                                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        )}
+                    </div>
+                ))}
+                {!isReadOnly && (
+                    <label className={`aspect-square flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border cursor-pointer hover:border-primary/50 transition-colors bg-muted/10 ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {uploading
+                            ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            : <Plus className="h-5 w-5 text-muted-foreground" />
+                        }
+                        <span className="text-xs text-muted-foreground">
+                            {uploading ? 'Subiendo...' : 'Agregar'}
+                        </span>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
+                    </label>
+                )}
+            </div>
+        </div>
+    );
+}
 
 function FindingFeedbackForm({
     finding,
@@ -49,6 +173,7 @@ function FindingFeedbackForm({
     updating,
     isReadOnly,
     onSubmitUpdate,
+    onPhotoClick,
 }: {
     finding: unknown;
     areas: Array<{ id: string; name: string }>;
@@ -57,6 +182,7 @@ function FindingFeedbackForm({
     updating: boolean;
     isReadOnly: boolean;
     onSubmitUpdate: (input: UpdateFindingInput) => Promise<void>;
+    onPhotoClick: (src: string) => void;
 }) {
     const navigate = useNavigate();
 
@@ -81,8 +207,8 @@ function FindingFeedbackForm({
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > MAX_FILE_BYTES) {
-            toast.error(`La imagen no puede superar ${MAX_FILE_BYTES / 1_048_576} MB`);
+        if (file.size > MAX_PHOTO_BYTES) {
+            toast.error('La imagen no puede superar 5 MB');
             e.target.value = '';
             return;
         }
@@ -194,10 +320,15 @@ function FindingFeedbackForm({
             </div>
 
             <div className="space-y-2">
-                <Label>Evidencia Fotográfica (Opcional)</Label>
+                <Label>Foto Principal (Opcional)</Label>
                 {photoPreview ? (
                     <div className="relative">
-                        <img src={photoPreview} alt="Vista previa" className="w-full h-48 object-cover rounded-lg border" />
+                        <img
+                            src={photoPreview}
+                            alt="Vista previa"
+                            className="w-full h-48 object-cover rounded-lg border cursor-pointer"
+                            onClick={() => onPhotoClick(photoPreview)}
+                        />
                         {!isReadOnly && (
                             <Button
                                 type="button"
@@ -215,7 +346,8 @@ function FindingFeedbackForm({
                         <img
                             src={resolveBackendAssetUrl(form.photoPath)}
                             alt="Foto del hallazgo"
-                            className="w-full h-48 object-cover rounded-lg border"
+                            className="w-full h-48 object-cover rounded-lg border cursor-pointer"
+                            onClick={() => onPhotoClick(resolveBackendAssetUrl(form.photoPath))}
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                         {!isReadOnly && (
@@ -233,8 +365,8 @@ function FindingFeedbackForm({
                 ) : !isReadOnly ? (
                     <label className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border p-8 cursor-pointer hover:border-primary/50 transition-colors bg-muted/10">
                         <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                        <span className="text-sm font-medium">Capturar o subir foto del hallazgo</span>
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoChange} />
+                        <span className="text-sm font-medium">Capturar o subir foto principal</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
                     </label>
                 ) : (
                     <p className="text-sm text-muted-foreground italic">Sin foto registrada</p>
@@ -261,8 +393,9 @@ function FindingFeedbackForm({
 export default function FindingFeedbackPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-    const { data: findingData, loading: findingLoading } = useQuery(GetFindingByIdDocument, {
+    const { data: findingData, loading: findingLoading, refetch: refetchFinding } = useQuery(GetFindingByIdDocument, {
         variables: { id: id! },
         skip: !id,
     });
@@ -280,6 +413,10 @@ export default function FindingFeedbackPage() {
 
     const findingRef = findingData?.finding ?? null;
     const finding = useFragment(FindingBasicFragmentDoc, findingRef);
+
+    type PhotoRef = { readonly ' $fragmentRefs'?: { FindingPhotoBasicFragment: FindingPhotoBasicFragment } };
+    const photosRaw = ((finding as unknown as { photos?: PhotoRef[] | null })?.photos ?? []) as readonly PhotoRef[];
+    const photos = useFragment(FindingPhotoBasicFragmentDoc, photosRaw);
 
     if (findingLoading) {
         return (
@@ -306,7 +443,6 @@ export default function FindingFeedbackPage() {
         (finding as unknown as { convertedToWo?: { folio: string } | null }).convertedToWo,
     ) || finding.status === 'CONVERTED_TO_WO';
 
-    // Bug 4: filter machines to the finding's current area for the machine selector.
     const findingAreaId =
         (finding as unknown as { area?: { id?: string | null } | null })?.area?.id ?? '';
     const filteredMachines = filterMachinesByArea(
@@ -320,6 +456,8 @@ export default function FindingFeedbackPage() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-6 pb-12">
+            <PhotoLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                     <ArrowLeft className="h-5 w-5" />
@@ -364,6 +502,23 @@ export default function FindingFeedbackPage() {
                         updating={updating}
                         isReadOnly={isReadOnly}
                         onSubmitUpdate={(input) => updateFinding({ variables: { id: id!, input } }).then(() => undefined)}
+                        onPhotoClick={setLightboxSrc}
+                    />
+                </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+                <CardHeader>
+                    <CardTitle className="text-foreground text-base">Evidencia Fotográfica Adicional</CardTitle>
+                    <CardDescription>Máximo 5 MB por foto</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <AdditionalPhotos
+                        findingId={id!}
+                        photos={photos as unknown as Array<{ id: string; filePath: string; fileName: string; mimeType: string }>}
+                        isReadOnly={isReadOnly}
+                        onPhotoClick={setLightboxSrc}
+                        refetchFinding={refetchFinding}
                     />
                 </CardContent>
             </Card>

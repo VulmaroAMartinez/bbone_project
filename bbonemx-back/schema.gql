@@ -625,6 +625,7 @@ type Finding {
   machine: Machine
   machineId: ID
   photoPath: String
+  photos: [FindingPhoto!]!
   sequence: Int!
   shift: Shift!
   status: FindingStatus!
@@ -661,6 +662,17 @@ type FindingPaginatedResponse {
 input FindingPaginationInput {
   limit: Int! = 20
   page: Int! = 1
+}
+
+type FindingPhoto {
+  createdAt: DateTime!
+  fileName: String!
+  filePath: String!
+  findingId: String!
+  id: ID!
+  mimeType: String!
+  uploadedAt: DateTime!
+  uploadedBy: String!
 }
 
 input FindingSortInput {
@@ -900,6 +912,7 @@ type Mutation {
   activateUser(id: ID!): User!
   addActivityMaterialRequest(input: AddActivityMaterialRequestByFolioInput!): ActivityMaterialRequest!
   addActivityWorkOrder(input: AddActivityWorkOrderByFolioInput!): ActivityWorkOrder!
+  addFindingPhoto(fileName: String!, filePath: String!, findingId: ID!, mimeType: String!): FindingPhoto!
   addMaterialRequestPhoto(input: CreateMaterialRequestPhotoInput!): MaterialRequestPhoto!
   addMaterialToRequest(input: CreateMaterialRequestItemInput!, materialRequestId: ID!): MaterialRequestItem!
   addWorkOrderMaterial(input: AddWorkOrderMaterialInput!): WorkOrderMaterial!
@@ -998,6 +1011,7 @@ type Mutation {
   registerDeviceToken(input: RegisterDeviceTokenInput!): UserDeviceToken!
   removeActivityMaterialRequest(activityId: ID!, materialRequestId: ID!): Boolean!
   removeActivityWorkOrder(activityId: ID!, workOrderId: ID!): Boolean!
+  removeFindingPhoto(id: ID!): Boolean!
   removeMaterialFromRequest(materialRequestMaterialId: ID!): Boolean!
   removeMaterialRequestPhoto(id: ID!): Boolean!
   removeWorkOrderMaterial(id: ID!): Boolean!

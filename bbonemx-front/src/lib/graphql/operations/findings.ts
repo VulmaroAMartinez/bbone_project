@@ -1,14 +1,29 @@
 import { gql } from '@apollo/client';
 import { AREA_BASIC_FRAGMENT, MACHINE_BASIC_FRAGMENT } from './fragments';
 
+export const FINDING_PHOTO_FRAGMENT = gql`
+  fragment FindingPhotoBasic on FindingPhoto {
+    id
+    findingId
+    filePath
+    fileName
+    mimeType
+    uploadedAt
+  }
+`;
+
 export const FINDING_BASIC_FRAGMENT = gql`
   ${AREA_BASIC_FRAGMENT}
   ${MACHINE_BASIC_FRAGMENT}
+  ${FINDING_PHOTO_FRAGMENT}
   fragment FindingBasic on Finding {
     id
     folio
     description
     photoPath
+    photos {
+      ...FindingPhotoBasic
+    }
     status
     createdAt
     area {
@@ -79,5 +94,30 @@ export const CONVERT_TO_WORK_ORDER_MUTATION = gql`
         folio
       }
     }
+  }
+`;
+
+export const ADD_FINDING_PHOTO_MUTATION = gql`
+  ${FINDING_PHOTO_FRAGMENT}
+  mutation AddFindingPhoto(
+    $findingId: ID!
+    $filePath: String!
+    $fileName: String!
+    $mimeType: String!
+  ) {
+    addFindingPhoto(
+      findingId: $findingId
+      filePath: $filePath
+      fileName: $fileName
+      mimeType: $mimeType
+    ) {
+      ...FindingPhotoBasic
+    }
+  }
+`;
+
+export const REMOVE_FINDING_PHOTO_MUTATION = gql`
+  mutation RemoveFindingPhoto($id: ID!) {
+    removeFindingPhoto(id: $id)
   }
 `;
