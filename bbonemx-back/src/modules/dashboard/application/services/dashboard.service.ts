@@ -23,6 +23,7 @@ export class DashboardService {
       findingsByArea,
       workOrdersByArea,
       activitiesByResponsible,
+      findingsByCollection,
     ] = await Promise.all([
       this.dashboardRepository.getActiveBacklog(input),
       this.dashboardRepository.getTotalWorkOrders(input),
@@ -38,6 +39,7 @@ export class DashboardService {
       this.dashboardRepository.getFindingsByArea(input),
       this.dashboardRepository.getWorkOrdersByArea(input),
       this.dashboardRepository.getActivitiesByResponsible(input),
+      this.dashboardRepository.getFindingsByCollection(input),
     ]);
 
     return {
@@ -56,6 +58,7 @@ export class DashboardService {
         findingsByArea,
         workOrdersByArea,
         activitiesByResponsible,
+        findingsByCollection,
       },
       rankings: {
         topMachinesByDowntime,
