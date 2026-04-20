@@ -364,7 +364,7 @@ export default function FindingPage() {
                             mode="single"
                             selected={selectedDate}
                             onSelect={handleDateSelect}
-                            disabled={(date) => date >= today}
+                            disabled={(date) => date > today}
                             className="rounded-md border border-border"
                         />
 
