@@ -81,6 +81,14 @@ export class FindingsService {
     return this.findingsRepository.countOpen();
   }
 
+  findCountByDate(date: string): Promise<number> {
+    return this.findingsRepository.findCountByDate(date);
+  }
+
+  assignCollectionByDate(date: string, collection: string): Promise<number> {
+    return this.findingsRepository.assignCollectionByDate(date, collection);
+  }
+
   async create(data: Partial<Finding>): Promise<Finding> {
     return this.findingsRepository.create(data);
   }

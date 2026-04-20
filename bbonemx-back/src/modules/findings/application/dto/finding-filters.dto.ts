@@ -50,6 +50,13 @@ export class FindingFiltersInput {
   @Field({ nullable: true, description: 'Búsqueda por folio o descripción' })
   @IsOptional()
   search?: string;
+
+  @Field({
+    nullable: true,
+    description: 'Filtrar por colección (coincidencia parcial)',
+  })
+  @IsOptional()
+  collection?: string;
 }
 
 @InputType()
