@@ -122,7 +122,7 @@ export class FindingsResolver {
   resolvePhotos(@Parent() finding: Finding): Promise<FindingPhotoType[]> {
     return this.findingPhotosService.findByFindingId(
       finding.id,
-    ) as unknown as FindingPhotoType[];
+    ) as unknown as Promise<FindingPhotoType[]>;
   }
 
   @Mutation(() => FindingPhotoType)
@@ -136,7 +136,7 @@ export class FindingsResolver {
     return this.findingPhotosService.create(
       { findingId, filePath, fileName, mimeType },
       userId,
-    ) as unknown as FindingPhotoType;
+    ) as unknown as Promise<FindingPhotoType>;
   }
 
   @Mutation(() => Boolean)
