@@ -21,6 +21,7 @@ export const FINDING_BASIC_FRAGMENT = gql`
     folio
     description
     photoPath
+    collection
     photos {
       ...FindingPhotoBasic
     }
@@ -119,5 +120,17 @@ export const ADD_FINDING_PHOTO_MUTATION = gql`
 export const REMOVE_FINDING_PHOTO_MUTATION = gql`
   mutation RemoveFindingPhoto($id: ID!) {
     removeFindingPhoto(id: $id)
+  }
+`;
+
+export const GET_FINDINGS_COUNT_BY_DATE_QUERY = gql`
+  query GetFindingsCountByDate($date: String!) {
+    findingsCountByDate(date: $date)
+  }
+`;
+
+export const ASSIGN_COLLECTION_BY_DATE_MUTATION = gql`
+  mutation AssignCollectionByDate($input: AssignCollectionByDateInput!) {
+    assignCollectionByDate(input: $input)
   }
 `;

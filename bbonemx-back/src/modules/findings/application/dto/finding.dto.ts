@@ -4,6 +4,7 @@ import {
   IsString,
   IsUUID,
   IsOptional,
+  IsDateString,
   MaxLength,
 } from 'class-validator';
 
@@ -35,7 +36,25 @@ export class CreateFindingInput {
   @IsString()
   @MaxLength(500)
   photoPath?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  collection?: string;
 }
 
 @InputType()
 export class UpdateFindingInput extends PartialType(CreateFindingInput) {}
+
+@InputType()
+export class AssignCollectionByDateInput {
+  @Field({ description: 'Fecha en formato YYYY-MM-DD' })
+  @IsDateString()
+  date: string;
+
+  @Field()
+  @IsString()
+  @MaxLength(100)
+  collection: string;
+}

@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useMutation, useQuery } from '@apollo/client/react';
+import { useState, useMemo, useEffect } from 'react';
+import { useMutation, useQuery, useLazyQuery } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
 
@@ -8,6 +8,8 @@ import {
     ConvertToWorkOrderDocument,
     GetAreasDocument,
     AreaBasicFragmentDoc,
+    GetFindingsCountByDateDocument,
+    AssignCollectionByDateDocument,
     type FindingStatus,
     FindingBasicFragmentDoc,
 } from '@/lib/graphql/generated/graphql';
@@ -16,22 +18,49 @@ import { useFragment, useFragment as unmaskFragment } from '@/lib/graphql/genera
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderListSkeleton } from '@/components/ui/skeleton-loaders';
 import { Combobox } from '@/components/ui/combobox';
-import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
+import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, CalendarIcon, Layers } from 'lucide-react';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { toast } from 'sonner';
 
 const PAGE_SIZE = 12;
+
+function useDebounce<T>(value: T, delay: number): T {
+    const [debounced, setDebounced] = useState(value);
+    useEffect(() => {
+        const t = setTimeout(() => setDebounced(value), delay);
+        return () => clearTimeout(t);
+    }, [value, delay]);
+    return debounced;
+}
 
 export default function FindingPage() {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusTab, setStatusTab] = useState<FindingStatus | 'ALL'>('ALL');
     const [areaFilter, setAreaFilter] = useState<string>('all');
+    const [collectionFilter, setCollectionFilter] = useState('');
     const [page, setPage] = useState(1);
+
+    const debouncedCollection = useDebounce(collectionFilter, 300);
+
+    // Selector de colección por fecha
+    const [selectorOpen, setSelectorOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+    const [collectionName, setCollectionName] = useState('');
+    const [dateCount, setDateCount] = useState<number | null>(null);
 
     const { data: areasData } = useQuery(GetAreasDocument);
     const areas = useMemo(() => {
@@ -58,12 +87,18 @@ export default function FindingPage() {
             filters: {
                 status: statusTab !== 'ALL' ? statusTab : undefined,
                 areaId: areaFilter !== 'all' ? areaFilter : undefined,
+                collection: debouncedCollection.trim() || undefined,
             },
             pagination: { limit: 100, page: 1 }
         },
     });
 
     const [convertToWo, { loading: converting }] = useMutation(ConvertToWorkOrderDocument);
+
+    const [queryCountByDate, { loading: countLoading }] = useLazyQuery(GetFindingsCountByDateDocument, {
+        fetchPolicy: 'network-only',
+    });
+    const [assignCollection, { loading: assigning }] = useMutation(AssignCollectionByDateDocument);
 
     const findings = useFragment(FindingBasicFragmentDoc, data?.findingsFiltered.data || []);
 
@@ -84,6 +119,43 @@ export default function FindingPage() {
             toast.error('Error al convertir el hallazgo a orden de trabajo');
         }
     };
+
+    const formatDateISO = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
+    const handleDateSelect = async (d: Date | undefined) => {
+        setSelectedDate(d);
+        setDateCount(null);
+        setCollectionName('');
+        if (!d) return;
+        const result = await queryCountByDate({ variables: { date: formatDateISO(d) } });
+        setDateCount(result.data?.findingsCountByDate ?? 0);
+    };
+
+    const handleAssign = async () => {
+        if (!selectedDate || !collectionName.trim()) return;
+        try {
+            const result = await assignCollection({
+                variables: { input: { date: formatDateISO(selectedDate), collection: collectionName.trim() } },
+            });
+            const count = result.data?.assignCollectionByDate ?? 0;
+            toast.success(`Colección "${collectionName.trim()}" asignada a ${count} hallazgo${count !== 1 ? 's' : ''}`);
+            setSelectorOpen(false);
+            setSelectedDate(undefined);
+            setCollectionName('');
+            setDateCount(null);
+            refetch();
+        } catch {
+            toast.error('Error al asignar la colección');
+        }
+    };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     if (loading && !data) return <WorkOrderListSkeleton count={4} />;
 
@@ -109,9 +181,14 @@ export default function FindingPage() {
                         {data?.findingsFiltered.total || 0} hallazgos registrados
                     </p>
                 </div>
-                <Button onClick={() => navigate('/hallazgos/nuevo')} className="gap-2">
-                    <PlusCircle className="h-4 w-4" /> Nuevo Hallazgo
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setSelectorOpen(true)} className="gap-2">
+                        <Layers className="h-4 w-4" /> Seleccionar Hallazgos
+                    </Button>
+                    <Button onClick={() => navigate('/hallazgos/nuevo')} className="gap-2">
+                        <PlusCircle className="h-4 w-4" /> Nuevo Hallazgo
+                    </Button>
+                </div>
             </div>
 
             {/* Filters */}
@@ -133,6 +210,16 @@ export default function FindingPage() {
                     placeholder="Filtrar por área"
                     triggerClassName="w-full md:w-56"
                 />
+
+                <div className="relative w-full md:w-52">
+                    <Layers className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder="Filtrar por colección..."
+                        value={collectionFilter}
+                        onChange={(e) => { setCollectionFilter(e.target.value); setPage(1); }}
+                        className="pl-9"
+                    />
+                </div>
 
                 <Tabs value={statusTab} onValueChange={(val) => { setStatusTab(val as FindingStatus | 'ALL'); setPage(1); }} className="w-full md:w-auto">
                     <TabsList className="w-full md:w-auto grid grid-cols-3">
@@ -175,6 +262,12 @@ export default function FindingPage() {
                                                 ) : (
                                                     <Badge variant="default" className="bg-success text-success-foreground hover:bg-success/90">
                                                         <CheckCircle className="h-3 w-3 mr-1" /> Convertido a OT
+                                                    </Badge>
+                                                )}
+                                                {finding.collection && (
+                                                    <Badge variant="secondary" className="gap-1">
+                                                        <Layers className="h-3 w-3" />
+                                                        {finding.collection}
                                                     </Badge>
                                                 )}
                                             </div>
@@ -248,6 +341,89 @@ export default function FindingPage() {
                     </Button>
                 </div>
             )}
+
+            {/* Dialog: Seleccionar Hallazgos por Fecha */}
+            <Dialog open={selectorOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setSelectorOpen(false);
+                    setSelectedDate(undefined);
+                    setCollectionName('');
+                    setDateCount(null);
+                }
+            }}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <CalendarIcon className="h-5 w-5 text-primary" />
+                            Seleccionar Hallazgos por Fecha
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="flex flex-col items-center gap-4">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleDateSelect}
+                            disabled={(date) => date >= today}
+                            className="rounded-md border border-border"
+                        />
+
+                        {countLoading && (
+                            <p className="text-sm text-muted-foreground animate-pulse">Buscando hallazgos...</p>
+                        )}
+
+                        {!countLoading && dateCount !== null && (
+                            <div className="w-full space-y-3">
+                                {dateCount === 0 ? (
+                                    <p className="text-sm text-center text-muted-foreground">
+                                        No hay hallazgos para esta fecha.
+                                    </p>
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-center text-foreground font-medium">
+                                            Se encontraron <span className="text-primary">{dateCount}</span> hallazgo{dateCount !== 1 ? 's' : ''}.
+                                        </p>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="collection-name">Asignar a colección</Label>
+                                            <Input
+                                                id="collection-name"
+                                                placeholder="Ej: Auditoría, Turno noche..."
+                                                value={collectionName}
+                                                onChange={(e) => setCollectionName(e.target.value)}
+                                                maxLength={100}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {dateCount !== null && dateCount > 0 && (
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setSelectorOpen(false);
+                                    setSelectedDate(undefined);
+                                    setCollectionName('');
+                                    setDateCount(null);
+                                }}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                disabled={!collectionName.trim() || assigning}
+                                onClick={handleAssign}
+                                className="gap-2"
+                            >
+                                {assigning && <RefreshCw className="h-4 w-4 animate-spin" />}
+                                Asignar Colección
+                            </Button>
+                        </DialogFooter>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

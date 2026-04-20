@@ -15,6 +15,7 @@ export class FindingType {
   @Field(() => ShiftType) shift: ShiftType;
   @Field() description: string;
   @Field({ nullable: true }) photoPath?: string;
+  @Field({ nullable: true }) collection?: string;
   @Field(() => [FindingPhotoType], { nullable: true })
   photos?: FindingPhotoType[];
   @Field(() => FindingStatus) status: FindingStatus;

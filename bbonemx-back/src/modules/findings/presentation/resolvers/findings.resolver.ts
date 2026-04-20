@@ -19,6 +19,7 @@ import {
   FindingFiltersInput,
   FindingPaginationInput,
   FindingSortInput,
+  AssignCollectionByDateInput,
 } from '../../application/dto';
 import {
   FindingType,
@@ -137,6 +138,21 @@ export class FindingsResolver {
       { findingId, filePath, fileName, mimeType },
       userId,
     ) as unknown as Promise<FindingPhotoType>;
+  }
+
+  @Query(() => Int, { name: 'findingsCountByDate' })
+  findingsCountByDate(@Args('date') date: string): Promise<number> {
+    return this.findingsService.findCountByDate(date);
+  }
+
+  @Mutation(() => Int)
+  assignCollectionByDate(
+    @Args('input') input: AssignCollectionByDateInput,
+  ): Promise<number> {
+    return this.findingsService.assignCollectionByDate(
+      input.date,
+      input.collection,
+    );
   }
 
   @Mutation(() => Boolean)

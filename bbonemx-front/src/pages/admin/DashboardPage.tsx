@@ -590,7 +590,12 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
                 <XAxis dataKey="areaName" stroke="oklch(0.65 0 0)" tick={{ fontSize: 11 }} />
                 <YAxis stroke="oklch(0.65 0 0)" allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: tooltipStyle.color }}
+                  itemStyle={{ color: tooltipStyle.color }}
+                  formatter={(value) => [value ?? 0, 'Hallazgos']}
+                />
                 <Bar dataKey="value" name="Hallazgos" radius={[4, 4, 0, 0]}>
                   {findingsByAreaColored.map((entry, index) => (
                     <Cell
@@ -618,7 +623,12 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.005 260)" />
                 <XAxis dataKey="areaName" stroke="oklch(0.65 0 0)" tick={{ fontSize: 11 }} />
                 <YAxis stroke="oklch(0.65 0 0)" allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: tooltipStyle.color }}
+                  itemStyle={{ color: tooltipStyle.color }}
+                  formatter={(value) => [value ?? 0, 'OTs']}
+                />
                 <Bar dataKey="value" name="OTs" radius={[4, 4, 0, 0]}>
                   {workOrdersByAreaColored.map((entry, index) => (
                     <Cell

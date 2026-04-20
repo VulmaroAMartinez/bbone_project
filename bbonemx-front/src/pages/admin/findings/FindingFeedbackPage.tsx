@@ -25,6 +25,7 @@ import { canEditFinding, filterMachinesByArea, buildMachineLabel } from '@/lib/f
 import { resolveBackendAssetUrl, uploadFileToBackend } from '@/lib/utils/uploads';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -194,6 +195,7 @@ function FindingFeedbackForm({
         machineId: machineIdInitial || '',
         description: (finding as unknown as { description?: string | null })?.description || '',
         photoPath: (finding as unknown as { photoPath?: string | null })?.photoPath || '',
+        collection: (finding as unknown as { collection?: string | null })?.collection || '',
     }));
 
     const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -245,6 +247,7 @@ function FindingFeedbackForm({
                 description: form.description.trim(),
                 ...(form.machineId ? { machineId: form.machineId } : {}),
                 ...(resolvedPhotoPath ? { photoPath: resolvedPhotoPath } : {}),
+                collection: form.collection.trim() || undefined,
             };
 
             await onSubmitUpdate(input);
@@ -315,6 +318,17 @@ function FindingFeedbackForm({
                     onChange={(e) => handleChange('description', e.target.value)}
                     placeholder="Describe el hallazgo..."
                     className="min-h-[100px]"
+                    disabled={isReadOnly}
+                />
+            </div>
+
+            <div className="space-y-2">
+                <Label>Colección (Opcional)</Label>
+                <Input
+                    value={form.collection}
+                    onChange={(e) => handleChange('collection', e.target.value)}
+                    placeholder="Ej: Auditoría, Turno noche..."
+                    maxLength={100}
                     disabled={isReadOnly}
                 />
             </div>

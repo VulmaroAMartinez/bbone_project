@@ -146,6 +146,11 @@ export class FindingsRepository {
           search: `%${filters.search}%`,
         });
       }
+      if (filters.collection) {
+        qb.andWhere('f.collection ILIKE :collection', {
+          collection: `%${filters.collection}%`,
+        });
+      }
     }
 
     // Obtener total antes de paginar
@@ -225,6 +230,28 @@ export class FindingsRepository {
     finding.isActive = true;
     finding.deletedAt = null;
     await this.repository.save(finding);
+  }
+
+  async findCountByDate(date: string): Promise<number> {
+    return this.repository
+      .createQueryBuilder('f')
+      .where('f.is_active = true')
+      .andWhere('DATE(f.created_at) = :date', { date })
+      .getCount();
+  }
+
+  async assignCollectionByDate(
+    date: string,
+    collection: string,
+  ): Promise<number> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .update(Finding)
+      .set({ collection })
+      .where('is_active = true')
+      .andWhere('DATE(created_at) = :date', { date })
+      .execute();
+    return result.affected ?? 0;
   }
 
   getRepository(): Repository<Finding> {

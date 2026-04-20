@@ -71,6 +71,9 @@ export class Finding extends BaseEntity {
   @JoinColumn({ name: 'converted_by' })
   converter?: User;
 
+  @Column({ name: 'collection', type: 'varchar', length: 100, nullable: true })
+  collection?: string;
+
   @OneToMany(() => FindingPhoto, (photo) => photo.finding)
   photos: FindingPhoto[];
 
