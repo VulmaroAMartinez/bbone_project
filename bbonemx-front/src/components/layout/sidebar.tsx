@@ -111,8 +111,6 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       if (isBoss) {
         items.push(
           { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
-          { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
-          { href: '/solicitud-material/nueva', label: 'Nueva solicitud', icon: PlusCircle },
         );
       }
       return items;

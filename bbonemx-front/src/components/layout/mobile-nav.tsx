@@ -64,7 +64,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
     navigate('/', { replace: true });
   };
 
-  const getNavItems = (): NavItem[] => {
+const getNavItems = (): NavItem[] => {
     if (isAdmin) {
       return [
         { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -73,7 +73,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
         { href: '/admin/actividades', label: 'Agenda', icon: ListChecks },
         { href: '/maquinas', label: 'Equipos/Estructuras', icon: Forklift },
         { href: '/hallazgos', label: 'Hallazgos', icon: Search },
-        { href: '/admin/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
+        { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
         { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
         {
           label: 'Gestión de Técnicos',
@@ -92,7 +92,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
             { href: '/departamentos', label: 'Departamentos', icon: Building },
             { href: '/puestos', label: 'Puestos', icon: Briefcase },
             { href: '/solicitantes', label: 'Solicitantes', icon: Users },
-            { href: '/repuestos', label: 'Refacciones', icon: Bolt },
+            { href: '/repuestos', label: 'Repuestos', icon: Bolt },
             { href: '/materiales', label: 'Materiales', icon: Drill },
             { href: '/turnos', label: 'Turnos', icon: Clock }
           ]
@@ -107,10 +107,9 @@ export function MobileNav({ onClose }: MobileNavProps) {
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
         { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
       ];
-      if (isBoss || isAdmin) {
+      if (isBoss) {
         items.push(
-          ...(isBoss ? [] : [{ href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle } as NavItem]),
-          { href: '/solicitud-material/nueva', label: 'Solicitud de Material', icon: FileCog2 },
+          { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
         );
       }
       return items;
