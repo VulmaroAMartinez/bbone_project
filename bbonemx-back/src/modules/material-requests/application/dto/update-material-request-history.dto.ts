@@ -47,4 +47,9 @@ export class UpdateMaterialRequestHistoryInput {
   @IsOptional()
   @IsDate({ message: 'La fecha estimada de entrega debe ser una fecha válida' })
   estimatedDeliveryDate?: Date;
+
+  @Field(() => Date, { nullable: true })
+  @IsOptional()
+  @IsDate({ message: 'La fecha de entrega debe ser una fecha válida' })
+  deliveryDate?: Date;
 }

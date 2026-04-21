@@ -611,12 +611,6 @@ export class MaterialRequestsService {
     const mr = await this.findByIdOrFail(input.materialRequestId);
     this.assertBossCanManageMaterialRequest(user, mr);
 
-    if (!mr.emailSentAt) {
-      throw new BadRequestException(
-        'No se puede actualizar el historial: el correo de la solicitud aún no ha sido enviado',
-      );
-    }
-
     // Fetch existing history to merge with input for chain validation
     const existing =
       await this.materialRequestHistoryRepository.findByMaterialRequestId(
@@ -659,9 +653,15 @@ export class MaterialRequestsService {
       );
     }
 
+    const effectiveDeliveryDate = input.deliveryDate ?? existing?.deliveryDate;
+
+    if (input.status === StatusHistoryMR.DELIVERED && !effectiveDeliveryDate) {
+      throw new BadRequestException(
+        'La fecha de entrega es requerida para marcar como entregado',
+      );
+    }
+
     const progressPercentage = STATUS_PROGRESS_MAP[input.status];
-    const deliveryDate =
-      input.status === StatusHistoryMR.DELIVERED ? new Date() : undefined;
 
     await this.materialRequestHistoryRepository.upsert(
       input.materialRequestId,
@@ -672,7 +672,9 @@ export class MaterialRequestsService {
         deliveryMerchandise: input.deliveryMerchandise,
         supplier: input.supplier,
         progressPercentage,
-        ...(deliveryDate !== undefined && { deliveryDate }),
+        ...(input.deliveryDate !== undefined && {
+          deliveryDate: input.deliveryDate,
+        }),
         ...(input.estimatedDeliveryDate !== undefined && {
           estimatedDeliveryDate: input.estimatedDeliveryDate,
         }),

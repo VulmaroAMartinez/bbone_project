@@ -20,11 +20,27 @@ const makeRepo = (): jest.Mocked<DashboardRepository> =>
     getFindingsByCollection: jest.fn().mockResolvedValue([
       {
         collection: 'Ronda A',
-        areas: [{ areaId: 'a1', areaName: 'Producción', total: 5, pending: 2, done: 3 }],
+        areas: [
+          {
+            areaId: 'a1',
+            areaName: 'Producción',
+            total: 5,
+            pending: 2,
+            done: 3,
+          },
+        ],
       },
       {
         collection: 'Sin colección',
-        areas: [{ areaId: 'a2', areaName: 'Mantenimiento', total: 1, pending: 0, done: 1 }],
+        areas: [
+          {
+            areaId: 'a2',
+            areaName: 'Mantenimiento',
+            total: 1,
+            pending: 0,
+            done: 1,
+          },
+        ],
       },
     ]),
   }) as unknown as jest.Mocked<DashboardRepository>;

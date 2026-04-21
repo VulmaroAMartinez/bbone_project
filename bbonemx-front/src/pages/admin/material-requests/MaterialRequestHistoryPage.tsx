@@ -109,12 +109,10 @@ function getProgressColor(pct: number): string {
 }
 
 function getProgressValue(
-  emailSentAt: string | null | undefined,
   histories: Array<{ progressPercentage?: number | null }> | null | undefined,
 ): number {
-  if (!emailSentAt) return 0;
   const h = histories?.[0];
-  if (!h || h.progressPercentage == null) return 20;
+  if (!h || h.progressPercentage == null) return 0;
   return h.progressPercentage;
 }
 
@@ -127,6 +125,7 @@ interface EditFormValues {
   deliveryMerchandise?: string;
   supplier?: string;
   estimatedDeliveryDate?: string;
+  deliveryDate?: string;
 }
 
 const STATUSES_REQUIRING_SC = new Set([
@@ -157,6 +156,10 @@ const editSchema: yup.ObjectSchema<EditFormValues> = yup.object({
   }),
   supplier: yup.string().optional(),
   estimatedDeliveryDate: yup.string().optional(),
+  deliveryDate: yup.string().optional().when('status', {
+    is: 'DELIVERED',
+    then: (schema) => schema.required('La fecha de entrega es requerida para marcar como entregado'),
+  }),
 });
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -253,6 +256,7 @@ export default function MaterialRequestHistoryPage() {
       estimatedDeliveryDate: h?.estimatedDeliveryDate
         ? String(h.estimatedDeliveryDate).split('T')[0]
         : '',
+      deliveryDate: h?.deliveryDate ? String(h.deliveryDate).split('T')[0] : '',
     });
     setEditingMrId(mrId);
   };
@@ -270,6 +274,7 @@ export default function MaterialRequestHistoryPage() {
             deliveryMerchandise: values.deliveryMerchandise || undefined,
             supplier: values.supplier || undefined,
             estimatedDeliveryDate: values.estimatedDeliveryDate || undefined,
+            deliveryDate: values.deliveryDate || undefined,
           },
         },
       });
@@ -425,7 +430,7 @@ export default function MaterialRequestHistoryPage() {
                     const machineNames = (req.machines ?? []).map(
                       (m) => m.machine?.name ?? m.customMachineName ?? '—',
                     );
-                    const progress = getProgressValue(req.emailSentAt, req.histories);
+                    const progress = getProgressValue(req.histories);
 
                     return (
                       <TableRow key={req.id} className={!req.isActive ? 'opacity-50' : ''}>
@@ -534,13 +539,8 @@ export default function MaterialRequestHistoryPage() {
                             variant="ghost"
                             size="sm"
                             className="h-7 w-7 p-0"
-                            disabled={!req.emailSentAt}
                             onClick={() => openEditModal(req.id)}
-                            title={
-                              !req.emailSentAt
-                                ? 'Envía el correo primero para habilitar el seguimiento'
-                                : 'Editar seguimiento'
-                            }
+                            title="Editar seguimiento"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -632,9 +632,23 @@ export default function MaterialRequestHistoryPage() {
               <Input type="date" {...register('estimatedDeliveryDate')} />
             </div>
 
-            {editingHistory?.deliveryDate && (
-              <div className="text-xs text-muted-foreground">
-                Fecha de entrega: {formatDate(editingHistory.deliveryDate)}
+            {watchedStatus === 'DELIVERED' && (
+              <div className="space-y-2">
+                <Label>
+                  Fecha de entrega *
+                </Label>
+                {editingHistory?.deliveryDate ? (
+                  <div className="text-sm text-muted-foreground py-2">
+                    {formatDate(editingHistory.deliveryDate)}
+                  </div>
+                ) : (
+                  <>
+                    <Input type="date" {...register('deliveryDate')} />
+                    {errors.deliveryDate && (
+                      <p className="text-xs text-destructive">{errors.deliveryDate.message}</p>
+                    )}
+                  </>
+                )}
               </div>
             )}
 

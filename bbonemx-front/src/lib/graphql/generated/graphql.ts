@@ -184,6 +184,7 @@ export type AreaType =
 
 export type AssignCollectionByDateInput = {
   collection: Scalars['String']['input'];
+  /** Fecha en formato YYYY-MM-DD */
   date: Scalars['String']['input'];
 };
 
@@ -635,6 +636,8 @@ export type FindingCollectionStat = {
 
 export type FindingFiltersInput = {
   areaId?: InputMaybe<Scalars['ID']['input']>;
+  /** Filtrar por colección (coincidencia parcial) */
+  collection?: InputMaybe<Scalars['String']['input']>;
   /** Filtrar por creador */
   createdBy?: InputMaybe<Scalars['ID']['input']>;
   /** Fecha de creación desde (ISO) */
@@ -2519,6 +2522,7 @@ export type UpdateMaterialInput = {
 };
 
 export type UpdateMaterialRequestHistoryInput = {
+  deliveryDate?: InputMaybe<Scalars['DateTime']['input']>;
   deliveryMerchandise?: InputMaybe<Scalars['String']['input']>;
   estimatedDeliveryDate?: InputMaybe<Scalars['DateTime']['input']>;
   materialRequestId: Scalars['ID']['input'];
