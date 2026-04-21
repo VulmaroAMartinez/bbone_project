@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(ls -la /c/Users/vulma/Downloads/bbmaintenance/bbonemx-back/.env*)"
-    ]
-  }
-}

@@ -1789,6 +1789,7 @@ input UpdateMaterialInput {
 }
 
 input UpdateMaterialRequestHistoryInput {
+  deliveryDate: DateTime
   deliveryMerchandise: String
   estimatedDeliveryDate: DateTime
   materialRequestId: ID!
