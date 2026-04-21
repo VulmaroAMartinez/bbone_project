@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Select as UISelect, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScheduleSkeleton } from '@/components/ui/skeleton-loaders';
 import { Input } from '@/components/ui/input';
-import { Calendar, Save, Copy, ChevronLeft, ChevronRight, Loader2, Filter, Search, X } from 'lucide-react';
+import { Calendar, Save, Copy, ChevronLeft, ChevronRight, Loader2, Filter, Search, X, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     AlertDialog,
@@ -67,6 +67,7 @@ function getWeekDates(baseDate: Date): string[] {
 }
 
 type CellValue = { type: 'SHIFT' | 'ABSENCE' | 'EMPTY'; id: string };
+type SortBy = 'NOMINA' | 'NAME_ASC' | 'NAME_DESC' | 'POSITION_ASC';
 type TechnicianScheduleMap = Record<string, Record<string, CellValue>>;
 
 export default function SchedulePage() {
@@ -85,6 +86,7 @@ export default function SchedulePage() {
     const [filterDay, setFilterDay] = useState<string>('ALL');
     const [filterName, setFilterName] = useState<string>('');
     const [filterPosition, setFilterPosition] = useState<string>('ALL');
+    const [sortBy, setSortBy] = useState<SortBy>('NOMINA');
 
     // --- Queries ---
     const { data: weekData, loading: weekLoading, refetch: refetchWeek } = useOfflineAwareQuery(GetWeekScheduleDocument, {
@@ -313,6 +315,21 @@ export default function SchedulePage() {
         return true;
     });
 
+    const sortedTechnicians = useMemo(() => {
+        return [...filteredTechnicians].sort((a, b) => {
+            switch (sortBy) {
+                case 'NOMINA':
+                    return a.user.employeeNumber.localeCompare(b.user.employeeNumber);
+                case 'NAME_ASC':
+                    return a.user.fullName.localeCompare(b.user.fullName, 'es');
+                case 'NAME_DESC':
+                    return b.user.fullName.localeCompare(a.user.fullName, 'es');
+                case 'POSITION_ASC':
+                    return a.position.name.localeCompare(b.position.name, 'es');
+            }
+        });
+    }, [filteredTechnicians, sortBy]);
+
     const weekLabel = `${new Date(weekDates[0] + "T12:00:00").toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${new Date(weekDates[6] + "T12:00:00").toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
     if (isLoading && !weekData) return <ScheduleSkeleton />;
@@ -358,7 +375,7 @@ export default function SchedulePage() {
                     </div>
 
                     {/* Fila 2: Filtros en cuadrícula */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                         {/* Buscar técnico */}
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -391,6 +408,20 @@ export default function SchedulePage() {
                             <SelectContent>
                                 <SelectItem value="ALL">Todos los Turnos</SelectItem>
                                 {shifts.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </UISelect>
+
+                        {/* Ordenar por */}
+                        <UISelect value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
+                            <SelectTrigger className="h-10 bg-background">
+                                <ArrowUpDown className="w-4 h-4 mr-2 opacity-50 shrink-0" />
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="NOMINA">Nómina</SelectItem>
+                                <SelectItem value="NAME_ASC">Nombre A-Z</SelectItem>
+                                <SelectItem value="NAME_DESC">Nombre Z-A</SelectItem>
+                                <SelectItem value="POSITION_ASC">Puesto A-Z</SelectItem>
                             </SelectContent>
                         </UISelect>
 
@@ -438,7 +469,7 @@ export default function SchedulePage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
-                            {filteredTechnicians.map(tech => {
+                            {sortedTechnicians.map(tech => {
                                 const uid = tech.user.id;
                                 const isModified = modifiedTechs.has(uid);
                                 return (
