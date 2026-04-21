@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { DashboardService } from './dashboard.service';
 import { DashboardRepository } from '../../infrastructure/repositories';
 
