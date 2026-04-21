@@ -15,7 +15,7 @@ import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 import { normalizeDate } from '@/lib/utils/scheduling';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select as UISelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select as UISelect, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScheduleSkeleton } from '@/components/ui/skeleton-loaders';
 import { Input } from '@/components/ui/input';
 import { Calendar, Save, Copy, ChevronLeft, ChevronRight, Loader2, Filter, Search, X } from 'lucide-react';
@@ -458,30 +458,40 @@ export default function SchedulePage() {
 
                                             return (
                                                 <td key={dateStr} className="px-2 py-2">
-                                                    <select
-                                                        value={currentValue}
-                                                        onChange={(e) => handleCellChange(uid, dateStr, e.target.value)}
-                                                        className={cn(
-                                                            "w-full h-9 text-xs rounded-md border px-2 py-1 outline-none transition-colors appearance-none cursor-pointer",
+                                                    <UISelect
+                                                        value={currentValue || '__FREE__'}
+                                                        onValueChange={(val) => handleCellChange(uid, dateStr, val === '__FREE__' ? '' : val)}
+                                                    >
+                                                        <SelectTrigger className={cn(
+                                                            "w-full h-9 text-xs",
                                                             cell?.type === 'SHIFT'
                                                                 ? 'bg-primary/15 border-primary/30 text-primary font-medium dark:bg-primary/30 dark:border-primary/50'
                                                                 : cell?.type === 'ABSENCE'
                                                                     ? 'bg-destructive/15 border-destructive/30 text-destructive font-medium dark:bg-destructive/30 dark:border-destructive/50'
-                                                                    : 'bg-background border-border text-muted-foreground hover:border-primary/50'
-                                                        )}
-                                                    >
-                                                        <option value="">-- Libre --</option>
-                                                        <optgroup label="Turnos Laborales">
-                                                            {shifts.map(s => (
-                                                                <option key={`SHIFT:${s.id}`} value={`SHIFT:${s.id}`}>{s.name} ({s.startTime.slice(0, 5)})</option>
-                                                            ))}
-                                                        </optgroup>
-                                                        <optgroup label="Ausencias">
-                                                            {absences.map(a => (
-                                                                <option key={`ABSENCE:${a.id}`} value={`ABSENCE:${a.id}`}>{a.name}</option>
-                                                            ))}
-                                                        </optgroup>
-                                                    </select>
+                                                                    : 'text-muted-foreground'
+                                                        )}>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="__FREE__">-- Libre --</SelectItem>
+                                                            <SelectGroup>
+                                                                <SelectLabel>Turnos Laborales</SelectLabel>
+                                                                {shifts.map(s => (
+                                                                    <SelectItem key={`SHIFT:${s.id}`} value={`SHIFT:${s.id}`}>
+                                                                        {s.name} ({s.startTime.slice(0, 5)})
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectGroup>
+                                                            <SelectGroup>
+                                                                <SelectLabel>Ausencias</SelectLabel>
+                                                                {absences.map(a => (
+                                                                    <SelectItem key={`ABSENCE:${a.id}`} value={`ABSENCE:${a.id}`}>
+                                                                        {a.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectGroup>
+                                                        </SelectContent>
+                                                    </UISelect>
                                                 </td>
                                             );
                                         })}
