@@ -65,7 +65,7 @@ export interface WorkOrderPdfData {
 interface PdfmakePrinter {
   createPdfKitDocument(
     docDef: TDocumentDefinitions,
-  ): NodeJS.ReadableStream & NodeJS.EventEmitter & { end(): void };
+  ): Promise<NodeJS.ReadableStream & NodeJS.EventEmitter & { end(): void }>;
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -752,7 +752,7 @@ export class WorkOrderPdfService implements OnModuleInit {
       };
 
       const printer = await this.getPrinter();
-      const doc = printer.createPdfKitDocument(docDefinition);
+      const doc = await printer.createPdfKitDocument(docDefinition);
 
       const chunks: Buffer[] = [];
       const pdfPromise = new Promise<string>((resolve, reject) => {
