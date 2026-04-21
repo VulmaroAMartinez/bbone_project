@@ -31,9 +31,11 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, CalendarIcon, Layers } from 'lucide-react';
+import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, CalendarIcon, Layers, FileSpreadsheet } from 'lucide-react';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { toast } from 'sonner';
+import { getApiBaseUrl } from '@/lib/utils/uploads';
+import { downloadBlob } from '@/lib/utils/excel-download';
 
 const PAGE_SIZE = 12;
 
@@ -57,6 +59,7 @@ export default function FindingPage() {
     const debouncedCollection = useDebounce(collectionFilter, 300);
 
     // Selector de colección por fecha
+    const [exporting, setExporting] = useState(false);
     const [selectorOpen, setSelectorOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [collectionName, setCollectionName] = useState('');
@@ -110,6 +113,39 @@ export default function FindingPage() {
 
     const totalPages = Math.ceil(filteredFindings.length / PAGE_SIZE);
     const pageFindings = filteredFindings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    const handleExportExcel = async () => {
+        setExporting(true);
+        try {
+            const filename = `hallazgos-${new Date().toISOString().split('T')[0]}.xlsx`;
+            const response = await fetch(`${getApiBaseUrl()}/api/findings/export/excel`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filters: {
+                        status: statusTab !== 'ALL' ? statusTab : undefined,
+                        areaId: areaFilter !== 'all' ? areaFilter : undefined,
+                        collection: collectionFilter.trim() || undefined,
+                        search: searchTerm.trim() || undefined,
+                    },
+                }),
+            });
+
+            if (!response.ok) {
+                const text = await response.text().catch(() => '');
+                throw new Error(text || `HTTP ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            downloadBlob(blob, filename);
+            toast.success('Excel descargado correctamente');
+        } catch (err) {
+            toast.error(`Error al exportar: ${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+            setExporting(false);
+        }
+    };
 
     const handleConvert = async (findingId: string) => {
         try {
@@ -184,6 +220,12 @@ export default function FindingPage() {
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setSelectorOpen(true)} className="gap-2">
                         <Layers className="h-4 w-4" /> Seleccionar Hallazgos
+                    </Button>
+                    <Button variant="outline" onClick={handleExportExcel} disabled={exporting} className="gap-2">
+                        {exporting
+                            ? <RefreshCw className="h-4 w-4 animate-spin" />
+                            : <FileSpreadsheet className="h-4 w-4" />}
+                        {exporting ? 'Exportando...' : 'Exportar a Excel'}
                     </Button>
                     <Button onClick={() => navigate('/hallazgos/nuevo')} className="gap-2">
                         <PlusCircle className="h-4 w-4" /> Nuevo Hallazgo

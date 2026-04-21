@@ -5,12 +5,14 @@ import { WorkOrdersModule } from '../work-orders';
 import { FindingsRepository } from './infrastructure/repositories';
 import { FindingsService, FindingPhotosService } from './application/services';
 import { FindingsResolver } from './presentation/resolvers';
+import { FindingsExcelController } from './presentation/controllers/findings-excel.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Finding, FindingPhoto]),
     forwardRef(() => WorkOrdersModule),
   ],
+  controllers: [FindingsExcelController],
   providers: [
     FindingsRepository,
     FindingsService,

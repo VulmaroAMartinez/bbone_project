@@ -254,6 +254,61 @@ export class FindingsRepository {
     return result.affected ?? 0;
   }
 
+  async findAllForExport(filters?: FindingFiltersInput): Promise<Finding[]> {
+    const qb = this.repository
+      .createQueryBuilder('f')
+      .leftJoinAndSelect('f.area', 'area')
+      .leftJoinAndSelect('f.machine', 'machine')
+      .leftJoinAndSelect('f.photos', 'photos')
+      .where('f.is_active = true');
+
+    if (filters) {
+      if (filters.status) {
+        qb.andWhere('f.status = :status', { status: filters.status });
+      }
+      if (filters.areaId) {
+        qb.andWhere('f.area_id = :areaId', { areaId: filters.areaId });
+      }
+      if (filters.shiftId) {
+        qb.andWhere('f.shift_id = :shiftId', { shiftId: filters.shiftId });
+      }
+      if (filters.machineId) {
+        qb.andWhere('f.machine_id = :machineId', {
+          machineId: filters.machineId,
+        });
+      }
+      if (filters.createdBy) {
+        qb.andWhere('f.created_by = :createdBy', {
+          createdBy: filters.createdBy,
+        });
+      }
+      if (filters.createdFrom) {
+        qb.andWhere('f.created_at >= :createdFrom', {
+          createdFrom: filters.createdFrom,
+        });
+      }
+      if (filters.createdTo) {
+        qb.andWhere('f.created_at <= :createdTo', {
+          createdTo: filters.createdTo,
+        });
+      }
+      if (filters.search) {
+        qb.andWhere(
+          '(f.folio ILIKE :search OR f.description ILIKE :search)',
+          { search: `%${filters.search}%` },
+        );
+      }
+      if (filters.collection) {
+        qb.andWhere('f.collection ILIKE :collection', {
+          collection: `%${filters.collection}%`,
+        });
+      }
+    }
+
+    qb.orderBy('f.created_at', 'DESC');
+    return qb.getMany();
+  }
+
   getRepository(): Repository<Finding> {
     return this.repository;
   }
