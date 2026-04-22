@@ -156,6 +156,14 @@ export class FindingsResolver {
   }
 
   @Mutation(() => Boolean)
+  async hardDeleteFinding(
+    @Args('id', { type: () => ID }) id: string,
+  ): Promise<boolean> {
+    await this.findingsService.hardDelete(id);
+    return true;
+  }
+
+  @Mutation(() => Boolean)
   async removeFindingPhoto(
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser('id') userId: string,

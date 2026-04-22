@@ -51,7 +51,9 @@ export class FindingsExcelController {
       });
 
       if (!res.headersSent) {
-        res.status(500).json({ message: 'Error al exportar hallazgos a Excel' });
+        res
+          .status(500)
+          .json({ message: 'Error al exportar hallazgos a Excel' });
         return;
       }
 

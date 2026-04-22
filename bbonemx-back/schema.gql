@@ -1013,6 +1013,7 @@ type Mutation {
   """Exportar orden de trabajo a PDF (Base64)"""
   exportWorkOrderPdf(id: ID!): String!
   generateWorkOrdersForPreventiveTask: GenerateWorkOrdersResult!
+  hardDeleteFinding(id: ID!): Boolean!
 
   """Inicia sesión con número de empleado y contraseña"""
   login(input: LoginInput!): LoginResponse!

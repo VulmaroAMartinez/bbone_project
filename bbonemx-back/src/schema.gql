@@ -903,6 +903,7 @@ type Mutation {
   deactivateUser(id: ID!): Boolean!
   deleteActivity(id: ID!): Boolean!
   deleteFinding(id: ID!): Finding!
+  hardDeleteFinding(id: ID!): Boolean!
 
   """Elimina una notificación (soft delete)"""
   deleteNotification(id: ID!): Boolean!

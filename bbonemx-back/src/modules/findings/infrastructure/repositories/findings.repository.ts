@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Finding } from '../../domain/entities';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { FindingStatus, FolioGenerator } from 'src/common';
 import {
   FindingFiltersInput,
@@ -9,11 +9,15 @@ import {
   FindingSortInput,
 } from '../../application/dto';
 
+/** Advisory lock key serializing sequence assignment across create/hardDelete. */
+const FINDINGS_SEQ_LOCK = 987654321;
+
 @Injectable()
 export class FindingsRepository {
   constructor(
     @InjectRepository(Finding)
     private readonly repository: Repository<Finding>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findAll(): Promise<Finding[]> {
@@ -172,15 +176,20 @@ export class FindingsRepository {
   }
 
   async create(data: Partial<Finding>): Promise<Finding> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const result = await this.repository.query(
-      `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM findings`,
-    );
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const sequence = Number(result[0].next_seq);
-    const folio = FolioGenerator.generateFindingFolio(sequence, new Date());
-    const entity = this.repository.create({ ...data, sequence, folio });
-    return this.repository.save(entity);
+    return this.dataSource.transaction(async (manager) => {
+      await manager.query(`SELECT pg_advisory_xact_lock($1)`, [
+        FINDINGS_SEQ_LOCK,
+      ]);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const result = await manager.query(
+        `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM findings`,
+      );
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const sequence = Number(result[0].next_seq);
+      const folio = FolioGenerator.generateFindingFolio(sequence, new Date());
+      const entity = this.repository.create({ ...data, sequence, folio });
+      return manager.save(entity);
+    });
   }
 
   async update(id: string, data: Partial<Finding>): Promise<Finding | null> {
@@ -191,6 +200,61 @@ export class FindingsRepository {
     if (!finding) throw new NotFoundException('Hallazgo no encontrado');
     Object.assign(finding, data);
     return this.repository.save(finding);
+  }
+
+  /**
+   * Physically removes a finding and re-sequences folios of all subsequent findings.
+   * Returns the file paths of photos that should be deleted from disk by the caller.
+   */
+  async hardDelete(id: string): Promise<string[]> {
+    let filePaths: string[] = [];
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query(`SELECT pg_advisory_xact_lock($1)`, [
+        FINDINGS_SEQ_LOCK,
+      ]);
+
+      type FindingRow = { id: string; sequence: number };
+      type PhotoRow = { file_path: string };
+      type AffectedRow = { id: string; sequence: number; created_at: string };
+
+      const findingRows = (await manager.query(
+        `SELECT id, sequence FROM findings WHERE id = $1`,
+        [id],
+      )) as unknown as FindingRow[];
+      const [finding] = findingRows;
+
+      if (!finding) throw new NotFoundException('Hallazgo no encontrado');
+
+      const deletedSeq: number = finding.sequence;
+
+      const photos = (await manager.query(
+        `SELECT file_path FROM finding_photos WHERE finding_id = $1`,
+        [id],
+      )) as unknown as PhotoRow[];
+      filePaths = photos.map((p) => p.file_path).filter(Boolean);
+
+      await manager.query(`DELETE FROM findings WHERE id = $1`, [id]);
+
+      const affected = (await manager.query(
+        `SELECT id, sequence, created_at FROM findings WHERE sequence > $1 ORDER BY sequence ASC`,
+        [deletedSeq],
+      )) as unknown as AffectedRow[];
+
+      for (const row of affected) {
+        const newSeq = row.sequence - 1;
+        const newFolio = FolioGenerator.generateFindingFolio(
+          newSeq,
+          new Date(row.created_at),
+        );
+        await manager.query(
+          `UPDATE findings SET sequence = $1, folio = $2 WHERE id = $3`,
+          [newSeq, newFolio, row.id],
+        );
+      }
+    });
+
+    return filePaths;
   }
 
   async softDelete(id: string): Promise<void> {
@@ -293,10 +357,9 @@ export class FindingsRepository {
         });
       }
       if (filters.search) {
-        qb.andWhere(
-          '(f.folio ILIKE :search OR f.description ILIKE :search)',
-          { search: `%${filters.search}%` },
-        );
+        qb.andWhere('(f.folio ILIKE :search OR f.description ILIKE :search)', {
+          search: `%${filters.search}%`,
+        });
       }
       if (filters.collection) {
         qb.andWhere('f.collection ILIKE :collection', {

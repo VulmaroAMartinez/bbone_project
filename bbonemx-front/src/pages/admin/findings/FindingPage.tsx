@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     GetFindingsFilteredDocument,
     ConvertToWorkOrderDocument,
+    HardDeleteFindingDocument,
     GetAreasDocument,
     AreaBasicFragmentDoc,
     GetFindingsCountByDateDocument,
@@ -31,7 +32,17 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, CalendarIcon, Layers, FileSpreadsheet } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, CalendarIcon, Layers, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { toast } from 'sonner';
 import { getApiBaseUrl } from '@/lib/utils/uploads';
@@ -97,6 +108,8 @@ export default function FindingPage() {
     });
 
     const [convertToWo, { loading: converting }] = useMutation(ConvertToWorkOrderDocument);
+    const [deletingFinding, setDeletingFinding] = useState<{ id: string; folio: string } | null>(null);
+    const [hardDeleteFinding, { loading: deleting }] = useMutation(HardDeleteFindingDocument);
 
     const [queryCountByDate, { loading: countLoading }] = useLazyQuery(GetFindingsCountByDateDocument, {
         fetchPolicy: 'network-only',
@@ -153,6 +166,18 @@ export default function FindingPage() {
             refetch();
         } catch {
             toast.error('Error al convertir el hallazgo a orden de trabajo');
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingFinding) return;
+        try {
+            await hardDeleteFinding({ variables: { id: deletingFinding.id } });
+            toast.success(`Hallazgo ${deletingFinding.folio} eliminado y folios re-secuenciados`);
+            setDeletingFinding(null);
+            refetch();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Error al eliminar el hallazgo');
         }
     };
 
@@ -364,6 +389,20 @@ export default function FindingPage() {
                                                     Ver Orden: {finding.convertedToWo.folio}
                                                 </Button>
                                             )}
+                                            {isOpen && (
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDeletingFinding({ id: finding.id, folio: finding.folio });
+                                                    }}
+                                                    className="gap-2"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                    Eliminar
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </CardContent>
@@ -383,6 +422,32 @@ export default function FindingPage() {
                     </Button>
                 </div>
             )}
+
+            {/* AlertDialog: Confirmar eliminación permanente */}
+            <AlertDialog open={!!deletingFinding} onOpenChange={(open) => { if (!open) setDeletingFinding(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar hallazgo definitivamente?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción eliminará permanentemente el hallazgo{' '}
+                            <span className="font-semibold">{deletingFinding?.folio}</span> y todas sus fotos del servidor.
+                            Los folios de los hallazgos posteriores se re-secuenciarán automáticamente.
+                            Esta acción <span className="font-semibold text-destructive">no se puede deshacer</span>.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                        >
+                            {deleting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
+                            Eliminar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Dialog: Seleccionar Hallazgos por Fecha */}
             <Dialog open={selectorOpen} onOpenChange={(open) => {
