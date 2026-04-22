@@ -104,15 +104,26 @@ export default function TecnicoOrdenPage() {
   const photoAfterServer = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'AFTER');
   
   const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
-  const techSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN' || s.signer.roles?.some((r: { name: string }) => r.name === 'BOSS'));
+  const leadTechRelation = order?.technicians?.find((relation) => relation.isLead);
+  const leadTechUser = unmaskFragment(UserBasicFragmentDoc, leadTechRelation?.technician);
+  const leadTechnicianId = leadTechUser?.id ?? null;
+  const techSignature = signatures.find(
+    (s: WorkOrderSignature) => leadTechnicianId && s.signer.id === leadTechnicianId,
+  );
 
   // Requester must sign before technician can sign (unless requester is admin)
   const requester = (workOrderRaw as { requester?: { id: string; roles?: { name: string }[] } })?.requester;
   const requesterIsAdmin = requester?.roles?.some((r) => r.name === 'ADMIN') ?? false;
   const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.id === requester?.id);
-  const requesterHasSigned = requesterIsAdmin || !!requesterSignature;
+  const requesterHasSigned = !!requesterSignature;
+  const pendingConformity =
+    (workOrderRaw as { pendingConformity?: boolean })?.pendingConformity ?? false;
 
-  const needsMySignature = (order?.status === 'FINISHED' || order?.status === 'TEMPORARY_REPAIR') && !techSignature;
+  const needsMySignature =
+    (order?.status === 'FINISHED' || order?.status === 'TEMPORARY_REPAIR') &&
+    isCurrentUserLead &&
+    !pendingConformity &&
+    !techSignature;
 
   // ─── Handlers
 
@@ -301,8 +312,8 @@ export default function TecnicoOrdenPage() {
       });
       await refetch();
       toast.success('Firma guardada');
-    } catch {
-      toast.error('Error al guardar la firma');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar la firma');
     }
   };
 
@@ -431,7 +442,9 @@ export default function TecnicoOrdenPage() {
               <p className="text-sm text-muted-foreground">
                 {requesterHasSigned
                   ? 'La orden fue cerrada. Firme para certificar su intervención.'
-                  : 'Esperando que el solicitante firme primero antes de poder continuar.'}
+                  : requesterIsAdmin
+                    ? 'Esperando firma del solicitante-administrador.'
+                    : 'Esperando que el solicitante firme primero antes de poder continuar.'}
               </p>
             </div>
             <Button

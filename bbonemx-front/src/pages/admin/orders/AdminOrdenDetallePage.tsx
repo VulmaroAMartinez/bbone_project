@@ -353,8 +353,8 @@ function AdminOrdenDetallePage() {
 
       setManageOpen(false);
       refetch();
-    } catch {
-      toast.error('Error al actualizar la orden');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar la orden');
     }
   };
 
@@ -459,7 +459,7 @@ function AdminOrdenDetallePage() {
 
   // Firmas
   const signatures: WorkOrderSignature[] = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
-  const adminSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN');
+  const leadTechnicianId = leadTechnician?.id ?? null;
 
   // Requester signed first check
   const requesterIsAdmin = requester?.roles?.some(r => {
@@ -468,14 +468,29 @@ function AdminOrdenDetallePage() {
   }) ?? false;
 
   const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.id === requester?.id);
-  const requesterHasSigned = requesterIsAdmin || !!requesterSignature;
+  const technicianSignature =
+    leadTechnicianId
+      ? signatures.find((s: WorkOrderSignature) => s.signer.id === leadTechnicianId)
+      : undefined;
+  const adminSignature = signatures.find((s: WorkOrderSignature) => {
+    if (s.signer.id === requester?.id) return false;
+    if (leadTechnicianId && s.signer.id === leadTechnicianId) return false;
+    return s.signer.roles?.some((role: { name: string }) => role.name === 'ADMIN');
+  });
+  const requesterHasSigned = !!requesterSignature;
 
   const pendingConformity = (workOrderRaw as { pendingConformity?: boolean })?.pendingConformity ?? false;
   const conformityCycleCount = (workOrderRaw as { conformityCycleCount?: number })?.conformityCycleCount ?? 0;
 
   // Admin es el solicitante y debe responder conformidad primero
   const needsConformityAsRequester = (isTemporaryRepair || order.status === 'FINISHED') && requesterIsAdmin && pendingConformity;
-  const needsMySignature = (isTemporaryRepair || order.status === 'FINISHED') && !pendingConformity && !adminSignature && requesterHasSigned;
+  const canCurrentAdminSign =
+    !requesterIsAdmin &&
+    !!user?.roles?.some((role: { name?: string }) => role.name === 'ADMIN') &&
+    !adminSignature &&
+    requesterHasSigned &&
+    !!technicianSignature;
+  const needsMySignature = (isTemporaryRepair || order.status === 'FINISHED') && !pendingConformity && canCurrentAdminSign;
 
   // Fotos
   const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
@@ -904,11 +919,10 @@ function AdminOrdenDetallePage() {
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     Solicitante
                   </p>
-                  {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER') ? (
+                  {requesterSignature ? (
                     <img
                       src={resolveBackendAssetUrl(
-                        signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER')
-                          ?.signatureImagePath
+                        requesterSignature.signatureImagePath
                       )}
                       alt="Firma"
                       width={192}
@@ -926,11 +940,10 @@ function AdminOrdenDetallePage() {
                   <p className="text-sm font-medium text-muted-foreground mb-2">
                     Técnico
                   </p>
-                  {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN') ? (
+                  {technicianSignature ? (
                     <img
                       src={resolveBackendAssetUrl(
-                        signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN')
-                          ?.signatureImagePath
+                        technicianSignature.signatureImagePath
                       )}
                       alt="Firma"
                       width={192}
@@ -947,9 +960,11 @@ function AdminOrdenDetallePage() {
                   <p className="text-sm font-medium text-primary mb-2">
                     {requesterIsAdmin ? 'Solicitante / Administrador (Tú)' : 'Administrador (Tú)'}
                   </p>
-                  {adminSignature ? (
+                  {(requesterIsAdmin ? requesterSignature : adminSignature) ? (
                     <img
-                      src={resolveBackendAssetUrl(adminSignature.signatureImagePath)}
+                      src={resolveBackendAssetUrl(
+                        (requesterIsAdmin ? requesterSignature?.signatureImagePath : adminSignature?.signatureImagePath) || ''
+                      )}
                       alt="Firma admin"
                       width={192}
                       height={48}
@@ -959,7 +974,7 @@ function AdminOrdenDetallePage() {
                     <span className="text-xs text-center px-2 py-1 rounded text-amber-600 bg-amber-50 border border-amber-200">
                       Responder conformidad primero
                     </span>
-                  ) : requesterHasSigned ? (
+                  ) : canCurrentAdminSign ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -970,7 +985,7 @@ function AdminOrdenDetallePage() {
                     </Button>
                   ) : (
                     <span className="text-xs text-center px-2 py-1 rounded text-amber-600 bg-amber-50 border border-amber-200">
-                      Esperando firma del solicitante
+                      {requesterHasSigned ? 'Esperando firma del técnico' : 'Esperando firma del solicitante'}
                     </span>
                   )}
                 </div>

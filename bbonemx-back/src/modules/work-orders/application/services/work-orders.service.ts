@@ -553,25 +553,42 @@ export class WorkOrdersService {
       );
     }
 
-    const signaturesCount =
-      await this.woSignaturesRepository.countByWorkOrderId(id);
+    const [technicians, signatures] = await Promise.all([
+      this.woTechniciansRepository.findByWorkOrderId(id),
+      this.woSignaturesRepository.findByWorkOrderId(id),
+    ]);
+    const leadTechnicianId =
+      technicians.find((techRelation) => techRelation.isLead)?.technicianId ??
+      null;
+    const requesterSigned = signatures.some(
+      (signature) => signature.signerId === workOrder.requesterId,
+    );
+    const technicianSigned = leadTechnicianId
+      ? signatures.some((signature) => signature.signerId === leadTechnicianId)
+      : false;
+    const adminSigned = signatures.some((signature) => {
+      if (signature.signerId === workOrder.requesterId) return false;
+      if (leadTechnicianId && signature.signerId === leadTechnicianId)
+        return false;
+      return signature.signer?.isAdmin?.() ?? false;
+    });
+    const requesterIsAdmin = workOrder.requester?.isAdmin?.() ?? false;
+    const isReadyForExport = requesterIsAdmin
+      ? requesterSigned && technicianSigned
+      : requesterSigned && technicianSigned && adminSigned;
 
-    // Si el solicitante es admin, se requieren solo 2 firmas (técnico + admin)
-    const requiredSignatures = workOrder.requester?.isAdmin?.() ? 2 : 3;
-    if (signaturesCount < requiredSignatures) {
+    if (!isReadyForExport) {
+      const requiredSignatures = requesterIsAdmin ? 2 : 3;
       throw new BadRequestException(
         `La orden de trabajo debe tener al menos ${requiredSignatures} firma(s) para exportar a PDF`,
       );
     }
 
-    const [technicians, signatures, photos, spareParts, materials] =
-      await Promise.all([
-        this.woTechniciansRepository.findByWorkOrderId(id),
-        this.woSignaturesRepository.findByWorkOrderId(id),
-        this.workOrderPhotosService.findByWorkOrderId(id),
-        this.workOrderSparePartsService.findByWorkOrderId(id),
-        this.workOrderMaterialsService.findByWorkOrderId(id),
-      ]);
+    const [photos, spareParts, materials] = await Promise.all([
+      this.workOrderPhotosService.findByWorkOrderId(id),
+      this.workOrderSparePartsService.findByWorkOrderId(id),
+      this.workOrderMaterialsService.findByWorkOrderId(id),
+    ]);
 
     return this.workOrderPdfService.generatePdfBase64({
       workOrder,
