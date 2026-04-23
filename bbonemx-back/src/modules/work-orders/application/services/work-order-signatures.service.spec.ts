@@ -69,11 +69,11 @@ describe('WorkOrderSignaturesService', () => {
     signaturesState.length = 0;
     signerMeta = new Map();
 
-    workOrderSignaturesRepository.findByWorkOrderId.mockImplementation(
-      async () => [...signaturesState],
-    );
+    workOrderSignaturesRepository.findByWorkOrderId.mockImplementation(() => [
+      ...signaturesState,
+    ]);
     workOrderSignaturesRepository.create.mockImplementation(
-      async (data: Partial<WorkOrderSignature>) => {
+      (data: Partial<WorkOrderSignature>) => {
         const signer =
           signerMeta.get(data.signerId!) ??
           mockUser({ id: data.signerId ?? 'unknown' });
@@ -85,12 +85,12 @@ describe('WorkOrderSignaturesService', () => {
           signer,
         } as WorkOrderSignature;
         signaturesState.push(sig);
-        return sig;
+        return Promise.resolve(sig);
       },
     );
     workOrderSignaturesRepository.hasUserSigned.mockImplementation(
-      async (_woId: string, signerId: string) =>
-        signaturesState.some((s) => s.signerId === signerId),
+      (_woId: string, signerId: string) =>
+        Promise.resolve(signaturesState.some((s) => s.signerId === signerId)),
     );
 
     woTechniciansRepository.findByWorkOrderId.mockResolvedValue([
@@ -223,7 +223,10 @@ describe('WorkOrderSignaturesService', () => {
       );
 
       await expect(
-        service.sign(input, mockUser({ id: 'other-admin', isAdmin: () => true })),
+        service.sign(
+          input,
+          mockUser({ id: 'other-admin', isAdmin: () => true }),
+        ),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
@@ -263,9 +266,9 @@ describe('WorkOrderSignaturesService', () => {
     });
 
     it('completa la OT al firmar el admin como tercera firma', async () => {
-      workOrdersRepository.findById.mockImplementation(async (id: string) => {
-        if (id !== 'wo-1') return null;
-        return mockWorkOrder({});
+      workOrdersRepository.findById.mockImplementation((id: string) => {
+        if (id !== 'wo-1') return Promise.resolve(null);
+        return Promise.resolve(mockWorkOrder({}));
       });
       signaturesState.push(
         {
@@ -283,10 +286,14 @@ describe('WorkOrderSignaturesService', () => {
           signer: mockUser({ id: 'tech-lead-1' }),
         } as WorkOrderSignature,
       );
-      signerMeta.set('admin-1', mockUser({ id: 'admin-1', isAdmin: () => true }));
+      signerMeta.set(
+        'admin-1',
+        mockUser({ id: 'admin-1', isAdmin: () => true }),
+      );
 
       woTechniciansRepository.isTechnicianLead.mockImplementation(
-        async (_woId: string, userId: string) => userId === 'tech-lead-1',
+        (_woId: string, userId: string) =>
+          Promise.resolve(userId === 'tech-lead-1'),
       );
 
       await service.sign(
@@ -301,11 +308,13 @@ describe('WorkOrderSignaturesService', () => {
 
     it('completa la OT con dos firmas cuando el solicitante es admin', async () => {
       const adminRequester = mockUser({ id: 'req-1', isAdmin: () => true });
-      workOrdersRepository.findById.mockImplementation(async (id: string) => {
-        if (id !== 'wo-1') return null;
-        return mockWorkOrder({
-          requester: adminRequester,
-        });
+      workOrdersRepository.findById.mockImplementation((id: string) => {
+        if (id !== 'wo-1') return Promise.resolve(null);
+        return Promise.resolve(
+          mockWorkOrder({
+            requester: adminRequester,
+          }),
+        );
       });
       signaturesState.push({
         id: 's1',
