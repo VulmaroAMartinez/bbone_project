@@ -385,5 +385,22 @@ describe('WorkOrderSignaturesService', () => {
 
       await expect(service.isFullySigned('wo-1')).resolves.toBe(true);
     });
+
+    it('devuelve false si solicitante es admin pero aún no firma (solo técnico)', async () => {
+      const adminReq = mockUser({ id: 'req-1', isAdmin: () => true });
+      workOrdersRepository.findById.mockResolvedValue(
+        mockWorkOrder({ requester: adminReq }),
+      );
+      woTechniciansRepository.findByWorkOrderId.mockResolvedValue([
+        { isLead: true, technicianId: 'tech-lead-1' },
+      ]);
+      signaturesState.push({
+        id: 's2',
+        signerId: 'tech-lead-1',
+        signer: mockUser({ id: 'tech-lead-1' }),
+      } as WorkOrderSignature);
+
+      await expect(service.isFullySigned('wo-1')).resolves.toBe(false);
+    });
   });
 });

@@ -484,13 +484,24 @@ function AdminOrdenDetallePage() {
 
   // Admin es el solicitante y debe responder conformidad primero
   const needsConformityAsRequester = (isTemporaryRepair || order.status === 'FINISHED') && requesterIsAdmin && pendingConformity;
+  /** Otro admin firma el tercer rol (solo cuando el solicitante no es admin). */
   const canCurrentAdminSign =
     !requesterIsAdmin &&
     !!user?.roles?.some((role: { name?: string }) => role.name === 'ADMIN') &&
     !adminSignature &&
     requesterHasSigned &&
     !!technicianSignature;
-  const needsMySignature = (isTemporaryRepair || order.status === 'FINISHED') && !pendingConformity && canCurrentAdminSign;
+  /** El mismo usuario solicitante-admin firma el bloque combinado (requiere fila de firma real). */
+  const canAdminRequesterSign =
+    requesterIsAdmin &&
+    user?.id === requester?.id &&
+    !requesterSignature &&
+    !!user?.roles?.some((role: { name?: string }) => role.name === 'ADMIN');
+  const canShowSignWorkOrder =
+    (isTemporaryRepair || order.status === 'FINISHED') &&
+    !pendingConformity &&
+    (canCurrentAdminSign || canAdminRequesterSign);
+  const needsMySignature = canShowSignWorkOrder;
 
   // Fotos
   const photoBefore = (workOrderRaw as { photos?: WorkOrderPhoto[] })?.photos?.find((p: WorkOrderPhoto) => p.photoType === 'BEFORE');
@@ -543,7 +554,7 @@ function AdminOrdenDetallePage() {
         {needsMySignature && (
           <Button onClick={() => setIsSignModalOpen(true)} className="gap-2 bg-success hover:bg-success/90 text-success-foreground shadow-sm">
             <Pen className="h-4 w-4" />
-            Firmar como Administrador
+            {canAdminRequesterSign ? 'Firmar (solicitante / administrador)' : 'Firmar como Administrador'}
           </Button>
         )}
         <Button
@@ -974,7 +985,7 @@ function AdminOrdenDetallePage() {
                     <span className="text-xs text-center px-2 py-1 rounded text-amber-600 bg-amber-50 border border-amber-200">
                       Responder conformidad primero
                     </span>
-                  ) : canCurrentAdminSign ? (
+                  ) : canCurrentAdminSign || canAdminRequesterSign ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -985,7 +996,11 @@ function AdminOrdenDetallePage() {
                     </Button>
                   ) : (
                     <span className="text-xs text-center px-2 py-1 rounded text-amber-600 bg-amber-50 border border-amber-200">
-                      {requesterHasSigned ? 'Esperando firma del técnico' : 'Esperando firma del solicitante'}
+                      {requesterIsAdmin && !requesterHasSigned && user?.id !== requester?.id
+                        ? 'Esperando firma del solicitante-administrador'
+                        : requesterHasSigned
+                          ? 'Esperando firma del técnico'
+                          : 'Esperando firma del solicitante'}
                     </span>
                   )}
                 </div>

@@ -214,12 +214,16 @@ export class FindingsRepository {
         FINDINGS_SEQ_LOCK,
       ]);
 
-      type FindingRow = { id: string; sequence: number };
+      type FindingRow = {
+        id: string;
+        sequence: number;
+        photo_path?: string | null;
+      };
       type PhotoRow = { file_path: string };
       type AffectedRow = { id: string; sequence: number; created_at: string };
 
       const findingRows = (await manager.query(
-        `SELECT id, sequence FROM findings WHERE id = $1`,
+        `SELECT id, sequence, photo_path FROM findings WHERE id = $1`,
         [id],
       )) as unknown as FindingRow[];
       const [finding] = findingRows;
@@ -233,6 +237,10 @@ export class FindingsRepository {
         [id],
       )) as unknown as PhotoRow[];
       filePaths = photos.map((p) => p.file_path).filter(Boolean);
+      const primaryPhoto = finding.photo_path?.trim();
+      if (primaryPhoto && !filePaths.includes(primaryPhoto)) {
+        filePaths.push(primaryPhoto);
+      }
 
       await manager.query(`DELETE FROM findings WHERE id = $1`, [id]);
 

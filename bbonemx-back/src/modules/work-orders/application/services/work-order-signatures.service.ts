@@ -146,8 +146,7 @@ export class WorkOrderSignaturesService {
     const signatures =
       await this.workOrderSignaturesRepository.findByWorkOrderId(workOrderId);
 
-    const requesterSigned =
-      this.isRequesterAdmin(wo) || this.hasRequesterSignature(wo, signatures);
+    const requesterSigned = this.hasRequesterSignature(wo, signatures);
     const technicianSigned = await this.hasTechnicianSignature(wo, signatures);
 
     if (this.isRequesterAdmin(wo)) {
