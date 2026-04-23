@@ -55,6 +55,7 @@ export default function OrdenDetallePage() {
 
   const leadTechRel = order?.technicians?.find(t => t.isLead);
   const leadTechnician = unmaskFragment(UserBasicFragmentDoc, leadTechRel?.technician);
+  const requester = (workOrderRaw as { requester?: { id: string; roles?: { name: string }[] } })?.requester;
 
   const handleBack = () => navigate(-1);
 
@@ -130,7 +131,17 @@ export default function OrdenDetallePage() {
   };
 
   const signatures = (workOrderRaw as { signatures?: WorkOrderSignature[] })?.signatures || [];
-  const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'REQUESTER');
+  const requesterIsAdmin = requester?.roles?.some((role: { name: string }) => role.name === 'ADMIN') ?? false;
+  const requesterSignature = signatures.find((s: WorkOrderSignature) => s.signer.id === requester?.id);
+  const leadTechnicianId = leadTechnician?.id;
+  const technicianSignature = signatures.find(
+    (s: WorkOrderSignature) => leadTechnicianId && s.signer.id === leadTechnicianId,
+  );
+  const adminSignature = signatures.find((s: WorkOrderSignature) => {
+    if (s.signer.id === requester?.id) return false;
+    if (leadTechnicianId && s.signer.id === leadTechnicianId) return false;
+    return s.signer.roles?.some((role: { name: string }) => role.name === 'ADMIN');
+  });
 
   const isFinishedOrRepair = order.status === 'FINISHED' || order.status === 'TEMPORARY_REPAIR';
   const pendingConformity = (workOrderRaw as { pendingConformity?: boolean })?.pendingConformity ?? false;
@@ -385,7 +396,7 @@ export default function OrdenDetallePage() {
             {order.isFullySigned && <Badge variant="default" className="bg-success hover:bg-success">Completamente Firmada</Badge>}
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className={`grid gap-4 ${requesterIsAdmin ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
 
               {/* Solicitante */}
               <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border bg-muted/10 h-32">
@@ -408,22 +419,23 @@ export default function OrdenDetallePage() {
               {/* Técnico */}
               <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border bg-muted/10 h-32">
                 <p className="text-sm font-medium text-muted-foreground mb-3">Técnico</p>
-                {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN') ? (
-                  <img src={resolveBackendAssetUrl(signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'TECHNICIAN')?.signatureImagePath)} alt="Firma" width={200} height={48} className="h-12 object-contain" />
+                {technicianSignature ? (
+                  <img src={resolveBackendAssetUrl(technicianSignature.signatureImagePath)} alt="Firma" width={200} height={48} className="h-12 object-contain" />
                 ) : (
                   <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">Pendiente</span>
                 )}
               </div>
 
-              {/* Administrador */}
-              <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border bg-muted/10 h-32">
-                <p className="text-sm font-medium text-muted-foreground mb-3">Administrador</p>
-                {signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN') ? (
-                  <img src={resolveBackendAssetUrl(signatures.find((s: WorkOrderSignature) => s.signer.role?.name === 'ADMIN')?.signatureImagePath)} alt="Firma" width={200} height={48} className="h-12 object-contain" />
-                ) : (
-                  <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">Pendiente</span>
-                )}
-              </div>
+              {!requesterIsAdmin && (
+                <div className="flex flex-col items-center justify-center p-4 rounded-xl border border-border bg-muted/10 h-32">
+                  <p className="text-sm font-medium text-muted-foreground mb-3">Administrador</p>
+                  {adminSignature ? (
+                    <img src={resolveBackendAssetUrl(adminSignature.signatureImagePath)} alt="Firma" width={200} height={48} className="h-12 object-contain" />
+                  ) : (
+                    <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">Pendiente</span>
+                  )}
+                </div>
+              )}
 
             </div>
           </CardContent>

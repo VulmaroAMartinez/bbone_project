@@ -13,6 +13,8 @@ import { CreateWorkOrderSignatureInput } from '../dto';
 import { WorkOrderStatus } from 'src/common';
 import { User } from 'src/modules/users/domain/entities';
 
+type SignatureSlot = 'REQUESTER_OR_ADMIN_REQUESTER' | 'TECHNICIAN' | 'ADMIN';
+
 @Injectable()
 export class WorkOrderSignaturesService {
   constructor(
@@ -65,14 +67,44 @@ export class WorkOrderSignaturesService {
       );
     }
 
-    // Validate signer is related to this WO
-    await this.validateSignerRelationship(wo, user);
+    const signatures =
+      await this.workOrderSignaturesRepository.findByWorkOrderId(
+        input.workOrderId,
+      );
+    const signerSlot = await this.resolveSignerSlot(wo, user, signatures);
 
-    const hasSigned = await this.workOrderSignaturesRepository.hasUserSigned(
-      input.workOrderId,
-      user.id,
-    );
-    if (hasSigned)
+    const hasSigned = await this.hasSignatureInSlot(wo, signatures, signerSlot);
+    if (hasSigned) {
+      throw new ConflictException('La firma para este rol ya fue registrada');
+    }
+
+    if (
+      signerSlot === 'TECHNICIAN' &&
+      !this.hasRequesterSignature(wo, signatures) &&
+      !this.isRequesterAdmin(wo)
+    ) {
+      throw new ForbiddenException(
+        'El solicitante debe firmar primero antes de que el técnico pueda firmar',
+      );
+    }
+
+    if (
+      signerSlot === 'ADMIN' &&
+      (!(await this.hasTechnicianSignature(wo, signatures)) ||
+        (!this.hasRequesterSignature(wo, signatures) &&
+          !this.isRequesterAdmin(wo)))
+    ) {
+      throw new ForbiddenException(
+        'La firma de administrador solo se permite después de solicitante y técnico',
+      );
+    }
+
+    const userAlreadySigned =
+      await this.workOrderSignaturesRepository.hasUserSigned(
+        input.workOrderId,
+        user.id,
+      );
+    if (userAlreadySigned && signerSlot !== 'ADMIN')
       throw new ConflictException('El usuario ya ha firmado la OT');
 
     const signature = await this.workOrderSignaturesRepository.create({
@@ -109,57 +141,118 @@ export class WorkOrderSignaturesService {
   }
 
   async isFullySigned(workOrderId: string): Promise<boolean> {
-    const count = await this.countByWorkOrderId(workOrderId);
     const wo = await this.workOrdersRepository.findById(workOrderId);
-    // Si el solicitante es admin → umbral 2 (técnico + admin)
-    const required = wo?.requester?.isAdmin?.() ? 2 : 3;
-    return count >= required;
-  }
+    if (!wo) return false;
+    const signatures =
+      await this.workOrderSignaturesRepository.findByWorkOrderId(workOrderId);
 
-  private async validateSignerRelationship(
-    wo: WorkOrder,
-    user: User,
-  ): Promise<void> {
-    const requesterIsAdmin = wo.requester?.isAdmin?.() ?? false;
+    const requesterSigned = this.hasRequesterSignature(wo, signatures);
+    const technicianSigned = await this.hasTechnicianSignature(wo, signatures);
 
-    // El solicitante siempre puede firmar primero
-    if (wo.requesterId === user.id) return;
-
-    // Para técnico líder y admin: la firma del solicitante debe ir primero
-    // (excepto cuando el propio admin es el solicitante)
-    if (!requesterIsAdmin) {
-      const requesterSigned =
-        await this.workOrderSignaturesRepository.hasUserSigned(
-          wo.id,
-          wo.requesterId,
-        );
-      if (!requesterSigned) {
-        throw new ForbiddenException(
-          'El solicitante debe firmar primero antes de que el técnico o el administrador puedan firmar',
-        );
-      }
+    if (this.isRequesterAdmin(wo)) {
+      return requesterSigned && technicianSigned;
     }
 
-    if (user.isAdmin()) return;
+    const adminSigned = await this.hasAdminSignature(wo, signatures);
+    return requesterSigned && technicianSigned && adminSigned;
+  }
 
-    if (user.isTechnician() || user.isBoss()) {
-      const isLead = await this.woTechniciansRepository.isTechnicianLead(
-        wo.id,
-        user.id,
+  private async resolveSignerSlot(
+    wo: WorkOrder,
+    user: User,
+    signatures: WorkOrderSignature[],
+  ): Promise<SignatureSlot> {
+    if (wo.requesterId === user.id) return 'REQUESTER_OR_ADMIN_REQUESTER';
+
+    const isLead = await this.woTechniciansRepository.isTechnicianLead(
+      wo.id,
+      user.id,
+    );
+    if (isLead) {
+      return 'TECHNICIAN';
+    }
+
+    const isAssigned = await this.woTechniciansRepository.isTechnicianAssigned(
+      wo.id,
+      user.id,
+    );
+    if (isAssigned) {
+      throw new ForbiddenException(
+        'Solo el técnico líder de la OT puede firmarla',
       );
-      if (isLead) return;
+    }
 
-      const isAssigned =
-        await this.woTechniciansRepository.isTechnicianAssigned(wo.id, user.id);
-      if (isAssigned) {
+    if (user.isAdmin()) {
+      if (this.isRequesterAdmin(wo)) {
         throw new ForbiddenException(
-          'Solo el técnico líder de la OT puede firmarla',
+          'Cuando el solicitante es administrador, no se requiere firma de otro administrador',
         );
       }
+      const requesterSigned = this.hasRequesterSignature(wo, signatures);
+      if (!requesterSigned) {
+        throw new ForbiddenException(
+          'El solicitante debe firmar primero antes de que el administrador pueda firmar',
+        );
+      }
+      return 'ADMIN';
     }
 
     throw new ForbiddenException(
-      'Solo el solicitante, el técnico líder o un administrador pueden firmar la OT',
+      'Solo solicitante, técnico líder o administrador pueden firmar la OT',
     );
+  }
+
+  private isRequesterAdmin(wo: WorkOrder): boolean {
+    return wo.requester?.isAdmin?.() ?? false;
+  }
+
+  private hasRequesterSignature(
+    wo: WorkOrder,
+    signatures: WorkOrderSignature[],
+  ): boolean {
+    return signatures.some((s) => s.signerId === wo.requesterId);
+  }
+
+  private async getLeadTechnicianId(
+    workOrderId: string,
+  ): Promise<string | null> {
+    const rels =
+      await this.woTechniciansRepository.findByWorkOrderId(workOrderId);
+    return rels.find((r) => r.isLead)?.technicianId ?? null;
+  }
+
+  private async hasTechnicianSignature(
+    wo: WorkOrder,
+    signatures: WorkOrderSignature[],
+  ): Promise<boolean> {
+    const leadId = await this.getLeadTechnicianId(wo.id);
+    if (!leadId) return false;
+    return signatures.some((s) => s.signerId === leadId);
+  }
+
+  private async hasAdminSignature(
+    wo: WorkOrder,
+    signatures: WorkOrderSignature[],
+  ): Promise<boolean> {
+    const leadId = await this.getLeadTechnicianId(wo.id);
+    return signatures.some((s) => {
+      if (s.signerId === wo.requesterId) return false;
+      if (leadId && s.signerId === leadId) return false;
+      return s.signer?.isAdmin?.() ?? false;
+    });
+  }
+
+  private async hasSignatureInSlot(
+    wo: WorkOrder,
+    signatures: WorkOrderSignature[],
+    slot: SignatureSlot,
+  ): Promise<boolean> {
+    if (slot === 'REQUESTER_OR_ADMIN_REQUESTER') {
+      return this.hasRequesterSignature(wo, signatures);
+    }
+    if (slot === 'TECHNICIAN') {
+      return this.hasTechnicianSignature(wo, signatures);
+    }
+    return this.hasAdminSignature(wo, signatures);
   }
 }

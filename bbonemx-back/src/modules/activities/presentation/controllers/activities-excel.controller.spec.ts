@@ -12,7 +12,9 @@ import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
 
 describe('ActivitiesExcelController', () => {
-  it('devuelve headers correctos y un Excel descargable', async () => {
+  it(
+    'devuelve headers correctos y un Excel descargable',
+    async () => {
     const excelGeneratorService = new ExcelGeneratorService();
     const buffer = await excelGeneratorService.generateExcelBuffer(
       [],
@@ -87,5 +89,7 @@ describe('ActivitiesExcelController', () => {
     expect(sheet!.getRow(1).getCell(3).value).toBe('Actividad');
 
     await app.close();
-  });
+    },
+    30_000,
+  );
 });

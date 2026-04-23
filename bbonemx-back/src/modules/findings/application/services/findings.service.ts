@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, promises as fsPromises } from 'fs';
 import { join } from 'path';
 import { FindingsRepository } from '../../infrastructure/repositories';
 import {
@@ -298,14 +298,12 @@ export class FindingsService {
       const nPhotos = cellImages.length;
       const innerPx = photoColWidthPx - 2 * PAD_PX;
       const slotW =
-        nPhotos > 0
-          ? (innerPx - (nPhotos - 1) * GAP_PX) / nPhotos
-          : 0;
+        nPhotos > 0 ? (innerPx - (nPhotos - 1) * GAP_PX) / nPhotos : 0;
 
       const sized =
         nPhotos > 0
           ? cellImages.map((img) => {
-              let scale = Math.min(
+              const scale = Math.min(
                 slotW / img.widthPx,
                 MAX_SLOT_HEIGHT_PX / img.heightPx,
                 1,
@@ -365,10 +363,13 @@ export class FindingsService {
             editAs: 'oneCell',
           });
         } catch (err) {
-          this.logger.warn('No se pudo incrustar una foto en el Excel de hallazgos', {
-            findingId: finding.id,
-            err: err instanceof Error ? err.message : String(err),
-          });
+          this.logger.warn(
+            'No se pudo incrustar una foto en el Excel de hallazgos',
+            {
+              findingId: finding.id,
+              err: err instanceof Error ? err.message : String(err),
+            },
+          );
         }
       }
     }
@@ -392,6 +393,28 @@ export class FindingsService {
   async softDelete(id: string): Promise<void> {
     await this.findByIdOrFail(id);
     await this.findingsRepository.softDelete(id);
+  }
+
+  async hardDelete(id: string): Promise<void> {
+    const finding = await this.findByIdOrFail(id);
+    if (finding.convertedToWoId) {
+      throw new BadRequestException(
+        'No se puede eliminar un hallazgo ya convertido a orden de trabajo',
+      );
+    }
+    const filePaths = await this.findingsRepository.hardDelete(id);
+    for (const filePath of filePaths) {
+      const basename = resolveUploadBasename(filePath);
+      if (!basename) continue;
+      const absolutePath = join(process.cwd(), 'uploads', basename);
+      try {
+        await fsPromises.unlink(absolutePath);
+      } catch {
+        this.logger.warn('No se pudo eliminar archivo físico de hallazgo', {
+          absolutePath,
+        });
+      }
+    }
   }
 
   async convertToWorkOrder(id: string): Promise<Finding> {

@@ -85,6 +85,7 @@ type Documents = {
     "\n  mutation RemoveFindingPhoto($id: ID!) {\n    removeFindingPhoto(id: $id)\n  }\n": typeof types.RemoveFindingPhotoDocument,
     "\n  query GetFindingsCountByDate($date: String!) {\n    findingsCountByDate(date: $date)\n  }\n": typeof types.GetFindingsCountByDateDocument,
     "\n  mutation AssignCollectionByDate($input: AssignCollectionByDateInput!) {\n    assignCollectionByDate(input: $input)\n  }\n": typeof types.AssignCollectionByDateDocument,
+    "\n  mutation HardDeleteFinding($id: ID!) {\n    hardDeleteFinding(id: $id)\n  }\n": typeof types.HardDeleteFindingDocument,
     "\n  fragment RoleBasic on Role {\n    id\n    name\n  }\n": typeof types.RoleBasicFragmentDoc,
     "\n  \n  fragment UserBasic on User {\n    id\n    employeeNumber\n    firstName\n    lastName\n    fullName\n    email\n    isActive\n    roleIds\n    areaId\n    subAreaId\n    role {\n      ...RoleBasic\n    }\n    roles {\n      ...RoleBasic\n    }\n  }\n": typeof types.UserBasicFragmentDoc,
     "\n  fragment AreaBasic on Area {\n    id\n    name\n    type\n    description\n    isActive\n  }\n": typeof types.AreaBasicFragmentDoc,
@@ -252,6 +253,7 @@ const documents: Documents = {
     "\n  mutation RemoveFindingPhoto($id: ID!) {\n    removeFindingPhoto(id: $id)\n  }\n": types.RemoveFindingPhotoDocument,
     "\n  query GetFindingsCountByDate($date: String!) {\n    findingsCountByDate(date: $date)\n  }\n": types.GetFindingsCountByDateDocument,
     "\n  mutation AssignCollectionByDate($input: AssignCollectionByDateInput!) {\n    assignCollectionByDate(input: $input)\n  }\n": types.AssignCollectionByDateDocument,
+    "\n  mutation HardDeleteFinding($id: ID!) {\n    hardDeleteFinding(id: $id)\n  }\n": types.HardDeleteFindingDocument,
     "\n  fragment RoleBasic on Role {\n    id\n    name\n  }\n": types.RoleBasicFragmentDoc,
     "\n  \n  fragment UserBasic on User {\n    id\n    employeeNumber\n    firstName\n    lastName\n    fullName\n    email\n    isActive\n    roleIds\n    areaId\n    subAreaId\n    role {\n      ...RoleBasic\n    }\n    roles {\n      ...RoleBasic\n    }\n  }\n": types.UserBasicFragmentDoc,
     "\n  fragment AreaBasic on Area {\n    id\n    name\n    type\n    description\n    isActive\n  }\n": types.AreaBasicFragmentDoc,
@@ -646,6 +648,10 @@ export function gql(source: "\n  query GetFindingsCountByDate($date: String!) {\
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function gql(source: "\n  mutation AssignCollectionByDate($input: AssignCollectionByDateInput!) {\n    assignCollectionByDate(input: $input)\n  }\n"): (typeof documents)["\n  mutation AssignCollectionByDate($input: AssignCollectionByDateInput!) {\n    assignCollectionByDate(input: $input)\n  }\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\n  mutation HardDeleteFinding($id: ID!) {\n    hardDeleteFinding(id: $id)\n  }\n"): (typeof documents)["\n  mutation HardDeleteFinding($id: ID!) {\n    hardDeleteFinding(id: $id)\n  }\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

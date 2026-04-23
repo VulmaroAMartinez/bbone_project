@@ -134,3 +134,9 @@ export const ASSIGN_COLLECTION_BY_DATE_MUTATION = gql`
     assignCollectionByDate(input: $input)
   }
 `;
+
+export const HARD_DELETE_FINDING_MUTATION = gql`
+  mutation HardDeleteFinding($id: ID!) {
+    hardDeleteFinding(id: $id)
+  }
+`;

@@ -573,19 +573,56 @@ export class WorkOrderPdfService implements OnModuleInit {
   }
 
   private buildSeccionFirmas(
+    workOrder: WorkOrder,
+    technicians: WorkOrderTechnician[],
     signatures: WorkOrderSignature[],
-    sigDataUrls: (string | null)[],
+    sigDataUrlBySignatureId: Map<string, string | null>,
   ): any {
-    const SLOTS = 3;
     const sigFit: [number, number] = [140, 55];
+    const leadTechnicianId =
+      technicians.find((techRelation) => techRelation.isLead)?.technicianId ??
+      null;
+    const requesterSignature =
+      signatures.find(
+        (signature) => signature.signerId === workOrder.requesterId,
+      ) ?? null;
+    const technicianSignature = leadTechnicianId
+      ? (signatures.find(
+          (signature) => signature.signerId === leadTechnicianId,
+        ) ?? null)
+      : null;
+    const adminSignature =
+      signatures.find((signature) => {
+        if (signature.signerId === workOrder.requesterId) return false;
+        if (leadTechnicianId && signature.signerId === leadTechnicianId)
+          return false;
+        return signature.signer?.isAdmin?.() ?? false;
+      }) ?? null;
+    const requesterIsAdmin = workOrder.requester?.isAdmin?.() ?? false;
+    const slots = requesterIsAdmin
+      ? [
+          {
+            title: 'Solicitante / Administrador',
+            signature: requesterSignature,
+          },
+          {
+            title: 'Técnico',
+            signature: technicianSignature,
+          },
+        ]
+      : [
+          { title: 'Solicitante', signature: requesterSignature },
+          { title: 'Técnico', signature: technicianSignature },
+          { title: 'Administrador', signature: adminSignature },
+        ];
 
     const columns: any[] = [];
 
-    for (let i = 0; i < SLOTS; i++) {
-      const sig = signatures[i];
+    for (const slot of slots) {
+      const sig = slot.signature;
 
       if (sig) {
-        const dataUrl = sigDataUrls[i] ?? null;
+        const dataUrl = sigDataUrlBySignatureId.get(sig.id) ?? null;
         const signerName = sig.signer
           ? `${sig.signer.firstName} ${sig.signer.lastName}`
           : 'N/A';
@@ -628,6 +665,13 @@ export class WorkOrderPdfService implements OnModuleInit {
             },
             { text: signerName, fontSize: 8, bold: true, alignment: 'center' },
             {
+              text: slot.title,
+              fontSize: 7,
+              alignment: 'center',
+              color: '#555555',
+              margin: [0, 2, 0, 0],
+            },
+            {
               text: activeRoles,
               fontSize: 7,
               alignment: 'center',
@@ -660,6 +704,13 @@ export class WorkOrderPdfService implements OnModuleInit {
               italics: true,
               alignment: 'center',
               color: '#888888',
+            },
+            {
+              text: slot.title,
+              fontSize: 7,
+              alignment: 'center',
+              color: '#555555',
+              margin: [0, 2, 0, 0],
             },
           ],
           width: '*',
@@ -719,6 +770,12 @@ export class WorkOrderPdfService implements OnModuleInit {
             this.readUploadedImageDataUrl(s.signatureImagePath),
           ),
         ]);
+      const sigDataUrlBySignatureId = new Map<string, string | null>(
+        signatures.map((signature, index) => [
+          signature.id,
+          sigDataUrls[index] ?? null,
+        ]),
+      );
 
       const content: any[] = [];
 
@@ -738,7 +795,14 @@ export class WorkOrderPdfService implements OnModuleInit {
       content.push(
         this.buildSeccionEjecucion(workOrder, spareParts, materials),
       );
-      content.push(this.buildSeccionFirmas(signatures, sigDataUrls));
+      content.push(
+        this.buildSeccionFirmas(
+          workOrder,
+          technicians,
+          signatures,
+          sigDataUrlBySignatureId,
+        ),
+      );
 
       const docDefinition: TDocumentDefinitions = {
         pageSize: 'A4',
