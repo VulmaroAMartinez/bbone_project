@@ -25,7 +25,8 @@ export class MaterialRequestType {
   @Field(() => ID) requesterId: string;
   @Field(() => UserType) requester: UserType;
   @Field(() => RequestPriority) priority: RequestPriority;
-  @Field(() => RequestImportance) importance: RequestImportance;
+  @Field(() => RequestImportance, { nullable: true })
+  importance?: RequestImportance | null;
   @Field(() => RequestCategory) category: RequestCategory;
   @Field({ nullable: true }) description?: string;
   @Field({ nullable: true }) justification?: string;

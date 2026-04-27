@@ -137,7 +137,7 @@ export class EmailTemplateService {
         ${this.renderInfoRow('Solicitante', data.requesterName + (data.requesterEmployeeNumber ? ` (${data.requesterEmployeeNumber})` : ''))}
         ${this.renderInfoRow('Qué solicita', data.category)}
         ${this.renderInfoRow('Prioridad', data.priority)}
-        ${this.renderInfoRow('Importancia', data.importance)}
+        ${data.importance ? this.renderInfoRow('Importancia', data.importance) : ''}
         ${this.renderInfoRow('Jefe a cargo', data.boss)}
       </table>
     </td>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { usePersistentFilters } from '@/hooks/usePersistentFilters';
 import { useQuery, useLazyQuery } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -78,15 +79,29 @@ function parseStatusFromSearchParams(status: string | null): WorkOrderStatus | '
 function OrdenesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<WorkOrderStatus | 'all'>(() =>
     parseStatusFromSearchParams(searchParams.get('status')),
   );
-  const [shiftFilter, setShiftFilter] = useState<string>('all');
-  const [areaFilter, setAreaFilter] = useState<string>('all');
-  const [subAreaFilter, setSubAreaFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<WorkOrderPriority | 'all'>('all');
+
+  const [
+    { searchTerm, shiftFilter, areaFilter, subAreaFilter, priorityFilter },
+    updateFilter,
+    clearFilters,
+    hasActiveFilters,
+  ] = usePersistentFilters('ordenes', {
+    searchTerm: '',
+    shiftFilter: 'all',
+    areaFilter: 'all',
+    subAreaFilter: 'all',
+    priorityFilter: 'all' as string,
+  });
+
+  const setSearchTerm = (v: string) => updateFilter({ searchTerm: v });
+  const setShiftFilter = (v: string) => updateFilter({ shiftFilter: v });
+  const setAreaFilter = (v: string) => updateFilter({ areaFilter: v });
+  const setSubAreaFilter = (v: string) => updateFilter({ subAreaFilter: v });
+  const setPriorityFilter = (v: string) => updateFilter({ priorityFilter: v });
 
   // Selection state
   const [selectionMode, setSelectionMode] = useState(false);
@@ -165,7 +180,7 @@ function OrdenesPage() {
   >(GET_WORK_ORDERS_FILTERED_QUERY, {
     variables: {
       status: statusFilter !== 'all' ? statusFilter : undefined,
-      priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+      priority: priorityFilter !== 'all' ? (priorityFilter as WorkOrderPriority) : undefined,
       assignedShiftId: shiftFilter !== 'all' ? shiftFilter : undefined,
       areaId: areaFilter !== 'all' ? areaFilter : undefined,
       subAreaId: subAreaFilter !== 'all' ? subAreaFilter : undefined,
@@ -336,7 +351,8 @@ function OrdenesPage() {
           </div>
         </CardContent>
         <div className="px-5 pb-4">
-          <Select value={priorityFilter} onValueChange={(val) => { setPriorityFilter(val as WorkOrderPriority | 'all'); setPage(1); }}>
+          <div className="flex items-center gap-2">
+          <Select value={priorityFilter} onValueChange={(val) => { setPriorityFilter(val); setPage(1); }}>
             <SelectTrigger className="w-[160px] shrink-0">
               <SelectValue placeholder="Prioridad" />
             </SelectTrigger>
@@ -346,6 +362,18 @@ function OrdenesPage() {
               ))}
             </SelectContent>
           </Select>
+          {(hasActiveFilters || statusFilter !== 'all') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { clearFilters(); handleStatusChange('all'); setPage(1); }}
+              className="h-8 px-2 text-xs text-muted-foreground gap-1"
+            >
+              <X className="h-3 w-3" />
+              Limpiar
+            </Button>
+          )}
+          </div>
         </div>
       </Card>
 

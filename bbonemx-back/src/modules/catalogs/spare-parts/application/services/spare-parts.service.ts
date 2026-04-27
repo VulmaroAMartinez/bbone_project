@@ -35,6 +35,13 @@ export class SparePartsService {
     return this.sparePartsRepository.findByMachineId(machineId);
   }
 
+  async findOrCreateByPartNumber(partNumber: string): Promise<SparePart> {
+    const existing =
+      await this.sparePartsRepository.findByPartNumberInsensitive(partNumber);
+    if (existing) return existing;
+    return this.sparePartsRepository.create({ partNumber });
+  }
+
   async create(input: CreateSparePartInput): Promise<SparePart> {
     return this.sparePartsRepository.create(input);
   }

@@ -49,6 +49,23 @@ const SKU_REQUEST_CATEGORIES = new Set<RequestCategory>([
   RequestCategory.REQUEST_SKU_SPARE_PART,
 ]);
 
+/** When "otro" is selected, auto-create a Material catalog entry. */
+const CATALOG_MATERIAL_CATEGORIES = new Set<RequestCategory>([
+  RequestCategory.MATERIAL_WITH_SKU,
+  RequestCategory.REQUEST_SKU_MATERIAL,
+  RequestCategory.UPDATE_SKU,
+  RequestCategory.SERVICE_WITH_MATERIAL,
+  RequestCategory.EQUIPMENT,
+  RequestCategory.PPE,
+  RequestCategory.TOOLS,
+]);
+
+/** When "otro" is selected, auto-create a SparePart catalog entry. */
+const CATALOG_SPARE_PART_CATEGORIES = new Set<RequestCategory>([
+  RequestCategory.SPARE_PART_WITH_SKU,
+  RequestCategory.REQUEST_SKU_SPARE_PART,
+]);
+
 const CATEGORY_LABELS: Record<string, string> = {
   EQUIPMENT: 'Equipo',
   PPE: 'Protección personal',
@@ -67,6 +84,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const PRIORITY_LABELS: Record<string, string> = {
   URGENT: 'Urgente',
   SCHEDULED: 'Programada',
+  CRITICAL: 'Crítico',
 };
 
 const IMPORTANCE_LABELS: Record<string, string> = {
@@ -113,6 +131,35 @@ export class MaterialRequestsService {
 
   private isSKURequest(category: RequestCategory): boolean {
     return SKU_REQUEST_CATEGORIES.has(category);
+  }
+
+  /**
+   * If the item has no catalog reference and a customName, auto-create/reuse a
+   * catalog entry (Material or SparePart) so the item is linked. Only applies to
+   * inventory categories — SERVICE, NON_INVENTORY_MATERIAL, and
+   * NON_INVENTORY_SPARE_PART are excluded.
+   */
+  private async resolveCatalogForItem(
+    item: CreateMaterialRequestItemInput,
+    category: RequestCategory,
+  ): Promise<CreateMaterialRequestItemInput> {
+    if (item.materialId || item.sparePartId) return item;
+    const name = item.customName?.trim();
+    if (!name) return item;
+
+    if (CATALOG_MATERIAL_CATEGORIES.has(category)) {
+      const material =
+        await this.materialsService.findOrCreateByDescription(name);
+      return { ...item, materialId: material.id };
+    }
+
+    if (CATALOG_SPARE_PART_CATEGORIES.has(category)) {
+      const sparePart =
+        await this.sparePartsService.findOrCreateByPartNumber(name);
+      return { ...item, sparePartId: sparePart.id };
+    }
+
+    return item;
   }
 
   /**
@@ -308,16 +355,22 @@ export class MaterialRequestsService {
       await this.validateItem(item, input.category);
     }
     this.validateMachines(input.machines);
-    const { machines: machineInputs, ...rest } = input;
+    const { machines: machineInputs, items: rawItems, ...rest } = input;
     const machines = machineInputs.map((m) => ({
       machineId: m.machineId ?? undefined,
       customMachineName: m.customMachineName ?? undefined,
       customMachineModel: m.customMachineModel ?? undefined,
       customMachineManufacturer: m.customMachineManufacturer ?? undefined,
     }));
+    const items = await Promise.all(
+      (rawItems ?? []).map((item) =>
+        this.resolveCatalogForItem(item, input.category),
+      ),
+    );
     return this.materialRequestsRepository.create({
       ...rest,
       machines,
+      items,
     } as Partial<MaterialRequest>);
   }
 
@@ -358,8 +411,9 @@ export class MaterialRequestsService {
     const request = await this.findByIdOrFail(materialRequestId);
     this.assertBossCanManageMaterialRequest(user, request);
     await this.validateItem(input, request.category);
+    const resolved = await this.resolveCatalogForItem(input, request.category);
     return this.materialRequestItemsRepository.create({
-      ...input,
+      ...resolved,
       materialRequestId,
     });
   }
@@ -539,7 +593,9 @@ export class MaterialRequestsService {
       boss: request.boss,
       category: CATEGORY_LABELS[request.category] ?? request.category,
       priority: PRIORITY_LABELS[request.priority] ?? request.priority,
-      importance: IMPORTANCE_LABELS[request.importance] ?? request.importance,
+      importance: request.importance
+        ? (IMPORTANCE_LABELS[request.importance] ?? request.importance)
+        : undefined,
       derivedAreaName,
       machines: machineMachines.map((mrm) => ({
         name: mrm.customMachineName ?? mrm.machine?.name ?? '',

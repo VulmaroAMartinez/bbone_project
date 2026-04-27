@@ -3,6 +3,7 @@ import { registerEnumType } from '@nestjs/graphql';
 export enum RequestPriority {
   URGENT = 'URGENT',
   SCHEDULED = 'SCHEDULED',
+  CRITICAL = 'CRITICAL',
 }
 
 export enum RequestImportance {
@@ -32,6 +33,7 @@ registerEnumType(RequestPriority, {
   valuesMap: {
     URGENT: { description: 'Urgente' },
     SCHEDULED: { description: 'Programada' },
+    CRITICAL: { description: 'Crítico' },
   },
 });
 

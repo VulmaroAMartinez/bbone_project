@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePersistentFilters } from '@/hooks/usePersistentFilters';
 import { useMutation } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { Link } from 'react-router-dom';
@@ -33,7 +34,8 @@ export default function TecnicosPage() {
     const [activateTechnician] = useMutation(ActivateTechnicianDocument);
     const [deactivateTechnician] = useMutation(DeactivateTechnicianDocument);
 
-    const [searchTerm, setSearchTerm] = useState('');
+    const [{ searchTerm }, updateFilter] = usePersistentFilters('technicians', { searchTerm: '' });
+    const setSearchTerm = (v: string) => updateFilter({ searchTerm: v });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [page, setPage] = useState(1);
     type TechnicianItem = GetTechniciansDataQuery['techniciansWithDeleted'][number];

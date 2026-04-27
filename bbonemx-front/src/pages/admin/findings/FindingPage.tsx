@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { usePersistentFilters } from '@/hooks/usePersistentFilters';
 import { useMutation, useQuery, useLazyQuery } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
@@ -42,7 +43,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, CalendarIcon, Layers, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { Search, PlusCircle, AlertTriangle, Clock, MapPin, Wrench, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, CalendarIcon, Layers, FileSpreadsheet, Trash2, X } from 'lucide-react';
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { toast } from 'sonner';
 import { getApiBaseUrl } from '@/lib/utils/uploads';
@@ -61,10 +62,22 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function FindingPage() {
     const navigate = useNavigate();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusTab, setStatusTab] = useState<FindingStatus | 'ALL'>('ALL');
-    const [areaFilter, setAreaFilter] = useState<string>('all');
-    const [collectionFilter, setCollectionFilter] = useState('');
+    const [
+        { searchTerm, statusTab, areaFilter, collectionFilter },
+        updateFilter,
+        clearFilters,
+        hasActiveFilters,
+    ] = usePersistentFilters('findings', {
+        searchTerm: '',
+        statusTab: 'ALL' as FindingStatus | 'ALL',
+        areaFilter: 'all',
+        collectionFilter: '',
+    });
+
+    const setSearchTerm = (v: string) => updateFilter({ searchTerm: v });
+    const setStatusTab = (v: FindingStatus | 'ALL') => updateFilter({ statusTab: v });
+    const setAreaFilter = (v: string) => updateFilter({ areaFilter: v });
+    const setCollectionFilter = (v: string) => updateFilter({ collectionFilter: v });
     const [page, setPage] = useState(1);
 
     const debouncedCollection = useDebounce(collectionFilter, 300);
@@ -295,6 +308,18 @@ export default function FindingPage() {
                         <TabsTrigger value="CONVERTED_TO_WO">Convertidos</TabsTrigger>
                     </TabsList>
                 </Tabs>
+
+                {hasActiveFilters && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { clearFilters(); setPage(1); }}
+                        className="h-8 px-2 text-xs text-muted-foreground gap-1 self-end"
+                    >
+                        <X className="h-3 w-3" />
+                        Limpiar filtros
+                    </Button>
+                )}
             </div>
 
             {/* Listado */}

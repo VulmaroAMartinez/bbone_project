@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { usePersistentFilters } from '@/hooks/usePersistentFilters';
 import { useMutation } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
@@ -34,7 +35,8 @@ export default function SparePartsPage() {
     const [activateSparePart] = useMutation(ActivateSparePartDocument);
     const [deactivateSparePart] = useMutation(DeactivateSparePartDocument);
 
-    const [searchTerm, setSearchTerm] = useState('');
+    const [{ searchTerm }, updateFilter] = usePersistentFilters('spare-parts', { searchTerm: '' });
+    const setSearchTerm = (v: string) => updateFilter({ searchTerm: v });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [page, setPage] = useState(1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

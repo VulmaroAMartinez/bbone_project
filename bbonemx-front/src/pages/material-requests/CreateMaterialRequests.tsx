@@ -45,7 +45,6 @@ import {
 import {
     CATEGORY_LABELS,
     PRIORITY_LABELS,
-    IMPORTANCE_LABELS,
 } from '@/components/material-requests/material-request.constants';
 
 // ─── Helpers de categoría ────────────────────────────────────────────────────
@@ -110,7 +109,6 @@ const schema = yup.object({
     priority: yup.string().required('Selecciona la prioridad'),
     boss: yup.string().trim().required('Selecciona el jefe a cargo'),
     machines: yup.array(machineEntrySchema).min(1, 'Selecciona al menos una máquina').required(),
-    importance: yup.string().required('Selecciona la importancia'),
     description: yup.string().trim().default(''),
     justification: yup.string().trim().default(''),
     comments: yup.string().trim().default(''),
@@ -220,7 +218,7 @@ export default function CreateMaterialRequestPage() {
                 customMachineModel?: string | null;
                 customMachineManufacturer?: string | null;
             }>;
-            importance: string;
+            importance?: string | null;
             description?: string | null;
             justification?: string | null;
             comments?: string | null;
@@ -302,7 +300,6 @@ export default function CreateMaterialRequestPage() {
             priority: '',
             boss: '',
             machines: [],
-            importance: '',
             description: '',
             justification: '',
             comments: '',
@@ -423,7 +420,6 @@ export default function CreateMaterialRequestPage() {
                 customMachineModel: mrm.customMachineModel ?? '',
                 customMachineManufacturer: mrm.customMachineManufacturer ?? '',
             })),
-            importance: req.importance,
             description: req.description ?? '',
             justification: req.justification ?? '',
             comments: req.comments ?? '',
@@ -563,7 +559,6 @@ export default function CreateMaterialRequestPage() {
                 requesterId: values.requesterId,
                 category: values.category,
                 priority: values.priority,
-                importance: values.importance,
                 boss: values.boss,
                 machines: values.machines.map((m) => ({
                     machineId: m.machineId !== 'OTHER' ? m.machineId : undefined,
@@ -1216,47 +1211,13 @@ export default function CreateMaterialRequestPage() {
                         </CardContent>
                     </Card>
 
-                    {/* ── 5. Importancia y Compatibilidad ── */}
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">
-                                {showItems ? '5.' : '4.'} Importancia y Compatibilidad
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-
-                        <div className="space-y-1.5">
-                            <Label>Importancia <span className="text-destructive">*</span></Label>
-                            <Controller
-                                name="importance"
-                                control={control}
-                                render={({ field }) => (
-                                    <Select value={field.value} onValueChange={field.onChange}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona la importancia" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {Object.entries(IMPORTANCE_LABELS).map(([val, label]) => (
-                                                <SelectItem key={val} value={val}>{label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            />
-                            {errors.importance && (
-                                <p className="text-xs text-destructive">{errors.importance.message}</p>
-                            )}
-                        </div>
-
-                        </CardContent>
-                    </Card>
                 </div>
 
                 {/* ── 6. Información Adicional ── */}
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-base">
-                            {showItems ? '6.' : '5.'} Información Adicional
+                            {showItems ? '5.' : '4.'} Información Adicional
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -1293,7 +1254,7 @@ export default function CreateMaterialRequestPage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-base">
-                            {showItems ? '7.' : '6.'} Fotografías <span className="text-muted-foreground font-normal text-sm">(opcional, máx. 5)</span>
+                            {showItems ? '6.' : '5.'} Fotografías <span className="text-muted-foreground font-normal text-sm">(opcional, máx. 5)</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">

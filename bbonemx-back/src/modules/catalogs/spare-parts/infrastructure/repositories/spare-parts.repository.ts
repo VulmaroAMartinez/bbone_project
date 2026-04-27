@@ -40,6 +40,16 @@ export class SparePartsRepository {
     });
   }
 
+  async findByPartNumberInsensitive(
+    partNumber: string,
+  ): Promise<SparePart | null> {
+    return this.repository
+      .createQueryBuilder('sp')
+      .where('LOWER(sp.part_number) = LOWER(:partNumber)', { partNumber })
+      .andWhere('sp.is_active = true')
+      .getOne();
+  }
+
   async create(data: Partial<SparePart>): Promise<SparePart> {
     const saved = await this.repository.save(this.repository.create(data));
     return this.findById(saved.id) as Promise<SparePart>;

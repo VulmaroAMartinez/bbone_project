@@ -79,7 +79,7 @@ export interface MaterialRequestEmailTemplateData {
   boss: string;
   category: string;
   priority: string;
-  importance: string;
+  importance?: string;
   derivedAreaName?: string;
   machines: MaterialRequestEmailMachineData[];
   description?: string;

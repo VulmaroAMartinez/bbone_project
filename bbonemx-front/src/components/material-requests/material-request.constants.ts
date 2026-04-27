@@ -16,6 +16,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
 export const PRIORITY_LABELS: Record<string, string> = {
   URGENT: 'Urgente',
   SCHEDULED: 'Programada',
+  CRITICAL: 'Crítico',
 };
 
 export const IMPORTANCE_LABELS: Record<string, string> = {
@@ -27,6 +28,7 @@ export const IMPORTANCE_LABELS: Record<string, string> = {
 export const PRIORITY_COLORS: Record<string, string> = {
   URGENT: 'bg-red-100 text-red-700 border-red-200',
   SCHEDULED: 'bg-blue-100 text-blue-700 border-blue-200',
+  CRITICAL: 'bg-red-200 text-red-800 border-red-400',
 };
 
 export const IMPORTANCE_COLORS: Record<string, string> = {
