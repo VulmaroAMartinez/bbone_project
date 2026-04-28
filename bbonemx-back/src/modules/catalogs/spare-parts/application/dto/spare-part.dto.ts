@@ -14,7 +14,8 @@ import {
 export class CreateSparePartInput {
   @Field(() => ID, {
     nullable: true,
-    description: 'Opcional. Si se omite, la refacción no queda ligada a un equipo.',
+    description:
+      'Opcional. Si se omite, la refacción no queda ligada a un equipo.',
   })
   @ValidateIf((_o, v) => v != null && String(v).trim() !== '')
   @IsUUID()

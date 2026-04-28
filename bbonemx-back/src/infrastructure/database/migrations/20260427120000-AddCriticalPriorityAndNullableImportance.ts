@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddCriticalPriorityAndNullableImportance20260427120000
-  implements MigrationInterface
-{
+export class AddCriticalPriorityAndNullableImportance20260427120000 implements MigrationInterface {
   name = 'AddCriticalPriorityAndNullableImportance20260427120000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -50,8 +48,6 @@ export class AddCriticalPriorityAndNullableImportance20260427120000
         ALTER COLUMN "priority" TYPE "material_requests_priority_enum"
           USING "priority"::text::"material_requests_priority_enum"`,
     );
-    await queryRunner.query(
-      `DROP TYPE "material_requests_priority_enum_old"`,
-    );
+    await queryRunner.query(`DROP TYPE "material_requests_priority_enum_old"`);
   }
 }

@@ -12,9 +12,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 
 describe('OvertimeExcelController', () => {
-  it(
-    'devuelve headers correctos y un Excel descargable',
-    async () => {
+  it('devuelve headers correctos y un Excel descargable', async () => {
     const excelGeneratorService = new ExcelGeneratorService();
     const buffer = await excelGeneratorService.generateExcelBuffer([], {
       ...OVERTIME_EXCEL_REPORT,
@@ -91,7 +89,5 @@ describe('OvertimeExcelController', () => {
     );
 
     await app.close();
-    },
-    30_000,
-  );
+  }, 30_000);
 });

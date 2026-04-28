@@ -1,11 +1,10 @@
-import { Entity, Column, ManyToOne, JoinColumn, Unique } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from 'src/infrastructure/database/base.entity';
 import { MaterialRequest } from './material-request.entity';
 import { Material } from 'src/modules/catalogs/materials/domain/entities';
 import { SparePart } from 'src/modules/catalogs/spare-parts/domain/entities';
 
 @Entity({ name: 'material_request_items' })
-@Unique(['materialRequestId', 'materialId'])
 export class MaterialRequestItem extends BaseEntity {
   @Column({ name: 'material_request_id', type: 'uuid' })
   materialRequestId: string;

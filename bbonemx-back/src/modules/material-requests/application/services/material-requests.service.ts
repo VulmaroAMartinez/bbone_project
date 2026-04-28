@@ -143,14 +143,17 @@ export class MaterialRequestsService {
     machines?: Array<{ machineId?: string | null }>,
   ): string | undefined {
     if (!CATALOG_SPARE_PART_CATEGORIES.has(category)) return undefined;
-    const row = machines?.find((m) => m.machineId && String(m.machineId).trim());
+    const row = machines?.find(
+      (m) => m.machineId && String(m.machineId).trim(),
+    );
     return row?.machineId ?? undefined;
   }
 
   /**
    * If the item has no catalog reference and a customName, auto-create/reuse a
-   * catalog entry (Material or SparePart) so the item is linked. Only applies to
-   * inventory categories — SERVICE, NON_INVENTORY_MATERIAL, and
+   * catalog entry (Material or SparePart) to enrich catalogs, while storing the
+   * request item as snapshot-only (without linking FK IDs).
+   * Only applies to inventory categories — SERVICE, NON_INVENTORY_MATERIAL, and
    * NON_INVENTORY_SPARE_PART are excluded.
    *
    * Para SparePart inventariable se usa `machines` de la solicitud: si hay machineId en
@@ -166,31 +169,28 @@ export class MaterialRequestsService {
     if (CATALOG_MATERIAL_CATEGORIES.has(category)) {
       const name = item.customName?.trim();
       if (!name) return item;
-      const material =
-        await this.materialsService.findOrCreateByDescription(name);
-      return { ...item, materialId: material.id };
+      // Keep request item as snapshot-only for "Otro" entries.
+      await this.materialsService.findOrCreateByDescription(name);
+      return { ...item, materialId: undefined };
     }
 
     if (CATALOG_SPARE_PART_CATEGORIES.has(category)) {
       const lookupKey = item.partNumber?.trim() || item.customName?.trim();
       if (!lookupKey) return item;
-      const machineId =
-        this.resolveMachineIdForInventorySparePartFromRequest(
-          category,
-          machines,
-        );
-      const sparePart = await this.sparePartsService.findOrCreateByPartNumber(
-        lookupKey,
-        {
-          machineId,
-          description: item.customName?.trim(),
-          brand: item.brand ?? undefined,
-          model: item.model ?? undefined,
-          sku: item.sku ?? undefined,
-          unitOfMeasure: item.unitOfMeasure ?? undefined,
-        },
+      const machineId = this.resolveMachineIdForInventorySparePartFromRequest(
+        category,
+        machines,
       );
-      return { ...item, sparePartId: sparePart.id };
+      await this.sparePartsService.findOrCreateByPartNumber(lookupKey, {
+        machineId,
+        description: item.customName?.trim(),
+        brand: item.brand ?? undefined,
+        model: item.model ?? undefined,
+        sku: item.sku ?? undefined,
+        unitOfMeasure: item.unitOfMeasure ?? undefined,
+      });
+      // Keep request item as snapshot-only for "Otro" entries.
+      return { ...item, sparePartId: undefined };
     }
 
     return item;

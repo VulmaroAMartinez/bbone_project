@@ -25,7 +25,7 @@ export interface MaterialRequestCardData {
   id: string;
   folio: string;
   priority: string;
-  importance: string;
+  importance?: string | null;
   category: string;
   description?: string | null;
   createdAt: string;
@@ -92,11 +92,13 @@ export function MaterialRequestCard({
               >
                 {PRIORITY_LABELS[priority] ?? priority}
               </span>
-              <span
-                className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${IMPORTANCE_COLORS[importance] ?? ''}`}
-              >
-                {IMPORTANCE_LABELS[importance] ?? importance}
-              </span>
+              {importance && (
+                <span
+                  className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${IMPORTANCE_COLORS[importance] ?? ''}`}
+                >
+                  {IMPORTANCE_LABELS[importance] ?? importance}
+                </span>
+              )}
               <Badge variant="outline" className="text-xs font-normal">
                 {CATEGORY_LABELS[category] ?? category}
               </Badge>

@@ -44,7 +44,12 @@ export class SparePartsService {
     extra?: Partial<
       Pick<
         SparePart,
-        'machineId' | 'description' | 'brand' | 'model' | 'sku' | 'unitOfMeasure'
+        | 'machineId'
+        | 'description'
+        | 'brand'
+        | 'model'
+        | 'sku'
+        | 'unitOfMeasure'
       >
     >,
   ): Promise<SparePart> {
