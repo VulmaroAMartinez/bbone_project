@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
 import {
@@ -66,14 +66,12 @@ function EmailInput({
     onChange: (v: string) => void;
     placeholder?: string;
 }) {
-    const [suggestions, setSuggestions] = useState<string[]>([]);
     const [open, setOpen] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
+    const suggestions = useMemo(() => {
         const lastPart = value.split(',').pop()?.trim() ?? '';
-        const results = getSuggestedEmails(lastPart);
-        setSuggestions(results);
+        return getSuggestedEmails(lastPart);
     }, [value]);
 
     useEffect(() => {
