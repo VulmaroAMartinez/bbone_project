@@ -144,6 +144,7 @@ export default function SchedulePage() {
         next.setDate(next.getDate() + direction * 7);
         setCurrentDate(next);
         setModifiedTechs(new Set());
+        setFilterDay('ALL');
     };
 
     const navigateWeek = (direction: number) => {

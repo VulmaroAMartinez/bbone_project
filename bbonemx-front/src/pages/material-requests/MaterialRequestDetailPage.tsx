@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client/react';
 import {
@@ -36,6 +36,7 @@ import {
     Camera,
 } from 'lucide-react';
 import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
+import { addEmailsToHistory, getSuggestedEmails } from '@/lib/email-history';
 
 import {
     CATEGORY_LABELS,
@@ -52,6 +53,70 @@ interface EmailModalProps {
     onClose: () => void;
     materialRequestId: string;
     folio: string;
+}
+
+function EmailInput({
+    id,
+    value,
+    onChange,
+    placeholder,
+}: {
+    id: string;
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+}) {
+    const [open, setOpen] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    const suggestions = useMemo(() => {
+        const lastPart = value.split(',').pop()?.trim() ?? '';
+        return getSuggestedEmails(lastPart);
+    }, [value]);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const selectSuggestion = (email: string) => {
+        const parts = value.split(',');
+        parts[parts.length - 1] = email;
+        onChange(parts.join(', ') + ', ');
+        setOpen(false);
+    };
+
+    return (
+        <div ref={wrapperRef} className="relative">
+            <Input
+                id={id}
+                type="text"
+                placeholder={placeholder}
+                value={value}
+                onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+                onFocus={() => setOpen(true)}
+                autoComplete="off"
+            />
+            {open && suggestions.length > 0 && (
+                <ul className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md text-sm max-h-48 overflow-y-auto">
+                    {suggestions.map((s) => (
+                        <li
+                            key={s}
+                            className="px-3 py-1.5 cursor-pointer hover:bg-accent"
+                            onMouseDown={(e) => { e.preventDefault(); selectSuggestion(s); }}
+                        >
+                            {s}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
 }
 
 function EmailModal({ open, onClose, materialRequestId, folio }: EmailModalProps) {
@@ -92,6 +157,7 @@ function EmailModal({ open, onClose, materialRequestId, folio }: EmailModalProps
                     },
                 },
             });
+            addEmailsToHistory([...toEmails, ...parseEmails(cc)]);
             toast.success('Correo enviado exitosamente');
             handleClose();
         } catch {
@@ -113,12 +179,11 @@ function EmailModal({ open, onClose, materialRequestId, folio }: EmailModalProps
                         <Label htmlFor="email-to">
                             Para <span className="text-destructive">*</span>
                         </Label>
-                        <Input
+                        <EmailInput
                             id="email-to"
-                            type="text"
-                            placeholder="destinatario@empresa.com"
                             value={to}
-                            onChange={(e) => setTo(e.target.value)}
+                            onChange={setTo}
+                            placeholder="destinatario@empresa.com"
                         />
                         <p className="text-xs text-muted-foreground">
                             Separa múltiples correos con coma
@@ -126,12 +191,11 @@ function EmailModal({ open, onClose, materialRequestId, folio }: EmailModalProps
                     </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="email-cc">Con copia a</Label>
-                        <Input
+                        <EmailInput
                             id="email-cc"
-                            type="text"
-                            placeholder="copia@empresa.com"
                             value={cc}
-                            onChange={(e) => setCc(e.target.value)}
+                            onChange={setCc}
+                            placeholder="copia@empresa.com"
                         />
                     </div>
                     <div className="space-y-1.5">
@@ -293,9 +357,11 @@ export default function MaterialRequestDetailPage() {
                     <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${PRIORITY_COLORS[request.priority] ?? ''}`}>
                         {PRIORITY_LABELS[request.priority] ?? request.priority}
                     </span>
-                    <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${IMPORTANCE_COLORS[request.importance] ?? ''}`}>
-                        {IMPORTANCE_LABELS[request.importance] ?? request.importance}
-                    </span>
+                    {request.importance && (
+                        <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full border ${IMPORTANCE_COLORS[request.importance] ?? ''}`}>
+                            {IMPORTANCE_LABELS[request.importance] ?? request.importance}
+                        </span>
+                    )}
                     <Badge variant="outline" className="text-xs font-normal">
                         {CATEGORY_LABELS[request.category] ?? request.category}
                     </Badge>

@@ -49,6 +49,23 @@ const SKU_REQUEST_CATEGORIES = new Set<RequestCategory>([
   RequestCategory.REQUEST_SKU_SPARE_PART,
 ]);
 
+/** When "otro" is selected, auto-create a Material catalog entry. */
+const CATALOG_MATERIAL_CATEGORIES = new Set<RequestCategory>([
+  RequestCategory.MATERIAL_WITH_SKU,
+  RequestCategory.REQUEST_SKU_MATERIAL,
+  RequestCategory.UPDATE_SKU,
+  RequestCategory.SERVICE_WITH_MATERIAL,
+  RequestCategory.EQUIPMENT,
+  RequestCategory.PPE,
+  RequestCategory.TOOLS,
+]);
+
+/** When "otro" is selected, auto-create a SparePart catalog entry. */
+const CATALOG_SPARE_PART_CATEGORIES = new Set<RequestCategory>([
+  RequestCategory.SPARE_PART_WITH_SKU,
+  RequestCategory.REQUEST_SKU_SPARE_PART,
+]);
+
 const CATEGORY_LABELS: Record<string, string> = {
   EQUIPMENT: 'Equipo',
   PPE: 'Protección personal',
@@ -67,6 +84,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const PRIORITY_LABELS: Record<string, string> = {
   URGENT: 'Urgente',
   SCHEDULED: 'Programada',
+  CRITICAL: 'Crítico',
 };
 
 const IMPORTANCE_LABELS: Record<string, string> = {
@@ -113,6 +131,69 @@ export class MaterialRequestsService {
 
   private isSKURequest(category: RequestCategory): boolean {
     return SKU_REQUEST_CATEGORIES.has(category);
+  }
+
+  /**
+   * Solo categorías inventariables de refacción con SKU: asocia machineId desde
+   * la primera máquina del catálogo enlazada en la solicitud.
+   * No aplica a SERVICIO ni refacciones/material no inventariado (quedan fuera de estos sets).
+   */
+  private resolveMachineIdForInventorySparePartFromRequest(
+    category: RequestCategory,
+    machines?: Array<{ machineId?: string | null }>,
+  ): string | undefined {
+    if (!CATALOG_SPARE_PART_CATEGORIES.has(category)) return undefined;
+    const row = machines?.find(
+      (m) => m.machineId && String(m.machineId).trim(),
+    );
+    return row?.machineId ?? undefined;
+  }
+
+  /**
+   * If the item has no catalog reference and a customName, auto-create/reuse a
+   * catalog entry (Material or SparePart) to enrich catalogs, while storing the
+   * request item as snapshot-only (without linking FK IDs).
+   * Only applies to inventory categories — SERVICE, NON_INVENTORY_MATERIAL, and
+   * NON_INVENTORY_SPARE_PART are excluded.
+   *
+   * Para SparePart inventariable se usa `machines` de la solicitud: si hay machineId en
+   * alguna fila se guarda en la refacción recién creada (si no existe ya).
+   */
+  private async resolveCatalogForItem(
+    item: CreateMaterialRequestItemInput,
+    category: RequestCategory,
+    machines?: Array<{ machineId?: string | null }>,
+  ): Promise<CreateMaterialRequestItemInput> {
+    if (item.materialId || item.sparePartId) return item;
+
+    if (CATALOG_MATERIAL_CATEGORIES.has(category)) {
+      const name = item.customName?.trim();
+      if (!name) return item;
+      // Keep request item as snapshot-only for "Otro" entries.
+      await this.materialsService.findOrCreateByDescription(name);
+      return { ...item, materialId: undefined };
+    }
+
+    if (CATALOG_SPARE_PART_CATEGORIES.has(category)) {
+      const lookupKey = item.partNumber?.trim() || item.customName?.trim();
+      if (!lookupKey) return item;
+      const machineId = this.resolveMachineIdForInventorySparePartFromRequest(
+        category,
+        machines,
+      );
+      await this.sparePartsService.findOrCreateByPartNumber(lookupKey, {
+        machineId,
+        description: item.customName?.trim(),
+        brand: item.brand ?? undefined,
+        model: item.model ?? undefined,
+        sku: item.sku ?? undefined,
+        unitOfMeasure: item.unitOfMeasure ?? undefined,
+      });
+      // Keep request item as snapshot-only for "Otro" entries.
+      return { ...item, sparePartId: undefined };
+    }
+
+    return item;
   }
 
   /**
@@ -308,16 +389,22 @@ export class MaterialRequestsService {
       await this.validateItem(item, input.category);
     }
     this.validateMachines(input.machines);
-    const { machines: machineInputs, ...rest } = input;
+    const { machines: machineInputs, items: rawItems, ...rest } = input;
     const machines = machineInputs.map((m) => ({
       machineId: m.machineId ?? undefined,
       customMachineName: m.customMachineName ?? undefined,
       customMachineModel: m.customMachineModel ?? undefined,
       customMachineManufacturer: m.customMachineManufacturer ?? undefined,
     }));
+    const items = await Promise.all(
+      (rawItems ?? []).map((item) =>
+        this.resolveCatalogForItem(item, input.category, machines),
+      ),
+    );
     return this.materialRequestsRepository.create({
       ...rest,
       machines,
+      items,
     } as Partial<MaterialRequest>);
   }
 
@@ -358,8 +445,13 @@ export class MaterialRequestsService {
     const request = await this.findByIdOrFail(materialRequestId);
     this.assertBossCanManageMaterialRequest(user, request);
     await this.validateItem(input, request.category);
+    const resolved = await this.resolveCatalogForItem(
+      input,
+      request.category,
+      request.machines?.map((m) => ({ machineId: m.machineId })),
+    );
     return this.materialRequestItemsRepository.create({
-      ...input,
+      ...resolved,
       materialRequestId,
     });
   }
@@ -539,7 +631,9 @@ export class MaterialRequestsService {
       boss: request.boss,
       category: CATEGORY_LABELS[request.category] ?? request.category,
       priority: PRIORITY_LABELS[request.priority] ?? request.priority,
-      importance: IMPORTANCE_LABELS[request.importance] ?? request.importance,
+      importance: request.importance
+        ? (IMPORTANCE_LABELS[request.importance] ?? request.importance)
+        : undefined,
       derivedAreaName,
       machines: machineMachines.map((mrm) => ({
         name: mrm.customMachineName ?? mrm.machine?.name ?? '',

@@ -35,6 +35,13 @@ export class MaterialsService {
     return this.materialsRepository.findBySku(sku);
   }
 
+  async findOrCreateByDescription(description: string): Promise<Material> {
+    const existing =
+      await this.materialsRepository.findByDescriptionInsensitive(description);
+    if (existing) return existing;
+    return this.materialsRepository.create({ description });
+  }
+
   async create(input: CreateMaterialInput): Promise<Material> {
     return this.materialsRepository.create(input);
   }

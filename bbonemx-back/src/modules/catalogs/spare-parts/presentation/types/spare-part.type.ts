@@ -4,8 +4,8 @@ import { MachineType } from 'src/modules/catalogs/machines/presentation/types';
 @ObjectType('SparePart')
 export class SparePartType {
   @Field(() => ID) id: string;
-  @Field(() => ID) machineId: string;
-  @Field(() => MachineType) machine: MachineType;
+  @Field(() => ID, { nullable: true }) machineId?: string;
+  @Field(() => MachineType, { nullable: true }) machine?: MachineType;
   @Field() partNumber: string;
   @Field({ nullable: true }) sku?: string;
   @Field({ nullable: true }) brand?: string;

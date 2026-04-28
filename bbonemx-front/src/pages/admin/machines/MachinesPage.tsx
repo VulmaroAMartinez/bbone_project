@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { usePersistentFilters } from '@/hooks/usePersistentFilters';
 import { useMutation } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { useNavigate } from 'react-router-dom';
@@ -101,9 +102,15 @@ export default function MachinesPage() {
     const [activateMachine] = useMutation(ActivateMachineDocument);
 
     // ─── State
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterAreaId, setFilterAreaId] = useState('all');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+    const [{ searchTerm, filterAreaId, filterStatus }, updateFilter, clearFilters, hasActiveFilters] =
+        usePersistentFilters('machines', {
+            searchTerm: '',
+            filterAreaId: 'all',
+            filterStatus: 'all' as 'all' | 'active' | 'inactive',
+        });
+    const setSearchTerm = (v: string) => updateFilter({ searchTerm: v });
+    const setFilterAreaId = (v: string) => updateFilter({ filterAreaId: v });
+    const setFilterStatus = (v: 'all' | 'active' | 'inactive') => updateFilter({ filterStatus: v });
     const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
@@ -138,7 +145,6 @@ export default function MachinesPage() {
         return result;
     }, [machines, searchTerm, filterAreaId, filterStatus]);
 
-    const hasActiveFilters = searchTerm || filterAreaId !== 'all' || filterStatus !== 'all';
     const PAGE_SIZE = 12;
     const totalPages = Math.ceil(filteredMachines.length / PAGE_SIZE);
     const pageMachines = filteredMachines.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -186,12 +192,7 @@ export default function MachinesPage() {
         }
     };
 
-    const clearFilters = () => {
-        setSearchTerm('');
-        setFilterAreaId('all');
-        setFilterStatus('all');
-        setPage(1);
-    };
+    const handleClearFilters = () => { clearFilters(); setPage(1); };
 
     // ─── Render ───────────────────────────────────────────────
 
@@ -251,7 +252,7 @@ export default function MachinesPage() {
                     </Select>
 
                     {hasActiveFilters && (
-                        <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
+                        <Button variant="ghost" size="sm" onClick={handleClearFilters} className="gap-1 text-muted-foreground">
                             <X className="h-3.5 w-3.5" /> Limpiar
                         </Button>
                     )}
@@ -294,7 +295,7 @@ export default function MachinesPage() {
                         </EmptyDescription>
                     </EmptyHeader>
                     {hasActiveFilters && (
-                        <Button variant="outline" size="sm" onClick={clearFilters}>
+                        <Button variant="outline" size="sm" onClick={handleClearFilters}>
                             Limpiar filtros
                         </Button>
                     )}

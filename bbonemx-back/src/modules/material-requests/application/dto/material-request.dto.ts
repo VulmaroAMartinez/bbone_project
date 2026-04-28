@@ -70,10 +70,10 @@ export class CreateMaterialRequestInput {
   @IsEnum(RequestCategory)
   category: RequestCategory;
 
-  @Field()
-  @IsNotEmpty({ message: 'La importancia es requerida' })
+  @Field(() => RequestImportance, { nullable: true })
+  @IsOptional()
   @IsEnum(RequestImportance)
-  importance: RequestImportance;
+  importance?: RequestImportance | null;
 
   @Field()
   @IsNotEmpty({ message: 'La prioridad es requerida' })

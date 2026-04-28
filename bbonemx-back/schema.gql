@@ -367,7 +367,7 @@ input CreateMaterialRequestInput {
   category: String!
   comments: String
   description: String
-  importance: String!
+  importance: RequestImportance
   items: [CreateMaterialRequestItemInput!]
   justification: String
   machines: [CreateMaterialRequestMachineInput!]!
@@ -463,7 +463,9 @@ input CreateSparePartInput {
   cantidad: Float
   costo: Float
   description: String
-  machineId: ID!
+
+  """Opcional. Si se omite, la refacción no queda ligada a un equipo."""
+  machineId: ID
   model: String
   partNumber: String!
   sku: String
@@ -844,7 +846,7 @@ type MaterialRequest {
   folio: String!
   histories: [MaterialRequestHistory!]
   id: ID!
-  importance: RequestImportance!
+  importance: RequestImportance
   isActive: Boolean!
   items: [MaterialRequestItem!]!
   justification: String
@@ -976,6 +978,10 @@ type Mutation {
   createPreventiveTask(input: CreatePreventiveTaskInput!): PreventiveTask!
   createRole(input: CreateRoleInput!): Role!
   createShift(input: CreateShiftInput!): Shift!
+
+  """
+  Crea un repuesto. machineId es opcional (refacción sin equipo asociado).
+  """
   createSparePart(input: CreateSparePartInput!): SparePart!
   createSubArea(input: CreateSubAreaInput!): SubArea!
   createTechnician(input: CreateTechnicianInput!): Technician!
@@ -1482,6 +1488,9 @@ enum RequestImportance {
 
 """Prioridad de la solicitud"""
 enum RequestPriority {
+  """Crítico"""
+  CRITICAL
+
   """Programada"""
   SCHEDULED
 
@@ -1574,8 +1583,8 @@ type SparePart {
   description: String
   id: ID!
   isActive: Boolean!
-  machine: Machine!
-  machineId: ID!
+  machine: Machine
+  machineId: ID
   model: String
   partNumber: String!
   precioTotal: Float
@@ -1806,7 +1815,7 @@ input UpdateMaterialRequestInput {
   comments: String
   description: String
   id: ID!
-  importance: String
+  importance: RequestImportance
   items: [CreateMaterialRequestItemInput!]
   justification: String
   machines: [CreateMaterialRequestMachineInput!]
@@ -1878,6 +1887,8 @@ input UpdateSparePartInput {
   cantidad: Float
   costo: Float
   description: String
+
+  """Opcional. Si se omite, la refacción no queda ligada a un equipo."""
   machineId: ID
   model: String
   partNumber: String

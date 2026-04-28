@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePersistentFilters } from '@/hooks/usePersistentFilters';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import { GetMaterialRequestsDocument } from '@/lib/graphql/generated/graphql';
 
@@ -39,9 +40,17 @@ export default function MaterialRequestsPage() {
 
   const { data, loading } = useOfflineAwareQuery(GetMaterialRequestsDocument);
 
-  const [search, setSearch] = useState('');
-  const [filterPriority, setFilterPriority] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [{ search, filterPriority, filterCategory }, updateFilter, clearFilters, hasActiveFilters] =
+    usePersistentFilters('material-requests', {
+      search: '',
+      filterPriority: 'all',
+      filterCategory: 'all',
+    });
+  const setSearch = (v: string) => updateFilter({ search: v });
+  const setFilterPriority = (v: string) => { updateFilter({ filterPriority: v }); setPage(1); };
+  const setFilterCategory = (v: string) => { updateFilter({ filterCategory: v }); setPage(1); };
+  const handleClearFilters = () => { clearFilters(); setPage(1); };
+
   const [viewingItemsReq, setViewingItemsReq] = useState<typeof requests[0] | null>(null);
   const [page, setPage] = useState(1);
 
@@ -64,14 +73,6 @@ export default function MaterialRequestsPage() {
     });
   }, [requests, search, filterPriority, filterCategory]);
 
-  const hasFilters = search || filterPriority !== 'all' || filterCategory !== 'all';
-
-  const clearFilters = () => {
-    setSearch('');
-    setFilterPriority('all');
-    setFilterCategory('all');
-    setPage(1);
-  };
 
   const PAGE_SIZE = 12;
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -87,7 +88,7 @@ export default function MaterialRequestsPage() {
             <p className="text-sm text-muted-foreground">
               {loading
                 ? 'Cargando...'
-                : `${filtered.length} solicitud${filtered.length !== 1 ? 'es' : ''}${hasFilters ? ' encontrada' + (filtered.length !== 1 ? 's' : '') : ''}`}
+                : `${filtered.length} solicitud${filtered.length !== 1 ? 'es' : ''}${hasActiveFilters ? ' encontrada' + (filtered.length !== 1 ? 's' : '') : ''}`}
             </p>
           </div>
           <Button
@@ -128,6 +129,7 @@ export default function MaterialRequestsPage() {
                 <SelectItem value="all">Todas las prioridades</SelectItem>
                 <SelectItem value="URGENT">Urgente</SelectItem>
                 <SelectItem value="SCHEDULED">Programada</SelectItem>
+                <SelectItem value="CRITICAL">Crítico</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setPage(1); }}>
@@ -141,11 +143,11 @@ export default function MaterialRequestsPage() {
                 ))}
               </SelectContent>
             </Select>
-            {hasFilters && (
+            {hasActiveFilters && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={clearFilters}
+                onClick={handleClearFilters}
                 className="h-8 px-2 text-xs text-muted-foreground"
               >
                 <X className="h-3 w-3 mr-1" />
@@ -179,7 +181,7 @@ export default function MaterialRequestsPage() {
               </EmptyMedia>
               <EmptyTitle>Sin solicitudes</EmptyTitle>
               <EmptyDescription>
-                {hasFilters
+                {hasActiveFilters
                   ? 'No hay solicitudes que coincidan con los filtros.'
                   : 'Crea la primera solicitud de material.'}
               </EmptyDescription>

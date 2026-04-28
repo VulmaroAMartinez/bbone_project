@@ -33,8 +33,8 @@ export class MaterialRequest extends BaseEntity {
   @Column({ type: 'enum', enum: RequestCategory })
   category: RequestCategory;
 
-  @Column({ type: 'enum', enum: RequestImportance })
-  importance: RequestImportance;
+  @Column({ type: 'enum', enum: RequestImportance, nullable: true })
+  importance: RequestImportance | null;
 
   @Column({ type: 'enum', enum: RequestPriority })
   priority: RequestPriority;

@@ -30,6 +30,16 @@ export class MaterialsRepository {
     return this.repository.findOne({ where: { sku } });
   }
 
+  async findByDescriptionInsensitive(
+    description: string,
+  ): Promise<Material | null> {
+    return this.repository
+      .createQueryBuilder('m')
+      .where('LOWER(m.description) = LOWER(:description)', { description })
+      .andWhere('m.is_active = true')
+      .getOne();
+  }
+
   async create(data: Partial<Material>): Promise<Material> {
     return this.repository.save(this.repository.create(data));
   }

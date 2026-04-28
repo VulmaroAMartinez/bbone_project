@@ -35,6 +35,41 @@ export class SparePartsService {
     return this.sparePartsRepository.findByMachineId(machineId);
   }
 
+  /**
+   * Crea o reutiliza por número de parte. `machineId` y demás campos opcionales
+   * solo se aplican al crear; si el registro existe sin máquina y se pasa `machineId`, se actualiza.
+   */
+  async findOrCreateByPartNumber(
+    partNumber: string,
+    extra?: Partial<
+      Pick<
+        SparePart,
+        | 'machineId'
+        | 'description'
+        | 'brand'
+        | 'model'
+        | 'sku'
+        | 'unitOfMeasure'
+      >
+    >,
+  ): Promise<SparePart> {
+    const existing =
+      await this.sparePartsRepository.findByPartNumberInsensitive(partNumber);
+    if (existing) {
+      if (extra?.machineId && !existing.machineId) {
+        const updated = await this.sparePartsRepository.update(existing.id, {
+          machineId: extra.machineId,
+        });
+        if (updated) return updated;
+      }
+      return existing;
+    }
+    return this.sparePartsRepository.create({
+      partNumber,
+      ...extra,
+    });
+  }
+
   async create(input: CreateSparePartInput): Promise<SparePart> {
     return this.sparePartsRepository.create(input);
   }

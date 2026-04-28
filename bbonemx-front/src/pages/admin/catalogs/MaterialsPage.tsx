@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePersistentFilters } from '@/hooks/usePersistentFilters';
 import { useMutation } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
 import {
@@ -31,7 +32,8 @@ export default function MaterialsPage() {
     const [activateMaterial] = useMutation(ActivateMaterialDocument);
     const [deactivateMaterial] = useMutation(DeactivateMaterialDocument);
 
-    const [searchTerm, setSearchTerm] = useState('');
+    const [{ searchTerm }, updateFilter] = usePersistentFilters('materials', { searchTerm: '' });
+    const setSearchTerm = (v: string) => updateFilter({ searchTerm: v });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [page, setPage] = useState(1);
     type MaterialItem = GetMaterialsQuery['materialsWithDeleted'][number];
