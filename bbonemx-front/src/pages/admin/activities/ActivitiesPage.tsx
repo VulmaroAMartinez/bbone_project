@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   GetActivitiesFilteredDocument,
@@ -62,6 +62,7 @@ import {
   ArrowUpDown,
   Trash2,
   Download,
+  X,
 } from 'lucide-react';
 
 const GET_FILTERS_DATA = gql`
@@ -105,14 +106,21 @@ const statusColors: Record<string, string> = {
 
 export default function ActivitiesPage() {
   const navigate = useNavigate();
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = searchParams.get('status');
+  const initialStatusFilter: ActivityStatus | 'all' =
+    statusParam === 'PENDING' || statusParam === 'IN_PROGRESS' || statusParam === 'COMPLETED'
+      ? statusParam
+      : 'all';
+  const initialPage = Number.parseInt(searchParams.get('page') ?? '1', 10);
+  const [page, setPage] = useState(Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1);
   const [limit] = useState(20);
-  const [areaFilter, setAreaFilter] = useState<string>('');
-  const [machineFilter, setMachineFilter] = useState<string>('');
-  const [technicianFilter, setTechnicianFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<ActivityStatus | 'all'>('all');
-  const [priorityFilter, setPriorityFilter] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [areaFilter, setAreaFilter] = useState<string>(searchParams.get('area') ?? '');
+  const [machineFilter, setMachineFilter] = useState<string>(searchParams.get('machine') ?? '');
+  const [technicianFilter, setTechnicianFilter] = useState<string>(searchParams.get('technician') ?? '');
+  const [statusFilter, setStatusFilter] = useState<ActivityStatus | 'all'>(initialStatusFilter);
+  const [priorityFilter, setPriorityFilter] = useState(searchParams.get('priority') === 'true');
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') ?? '');
   const [sortField, setSortField] = useState<ActivitySortField>('CREATED_AT');
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
   type ActivityRow = {
@@ -164,6 +172,49 @@ export default function ActivitiesPage() {
 
   const [updatePriority] = useMutation(UpdateActivityPriorityDocument);
   const [deleteActivity] = useMutation(DeleteActivityDocument);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams();
+    const managedCurrentParams = new URLSearchParams();
+
+    if (areaFilter) nextParams.set('area', areaFilter);
+    if (machineFilter) nextParams.set('machine', machineFilter);
+    if (technicianFilter) nextParams.set('technician', technicianFilter);
+    if (statusFilter !== 'all') nextParams.set('status', statusFilter);
+    if (priorityFilter) nextParams.set('priority', 'true');
+    if (searchTerm) nextParams.set('search', searchTerm);
+    if (page > 1) nextParams.set('page', String(page));
+
+    const currentArea = searchParams.get('area');
+    const currentMachine = searchParams.get('machine');
+    const currentTechnician = searchParams.get('technician');
+    const currentStatus = searchParams.get('status');
+    const currentPriority = searchParams.get('priority');
+    const currentSearch = searchParams.get('search');
+    const currentPage = searchParams.get('page');
+
+    if (currentArea) managedCurrentParams.set('area', currentArea);
+    if (currentMachine) managedCurrentParams.set('machine', currentMachine);
+    if (currentTechnician) managedCurrentParams.set('technician', currentTechnician);
+    if (currentStatus) managedCurrentParams.set('status', currentStatus);
+    if (currentPriority === 'true') managedCurrentParams.set('priority', 'true');
+    if (currentSearch) managedCurrentParams.set('search', currentSearch);
+    if (currentPage && Number.parseInt(currentPage, 10) > 1) managedCurrentParams.set('page', currentPage);
+
+    if (nextParams.toString() !== managedCurrentParams.toString()) {
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [
+    areaFilter,
+    machineFilter,
+    technicianFilter,
+    statusFilter,
+    priorityFilter,
+    searchTerm,
+    page,
+    searchParams,
+    setSearchParams,
+  ]);
 
   const baseName = `actividades-${new Date().toISOString().split('T')[0]}`;
   const excelFilename = `${baseName}.xlsx`;
@@ -315,6 +366,24 @@ export default function ActivitiesPage() {
     setPage(1);
   };
 
+  const hasActiveFilters =
+    searchTerm.trim() !== '' ||
+    areaFilter !== '' ||
+    machineFilter !== '' ||
+    technicianFilter !== '' ||
+    statusFilter !== 'all' ||
+    priorityFilter;
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setAreaFilter('');
+    setMachineFilter('');
+    setTechnicianFilter('');
+    setStatusFilter('all');
+    setPriorityFilter(false);
+    setPage(1);
+  };
+
   const formatDate = (d: string | null | undefined) => {
     if (!d) return '-';
     return new Date(d).toLocaleDateString('es-MX', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -411,6 +480,14 @@ export default function ActivitiesPage() {
               </label>
             </div>
           </div>
+          {hasActiveFilters && (
+            <div className="mt-3 flex justify-end">
+              <Button variant="outline" size="sm" onClick={clearFilters} title="Limpiar filtros">
+                <X className="h-4 w-4 mr-2" />
+                Limpiar
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

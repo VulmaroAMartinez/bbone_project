@@ -58,10 +58,17 @@ export class SparePartsResolver {
     return this.sparePartsService.findByMachineId(machineId);
   }
 
-  @Mutation(() => SparePartType)
+  @Mutation(() => SparePartType, {
+    description:
+      'Crea un repuesto. machineId es opcional (refacción sin equipo asociado).',
+  })
   @Roles(Role.ADMIN)
   async createSparePart(@Args('input') input: CreateSparePartInput) {
-    return this.sparePartsService.create(input);
+    const machineId =
+      input.machineId != null && String(input.machineId).trim() !== ''
+        ? input.machineId
+        : undefined;
+    return this.sparePartsService.create({ ...input, machineId });
   }
 
   @Mutation(() => SparePartType)

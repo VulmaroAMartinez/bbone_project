@@ -4,12 +4,12 @@ import { Machine } from 'src/modules/catalogs/machines/domain/entities';
 
 @Entity({ name: 'spare_parts' })
 export class SparePart extends BaseEntity {
-  @Column({ name: 'machine_id', type: 'uuid' })
-  machineId: string;
+  @Column({ name: 'machine_id', type: 'uuid', nullable: true })
+  machineId?: string;
 
-  @ManyToOne(() => Machine)
+  @ManyToOne(() => Machine, { nullable: true })
   @JoinColumn({ name: 'machine_id' })
-  machine: Machine;
+  machine?: Machine;
 
   @Column({ name: 'part_number', type: 'varchar', length: 100 })
   partNumber: string;

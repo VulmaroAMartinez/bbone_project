@@ -353,7 +353,7 @@ export type CreateMaterialRequestInput = {
   category: Scalars['String']['input'];
   comments?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
-  importance: Scalars['String']['input'];
+  importance?: InputMaybe<RequestImportance>;
   items?: InputMaybe<Array<CreateMaterialRequestItemInput>>;
   justification?: InputMaybe<Scalars['String']['input']>;
   machines: Array<CreateMaterialRequestMachineInput>;
@@ -445,7 +445,8 @@ export type CreateSparePartInput = {
   cantidad?: InputMaybe<Scalars['Float']['input']>;
   costo?: InputMaybe<Scalars['Float']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
-  machineId: Scalars['ID']['input'];
+  /** Opcional. Si se omite, la refacción no queda ligada a un equipo. */
+  machineId?: InputMaybe<Scalars['ID']['input']>;
   model?: InputMaybe<Scalars['String']['input']>;
   partNumber: Scalars['String']['input'];
   sku?: InputMaybe<Scalars['String']['input']>;
@@ -813,7 +814,7 @@ export type MaterialRequest = {
   folio: Scalars['String']['output'];
   histories?: Maybe<Array<MaterialRequestHistory>>;
   id: Scalars['ID']['output'];
-  importance: RequestImportance;
+  importance?: Maybe<RequestImportance>;
   isActive: Scalars['Boolean']['output'];
   items: Array<MaterialRequestItem>;
   justification?: Maybe<Scalars['String']['output']>;
@@ -946,6 +947,7 @@ export type Mutation = {
   createPreventiveTask: PreventiveTask;
   createRole: Role;
   createShift: Shift;
+  /** Crea un repuesto. machineId es opcional (refacción sin equipo asociado). */
   createSparePart: SparePart;
   createSubArea: SubArea;
   createTechnician: Technician;
@@ -2232,6 +2234,8 @@ export type RequestImportance =
 
 /** Prioridad de la solicitud */
 export type RequestPriority =
+  /** Crítico */
+  | 'CRITICAL'
   /** Programada */
   | 'SCHEDULED'
   /** Urgente */
@@ -2319,8 +2323,8 @@ export type SparePart = {
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   isActive: Scalars['Boolean']['output'];
-  machine: Machine;
-  machineId: Scalars['ID']['output'];
+  machine?: Maybe<Machine>;
+  machineId?: Maybe<Scalars['ID']['output']>;
   model?: Maybe<Scalars['String']['output']>;
   partNumber: Scalars['String']['output'];
   precioTotal?: Maybe<Scalars['Float']['output']>;
@@ -2544,7 +2548,7 @@ export type UpdateMaterialRequestInput = {
   comments?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
-  importance?: InputMaybe<Scalars['String']['input']>;
+  importance?: InputMaybe<RequestImportance>;
   items?: InputMaybe<Array<CreateMaterialRequestItemInput>>;
   justification?: InputMaybe<Scalars['String']['input']>;
   machines?: InputMaybe<Array<CreateMaterialRequestMachineInput>>;
@@ -2610,6 +2614,7 @@ export type UpdateSparePartInput = {
   cantidad?: InputMaybe<Scalars['Float']['input']>;
   costo?: InputMaybe<Scalars['Float']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
+  /** Opcional. Si se omite, la refacción no queda ligada a un equipo. */
   machineId?: InputMaybe<Scalars['ID']['input']>;
   model?: InputMaybe<Scalars['String']['input']>;
   partNumber?: InputMaybe<Scalars['String']['input']>;
@@ -2990,7 +2995,7 @@ export type GetActivityByIdQueryVariables = Exact<{
 
 
 export type GetActivityByIdQuery = { __typename?: 'Query', activity?: (
-    { __typename?: 'Activity', workOrders: Array<{ __typename?: 'ActivityWorkOrder', id: string, workOrderId: string, createdAt: string, workOrder: { __typename?: 'WorkOrder', id: string, folio: string, description: string, status: WorkOrderStatus, createdAt: string, area: { __typename?: 'Area', id: string, name: string } } }>, materialRequests: Array<{ __typename?: 'ActivityMaterialRequest', id: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance: RequestImportance, priority: RequestPriority, createdAt: string } }> }
+    { __typename?: 'Activity', workOrders: Array<{ __typename?: 'ActivityWorkOrder', id: string, workOrderId: string, createdAt: string, workOrder: { __typename?: 'WorkOrder', id: string, folio: string, description: string, status: WorkOrderStatus, createdAt: string, area: { __typename?: 'Area', id: string, name: string } } }>, materialRequests: Array<{ __typename?: 'ActivityMaterialRequest', id: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance?: RequestImportance | null, priority: RequestPriority, createdAt: string } }> }
     & { ' $fragmentRefs'?: { 'ActivityItemFragment': ActivityItemFragment } }
   ) | null };
 
@@ -3006,7 +3011,7 @@ export type GetActivityMaterialRequestsQueryVariables = Exact<{
 }>;
 
 
-export type GetActivityMaterialRequestsQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine?: { __typename?: 'Machine', id: string, name: string } | null, materialRequests: Array<{ __typename?: 'ActivityMaterialRequest', id: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance: RequestImportance, priority: RequestPriority, createdAt: string } }> } | null };
+export type GetActivityMaterialRequestsQuery = { __typename?: 'Query', activity?: { __typename?: 'Activity', id: string, activity: string, area: { __typename?: 'Area', id: string, name: string }, machine?: { __typename?: 'Machine', id: string, name: string } | null, materialRequests: Array<{ __typename?: 'ActivityMaterialRequest', id: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance?: RequestImportance | null, priority: RequestPriority, createdAt: string } }> } | null };
 
 export type ExportActivitiesExcelQueryVariables = Exact<{
   filters?: InputMaybe<ActivityFiltersInput>;
@@ -3072,7 +3077,7 @@ export type AddActivityMaterialRequestMutationVariables = Exact<{
 }>;
 
 
-export type AddActivityMaterialRequestMutation = { __typename?: 'Mutation', addActivityMaterialRequest: { __typename?: 'ActivityMaterialRequest', id: string, activityId: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance: RequestImportance, priority: RequestPriority, createdAt: string } } };
+export type AddActivityMaterialRequestMutation = { __typename?: 'Mutation', addActivityMaterialRequest: { __typename?: 'ActivityMaterialRequest', id: string, activityId: string, materialRequestId: string, createdAt: string, materialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, importance?: RequestImportance | null, priority: RequestPriority, createdAt: string } } };
 
 export type RemoveActivityMaterialRequestMutationVariables = Exact<{
   activityId: Scalars['ID']['input'];
@@ -3281,10 +3286,10 @@ export type DeactivateMaterialMutation = { __typename?: 'Mutation', deactivateMa
 export type GetSparePartsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetSparePartsQuery = { __typename?: 'Query', sparePartsWithDeleted: Array<{ __typename?: 'SparePart', id: string, partNumber: string, sku?: string | null, brand?: string | null, model?: string | null, supplier?: string | null, unitOfMeasure?: string | null, description?: string | null, cantidad?: number | null, costo?: number | null, precioTotal?: number | null, isActive: boolean, createdAt: string, machine: (
+export type GetSparePartsQuery = { __typename?: 'Query', sparePartsWithDeleted: Array<{ __typename?: 'SparePart', id: string, partNumber: string, sku?: string | null, brand?: string | null, model?: string | null, supplier?: string | null, unitOfMeasure?: string | null, description?: string | null, cantidad?: number | null, costo?: number | null, precioTotal?: number | null, isActive: boolean, createdAt: string, machine?: (
       { __typename?: 'Machine' }
       & { ' $fragmentRefs'?: { 'MachineBasicFragment': MachineBasicFragment } }
-    ) }> };
+    ) | null }> };
 
 export type CreateSparePartMutationVariables = Exact<{
   input: CreateSparePartInput;
@@ -3587,7 +3592,7 @@ export type GetMachineMaterialRequestsQueryVariables = Exact<{
 }>;
 
 
-export type GetMachineMaterialRequestsQuery = { __typename?: 'Query', machine?: { __typename?: 'Machine', id: string, code: string, name: string, materialRequests?: Array<{ __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance: RequestImportance, boss: string, suggestedSupplier?: string | null, comments?: string | null, justification?: string | null, isActive: boolean, createdAt: string, items: Array<{ __typename?: 'MaterialRequestItem', id: string, requestedQuantity?: number | null, unitOfMeasure?: string | null, description?: string | null, brand?: string | null, partNumber?: string | null, material?: { __typename?: 'Material', description: string, partNumber?: string | null, brand?: string | null } | null }> }> | null } | null };
+export type GetMachineMaterialRequestsQuery = { __typename?: 'Query', machine?: { __typename?: 'Machine', id: string, code: string, name: string, materialRequests?: Array<{ __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance?: RequestImportance | null, boss: string, suggestedSupplier?: string | null, comments?: string | null, justification?: string | null, isActive: boolean, createdAt: string, items: Array<{ __typename?: 'MaterialRequestItem', id: string, requestedQuantity?: number | null, unitOfMeasure?: string | null, description?: string | null, brand?: string | null, partNumber?: string | null, material?: { __typename?: 'Material', description: string, partNumber?: string | null, brand?: string | null } | null }> }> | null } | null };
 
 export type CreateMachineMutationVariables = Exact<{
   input: CreateMachineInput;
@@ -3641,26 +3646,26 @@ export type GetMachinesByAreaQuery = { __typename?: 'Query', machinesByArea: Arr
 export type GetMaterialRequestFormDataQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetMaterialRequestFormDataQuery = { __typename?: 'Query', techniciansActive: Array<{ __typename?: 'Technician', id: string, user: { __typename?: 'User', id: string, fullName: string, employeeNumber: string }, position: { __typename?: 'Position', id: string, name: string } }>, usersWithDeleted: Array<{ __typename?: 'User', id: string, fullName: string, employeeNumber: string, isActive: boolean, roles: Array<{ __typename?: 'Role', id: string, name: string }> }>, machinesActive: Array<{ __typename?: 'Machine', id: string, name: string, brand?: string | null, model?: string | null, manufacturer?: string | null, areaId?: string | null, subAreaId?: string | null, area?: { __typename?: 'Area', id: string, name: string } | null, subArea?: { __typename?: 'SubArea', id: string, name: string, area: { __typename?: 'Area', id: string, name: string } } | null }>, materialsActive: Array<{ __typename?: 'Material', id: string, description: string, brand?: string | null, model?: string | null, partNumber?: string | null, sku?: string | null, unitOfMeasure?: string | null }>, sparePartsActive: Array<{ __typename?: 'SparePart', id: string, partNumber: string, sku?: string | null, brand?: string | null, model?: string | null, unitOfMeasure?: string | null, machineId: string }> };
+export type GetMaterialRequestFormDataQuery = { __typename?: 'Query', techniciansActive: Array<{ __typename?: 'Technician', id: string, user: { __typename?: 'User', id: string, fullName: string, employeeNumber: string }, position: { __typename?: 'Position', id: string, name: string } }>, usersWithDeleted: Array<{ __typename?: 'User', id: string, fullName: string, employeeNumber: string, isActive: boolean, roles: Array<{ __typename?: 'Role', id: string, name: string }> }>, machinesActive: Array<{ __typename?: 'Machine', id: string, name: string, brand?: string | null, model?: string | null, manufacturer?: string | null, areaId?: string | null, subAreaId?: string | null, area?: { __typename?: 'Area', id: string, name: string } | null, subArea?: { __typename?: 'SubArea', id: string, name: string, area: { __typename?: 'Area', id: string, name: string } } | null }>, materialsActive: Array<{ __typename?: 'Material', id: string, description: string, brand?: string | null, model?: string | null, partNumber?: string | null, sku?: string | null, unitOfMeasure?: string | null }>, sparePartsActive: Array<{ __typename?: 'SparePart', id: string, partNumber: string, sku?: string | null, brand?: string | null, model?: string | null, unitOfMeasure?: string | null, machineId?: string | null }> };
 
 export type GetMaterialRequestsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetMaterialRequestsQuery = { __typename?: 'Query', materialRequestsWithDeleted: Array<{ __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance: RequestImportance, boss: string, description?: string | null, suggestedSupplier?: string | null, isActive: boolean, emailSentAt?: string | null, createdAt: string, requester: { __typename?: 'User', id: string, fullName: string, employeeNumber: string }, machines: Array<{ __typename?: 'MaterialRequestMachine', id: string, machineId?: string | null, customMachineName?: string | null, customMachineModel?: string | null, customMachineManufacturer?: string | null, machine?: { __typename?: 'Machine', id: string, name: string, brand?: string | null, model?: string | null, manufacturer?: string | null, areaId?: string | null, subAreaId?: string | null, area?: { __typename?: 'Area', id: string, name: string } | null, subArea?: { __typename?: 'SubArea', id: string, name: string, area: { __typename?: 'Area', id: string, name: string } } | null } | null }>, items: Array<{ __typename?: 'MaterialRequestItem', id: string, requestedQuantity?: number | null, unitOfMeasure?: string | null, description?: string | null, customName?: string | null, brand?: string | null, partNumber?: string | null, isGenericAllowed: boolean }> }> };
+export type GetMaterialRequestsQuery = { __typename?: 'Query', materialRequestsWithDeleted: Array<{ __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance?: RequestImportance | null, boss: string, description?: string | null, suggestedSupplier?: string | null, isActive: boolean, emailSentAt?: string | null, createdAt: string, requester: { __typename?: 'User', id: string, fullName: string, employeeNumber: string }, machines: Array<{ __typename?: 'MaterialRequestMachine', id: string, machineId?: string | null, customMachineName?: string | null, customMachineModel?: string | null, customMachineManufacturer?: string | null, machine?: { __typename?: 'Machine', id: string, name: string, brand?: string | null, model?: string | null, manufacturer?: string | null, areaId?: string | null, subAreaId?: string | null, area?: { __typename?: 'Area', id: string, name: string } | null, subArea?: { __typename?: 'SubArea', id: string, name: string, area: { __typename?: 'Area', id: string, name: string } } | null } | null }>, items: Array<{ __typename?: 'MaterialRequestItem', id: string, requestedQuantity?: number | null, unitOfMeasure?: string | null, description?: string | null, customName?: string | null, brand?: string | null, partNumber?: string | null, isGenericAllowed: boolean }> }> };
 
 export type GetMaterialRequestQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
-export type GetMaterialRequestQuery = { __typename?: 'Query', materialRequest?: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance: RequestImportance, boss: string, description?: string | null, suggestedSupplier?: string | null, justification?: string | null, comments?: string | null, isActive: boolean, emailSentAt?: string | null, createdAt: string, updatedAt: string, requester: { __typename?: 'User', id: string, fullName: string, employeeNumber: string }, machines: Array<{ __typename?: 'MaterialRequestMachine', id: string, machineId?: string | null, customMachineName?: string | null, customMachineModel?: string | null, customMachineManufacturer?: string | null, machine?: { __typename?: 'Machine', id: string, name: string, brand?: string | null, model?: string | null, manufacturer?: string | null, areaId?: string | null, subAreaId?: string | null, area?: { __typename?: 'Area', id: string, name: string } | null, subArea?: { __typename?: 'SubArea', id: string, name: string, area: { __typename?: 'Area', id: string, name: string } } | null } | null }>, items: Array<{ __typename?: 'MaterialRequestItem', id: string, requestedQuantity?: number | null, unitOfMeasure?: string | null, description?: string | null, customName?: string | null, brand?: string | null, model?: string | null, partNumber?: string | null, sku?: string | null, proposedMaxStock?: number | null, proposedMinStock?: number | null, materialId?: string | null, isGenericAllowed: boolean, sparePartId?: string | null, material?: { __typename?: 'Material', id: string, description: string, partNumber?: string | null, brand?: string | null, sku?: string | null, unitOfMeasure?: string | null } | null, sparePart?: { __typename?: 'SparePart', id: string, partNumber: string, brand?: string | null, model?: string | null, unitOfMeasure?: string | null } | null }>, photos?: Array<{ __typename?: 'MaterialRequestPhoto', id: string, filePath: string, fileName: string, mimeType: string, uploadedAt: string }> | null } | null };
+export type GetMaterialRequestQuery = { __typename?: 'Query', materialRequest?: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance?: RequestImportance | null, boss: string, description?: string | null, suggestedSupplier?: string | null, justification?: string | null, comments?: string | null, isActive: boolean, emailSentAt?: string | null, createdAt: string, updatedAt: string, requester: { __typename?: 'User', id: string, fullName: string, employeeNumber: string }, machines: Array<{ __typename?: 'MaterialRequestMachine', id: string, machineId?: string | null, customMachineName?: string | null, customMachineModel?: string | null, customMachineManufacturer?: string | null, machine?: { __typename?: 'Machine', id: string, name: string, brand?: string | null, model?: string | null, manufacturer?: string | null, areaId?: string | null, subAreaId?: string | null, area?: { __typename?: 'Area', id: string, name: string } | null, subArea?: { __typename?: 'SubArea', id: string, name: string, area: { __typename?: 'Area', id: string, name: string } } | null } | null }>, items: Array<{ __typename?: 'MaterialRequestItem', id: string, requestedQuantity?: number | null, unitOfMeasure?: string | null, description?: string | null, customName?: string | null, brand?: string | null, model?: string | null, partNumber?: string | null, sku?: string | null, proposedMaxStock?: number | null, proposedMinStock?: number | null, materialId?: string | null, isGenericAllowed: boolean, sparePartId?: string | null, material?: { __typename?: 'Material', id: string, description: string, partNumber?: string | null, brand?: string | null, sku?: string | null, unitOfMeasure?: string | null } | null, sparePart?: { __typename?: 'SparePart', id: string, partNumber: string, brand?: string | null, model?: string | null, unitOfMeasure?: string | null } | null }>, photos?: Array<{ __typename?: 'MaterialRequestPhoto', id: string, filePath: string, fileName: string, mimeType: string, uploadedAt: string }> | null } | null };
 
 export type CreateMaterialRequestMutationVariables = Exact<{
   input: CreateMaterialRequestInput;
 }>;
 
 
-export type CreateMaterialRequestMutation = { __typename?: 'Mutation', createMaterialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance: RequestImportance, boss: string, createdAt: string, requester: { __typename?: 'User', id: string, fullName: string }, machines: Array<{ __typename?: 'MaterialRequestMachine', id: string, machineId?: string | null, customMachineName?: string | null, customMachineModel?: string | null, customMachineManufacturer?: string | null, machine?: { __typename?: 'Machine', id: string, name: string } | null }>, items: Array<{ __typename?: 'MaterialRequestItem', id: string }> } };
+export type CreateMaterialRequestMutation = { __typename?: 'Mutation', createMaterialRequest: { __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance?: RequestImportance | null, boss: string, createdAt: string, requester: { __typename?: 'User', id: string, fullName: string }, machines: Array<{ __typename?: 'MaterialRequestMachine', id: string, machineId?: string | null, customMachineName?: string | null, customMachineModel?: string | null, customMachineManufacturer?: string | null, machine?: { __typename?: 'Machine', id: string, name: string } | null }>, items: Array<{ __typename?: 'MaterialRequestItem', id: string }> } };
 
 export type AddMaterialToRequestMutationVariables = Exact<{
   materialRequestId: Scalars['ID']['input'];
@@ -3702,7 +3707,7 @@ export type SendMaterialRequestEmailMutation = { __typename?: 'Mutation', sendMa
 export type GetMaterialRequestHistoriesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetMaterialRequestHistoriesQuery = { __typename?: 'Query', materialRequestsWithDeleted: Array<{ __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance: RequestImportance, justification?: string | null, description?: string | null, emailSentAt?: string | null, isActive: boolean, createdAt: string, requester: { __typename?: 'User', id: string, fullName: string }, machines: Array<{ __typename?: 'MaterialRequestMachine', id: string, machineId?: string | null, customMachineName?: string | null, customMachineModel?: string | null, customMachineManufacturer?: string | null, machine?: { __typename?: 'Machine', id: string, name: string, areaId?: string | null, subAreaId?: string | null, area?: { __typename?: 'Area', id: string, name: string } | null, subArea?: { __typename?: 'SubArea', id: string, name: string, area: { __typename?: 'Area', id: string, name: string } } | null } | null }>, items: Array<{ __typename?: 'MaterialRequestItem', id: string, sku?: string | null, description?: string | null, customName?: string | null, requestedQuantity?: number | null, unitOfMeasure?: string | null, isGenericAllowed: boolean }>, histories?: Array<{ __typename?: 'MaterialRequestHistory', id: string, status: StatusHistoryMr, purchaseRequest?: string | null, purchaseOrder?: string | null, deliveryMerchandise?: string | null, deliveryDate?: string | null, estimatedDeliveryDate?: string | null, progressPercentage?: number | null, supplier?: string | null }> | null }> };
+export type GetMaterialRequestHistoriesQuery = { __typename?: 'Query', materialRequestsWithDeleted: Array<{ __typename?: 'MaterialRequest', id: string, folio: string, category: RequestCategory, priority: RequestPriority, importance?: RequestImportance | null, justification?: string | null, description?: string | null, emailSentAt?: string | null, isActive: boolean, createdAt: string, requester: { __typename?: 'User', id: string, fullName: string }, machines: Array<{ __typename?: 'MaterialRequestMachine', id: string, machineId?: string | null, customMachineName?: string | null, customMachineModel?: string | null, customMachineManufacturer?: string | null, machine?: { __typename?: 'Machine', id: string, name: string, areaId?: string | null, subAreaId?: string | null, area?: { __typename?: 'Area', id: string, name: string } | null, subArea?: { __typename?: 'SubArea', id: string, name: string, area: { __typename?: 'Area', id: string, name: string } } | null } | null }>, items: Array<{ __typename?: 'MaterialRequestItem', id: string, sku?: string | null, description?: string | null, customName?: string | null, requestedQuantity?: number | null, unitOfMeasure?: string | null, isGenericAllowed: boolean }>, histories?: Array<{ __typename?: 'MaterialRequestHistory', id: string, status: StatusHistoryMr, purchaseRequest?: string | null, purchaseOrder?: string | null, deliveryMerchandise?: string | null, deliveryDate?: string | null, estimatedDeliveryDate?: string | null, progressPercentage?: number | null, supplier?: string | null }> | null }> };
 
 export type UpdateMaterialRequestHistoryMutationVariables = Exact<{
   input: UpdateMaterialRequestHistoryInput;
