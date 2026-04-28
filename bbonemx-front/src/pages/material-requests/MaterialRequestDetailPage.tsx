@@ -66,13 +66,15 @@ function EmailInput({
     onChange: (v: string) => void;
     placeholder?: string;
 }) {
+    const [suggestions, setSuggestions] = useState<string[]>([]);
     const [open, setOpen] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
-    const suggestions = useMemo(() => {
+    useEffect(() => {
         const lastPart = value.split(',').pop()?.trim() ?? '';
-        return getSuggestedEmails(lastPart);
-    }, [value]);
+        const results = getSuggestedEmails(lastPart);
+        setSuggestions(results);
+    }, [value]); // ✓ Dependency array is correct
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -82,7 +84,7 @@ function EmailInput({
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
-    }, []);
+    }, []); // ✓ Empty dependency array is correct (no state/props used)
 
     const selectSuggestion = (email: string) => {
         const parts = value.split(',');
