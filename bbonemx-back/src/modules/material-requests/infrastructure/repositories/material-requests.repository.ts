@@ -158,6 +158,7 @@ export class MaterialRequestsRepository {
           customMachineName: m.customMachineName ?? undefined,
           customMachineModel: m.customMachineModel ?? undefined,
           customMachineManufacturer: m.customMachineManufacturer ?? undefined,
+          customMachineArea: m.customMachineArea ?? undefined,
         }),
       );
       await this.machineRepository.save(entries);

@@ -95,6 +95,7 @@ export const GET_MATERIAL_REQUESTS_QUERY = gql`
         customMachineName
         customMachineModel
         customMachineManufacturer
+        customMachineArea
         machine {
           id
           name
@@ -161,6 +162,7 @@ export const GET_MATERIAL_REQUEST_QUERY = gql`
         customMachineName
         customMachineModel
         customMachineManufacturer
+        customMachineArea
         machine {
           id
           name
@@ -253,6 +255,7 @@ export const CREATE_MATERIAL_REQUEST_MUTATION = gql`
         customMachineName
         customMachineModel
         customMachineManufacturer
+        customMachineArea
         machine {
           id
           name
@@ -346,6 +349,7 @@ export const GET_MATERIAL_REQUEST_HISTORIES_QUERY = gql`
         customMachineName
         customMachineModel
         customMachineManufacturer
+        customMachineArea
         machine {
           id
           name

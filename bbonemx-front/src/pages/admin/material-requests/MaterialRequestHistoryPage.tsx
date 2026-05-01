@@ -89,11 +89,21 @@ const SERVICE_CATEGORIES = new Set(['SERVICE', 'SERVICE_WITH_MATERIAL']);
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function deriveArea(
-  machines: Array<{ machine?: { area?: { name: string } | null; subArea?: { area?: { name: string } | null } | null } | null }>,
+  machines: Array<{
+    customMachineArea?: string | null;
+    machine?: {
+      area?: { name: string } | null;
+      subArea?: { area?: { name: string } | null } | null;
+    } | null;
+  }>,
 ): string | undefined {
   const names = new Set<string>();
   for (const mrm of machines) {
-    const name = mrm.machine?.area?.name ?? mrm.machine?.subArea?.area?.name;
+    const name =
+      mrm.machine?.area?.name ??
+      mrm.machine?.subArea?.area?.name ??
+      mrm.customMachineArea ??
+      undefined;
     if (name) names.add(name);
   }
   if (names.size === 1) return [...names][0];

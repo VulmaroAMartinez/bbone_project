@@ -394,6 +394,7 @@ input CreateMaterialRequestItemInput {
 }
 
 input CreateMaterialRequestMachineInput {
+  customMachineArea: String
   customMachineManufacturer: String
   customMachineModel: String
   customMachineName: String
@@ -898,6 +899,7 @@ type MaterialRequestItem {
 }
 
 type MaterialRequestMachine {
+  customMachineArea: String
   customMachineManufacturer: String
   customMachineModel: String
   customMachineName: String

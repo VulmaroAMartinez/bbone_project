@@ -285,7 +285,13 @@ export default function MaterialRequestDetailPage() {
     const machineEntries = request.machines ?? [];
     const areaNames = new Set(
         machineEntries
-            .map((mrm) => mrm.machine?.area?.name ?? mrm.machine?.subArea?.area?.name)
+            .map(
+                (mrm) =>
+                    mrm.machine?.area?.name ??
+                    mrm.machine?.subArea?.area?.name ??
+                    mrm.customMachineArea ??
+                    undefined,
+            )
             .filter(Boolean),
     );
     const derivedAreaName = areaNames.size === 1
@@ -419,7 +425,11 @@ export default function MaterialRequestDetailPage() {
                         const displayName = machine?.name ?? mrm.customMachineName ?? '—';
                         const displayBrand = machine?.brand ?? mrm.customMachineManufacturer;
                         const displayModel = machine?.model ?? mrm.customMachineModel;
-                        const mArea = machine?.area?.name ?? machine?.subArea?.area?.name;
+                        const mArea =
+                            machine?.area?.name ??
+                            machine?.subArea?.area?.name ??
+                            mrm.customMachineArea ??
+                            undefined;
                         const mSubArea = machine?.subArea?.name;
                         return (
                             <div key={mrm.id ?? idx} className="flex items-start gap-2.5">

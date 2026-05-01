@@ -395,6 +395,7 @@ export class MaterialRequestsService {
       customMachineName: m.customMachineName ?? undefined,
       customMachineModel: m.customMachineModel ?? undefined,
       customMachineManufacturer: m.customMachineManufacturer ?? undefined,
+      customMachineArea: m.customMachineArea ?? undefined,
     }));
     const items = await Promise.all(
       (rawItems ?? []).map((item) =>
@@ -432,6 +433,7 @@ export class MaterialRequestsService {
         customMachineName: m.customMachineName ?? undefined,
         customMachineModel: m.customMachineModel ?? undefined,
         customMachineManufacturer: m.customMachineManufacturer ?? undefined,
+        customMachineArea: m.customMachineArea ?? undefined,
       })) as unknown as MaterialRequestMachine[];
     }
     return this.materialRequestsRepository.update(id, data);
@@ -552,7 +554,10 @@ export class MaterialRequestsService {
     const machineMachines = request.machines ?? [];
     const areaNames = new Set<string>();
     for (const mrm of machineMachines) {
-      const name = mrm.machine?.area?.name ?? mrm.machine?.subArea?.area?.name;
+      const name =
+        mrm.machine?.area?.name ??
+        mrm.machine?.subArea?.area?.name ??
+        mrm.customMachineArea;
       if (name) areaNames.add(name);
     }
     const derivedAreaName =
@@ -641,7 +646,10 @@ export class MaterialRequestsService {
         model: mrm.customMachineModel ?? mrm.machine?.model,
         manufacturer:
           mrm.customMachineManufacturer ?? mrm.machine?.manufacturer,
-        areaName: mrm.machine?.area?.name ?? mrm.machine?.subArea?.area?.name,
+        areaName:
+          mrm.machine?.area?.name ??
+          mrm.machine?.subArea?.area?.name ??
+          mrm.customMachineArea,
         subAreaName: mrm.machine?.subArea?.name,
       })),
       description: request.description,
