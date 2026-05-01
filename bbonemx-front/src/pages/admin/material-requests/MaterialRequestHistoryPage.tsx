@@ -15,12 +15,14 @@ import {
   CATEGORY_LABELS,
   PRIORITY_LABELS,
   PRIORITY_COLORS,
+  STATUS_LABELS,
   formatDate,
 } from '@/components/material-requests/material-request.constants';
 import {
   getDeliveryStatusLabel,
   getDeliveryStatusColor,
 } from '@/lib/material-requests/delivery-status.util';
+import { MaterialRequestFullDetailModal } from '@/components/material-requests/MaterialRequestFullDetailModal';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,20 +60,9 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from '@/components/ui/empty';
-import { Search, Pencil, Eye, X, ClipboardList, Loader2 } from 'lucide-react';
+import { Search, Pencil, Eye, X, ClipboardList, Loader2, List } from 'lucide-react';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<string, string> = {
-  PENDING_PURCHASE_REQUEST: 'Pendiente S.C.',
-  PENDING_QUOTATION: 'Pendiente cotización',
-  PENDING_APPROVAL_QUOTATION: 'Aprobación cotización',
-  PENDING_SUPPLIER_REGISTRATION: 'Alta proveedor',
-  PENDING_PURCHASE_ORDER: 'Pendiente O.C.',
-  PENDING_PAYMENT: 'Pendiente pago',
-  PENDING_DELIVERY: 'Pendiente entrega',
-  DELIVERED: 'Entregado',
-};
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING_PURCHASE_REQUEST: 'bg-orange-100 text-orange-700 border-orange-200',
@@ -119,11 +110,25 @@ function getProgressColor(pct: number): string {
 }
 
 function getProgressValue(
-  histories: Array<{ progressPercentage?: number | null }> | null | undefined,
+  histories:
+    | Array<{ createdAt?: string | null; progressPercentage?: number | null }>
+    | null
+    | undefined,
 ): number {
-  const h = histories?.[0];
+  const h = getLatestHistory(histories);
   if (!h || h.progressPercentage == null) return 0;
   return h.progressPercentage;
+}
+
+function getLatestHistory<T extends { createdAt?: string | null }>(
+  histories: T[] | null | undefined,
+): T | undefined {
+  if (!histories || histories.length === 0) return undefined;
+  return [...histories].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bTime - aTime;
+  })[0];
 }
 
 // ─── Validation ──────────────────────────────────────────────────────────────
@@ -192,6 +197,7 @@ export default function MaterialRequestHistoryPage() {
   // Modals
   const [editingMrId, setEditingMrId] = useState<string | null>(null);
   const [viewingItemsMrId, setViewingItemsMrId] = useState<string | null>(null);
+  const [viewingDetailMrId, setViewingDetailMrId] = useState<string | null>(null);
 
   const requests = useMemo(() => data?.materialRequestsWithDeleted ?? [], [data?.materialRequestsWithDeleted]);
 
@@ -217,7 +223,7 @@ export default function MaterialRequestHistoryPage() {
             .toLowerCase()
             .includes(search.toLowerCase()),
         );
-      const h = r.histories?.[0];
+      const h = getLatestHistory(r.histories);
       const matchStatus = filterStatus === 'all' || h?.status === filterStatus;
       const matchCategory = filterCategory === 'all' || r.category === filterCategory;
       const area = deriveArea(r.machines ?? []);
@@ -238,7 +244,7 @@ export default function MaterialRequestHistoryPage() {
 
   // Edit form
   const editingMr = requests.find((r) => r.id === editingMrId);
-  const editingHistory = editingMr?.histories?.[0];
+  const editingHistory = getLatestHistory(editingMr?.histories);
 
   const {
     register,
@@ -256,7 +262,7 @@ export default function MaterialRequestHistoryPage() {
 
   const openEditModal = (mrId: string) => {
     const mr = requests.find((r) => r.id === mrId);
-    const h = mr?.histories?.[0];
+    const h = getLatestHistory(mr?.histories);
     reset({
       status: h?.status ?? 'PENDING_PURCHASE_REQUEST',
       purchaseRequest: h?.purchaseRequest ?? '',
@@ -298,6 +304,7 @@ export default function MaterialRequestHistoryPage() {
 
   // Articles modal
   const viewingMr = requests.find((r) => r.id === viewingItemsMrId);
+  const detailMr = requests.find((r) => r.id === viewingDetailMrId);
 
   return (
     <div className="space-y-5 pb-20">
@@ -435,7 +442,7 @@ export default function MaterialRequestHistoryPage() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((req) => {
-                    const h = req.histories?.[0];
+                    const h = getLatestHistory(req.histories);
                     const area = deriveArea(req.machines ?? []);
                     const machineNames = (req.machines ?? []).map(
                       (m) => m.machine?.name ?? m.customMachineName ?? '—',
@@ -490,8 +497,10 @@ export default function MaterialRequestHistoryPage() {
                             size="sm"
                             className="h-7 w-7 p-0"
                             onClick={() => setViewingItemsMrId(req.id)}
+                            title="Ver artículos"
+                            aria-label="Ver artículos"
                           >
-                            <Eye className="h-4 w-4" />
+                            <List className="h-4 w-4" />
                           </Button>
                         </TableCell>
                         <TableCell className="hidden xl:table-cell text-xs max-w-[150px] truncate">
@@ -545,15 +554,28 @@ export default function MaterialRequestHistoryPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => openEditModal(req.id)}
-                            title="Editar seguimiento"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <div className="inline-flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => setViewingDetailMrId(req.id)}
+                              title="Ver detalle completo"
+                              aria-label="Ver detalle completo"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => openEditModal(req.id)}
+                              title="Editar seguimiento"
+                              aria-label="Editar seguimiento"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -678,6 +700,13 @@ export default function MaterialRequestHistoryPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <MaterialRequestFullDetailModal
+        open={!!viewingDetailMrId}
+        onOpenChange={(open) => !open && setViewingDetailMrId(null)}
+        request={detailMr}
+        derivedArea={detailMr ? deriveArea(detailMr.machines ?? []) : undefined}
+      />
 
       {/* ─── Articles Modal ───────────────────────────────────────────────────── */}
       <Dialog
