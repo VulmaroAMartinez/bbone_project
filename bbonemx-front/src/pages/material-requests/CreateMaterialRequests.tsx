@@ -101,6 +101,11 @@ const machineEntrySchema = yup.object({
     customMachineName: yup.string().trim().default(''),
     customMachineModel: yup.string().trim().default(''),
     customMachineManufacturer: yup.string().trim().default(''),
+    customMachineArea: yup.string().trim().when('machineId', {
+        is: 'OTHER',
+        then: (s) => s.required('El área es requerida para equipos no registrados'),
+        otherwise: (s) => s.default(''),
+    }),
 });
 
 const schema = yup.object({
@@ -217,6 +222,7 @@ export default function CreateMaterialRequestPage() {
                 customMachineName?: string | null;
                 customMachineModel?: string | null;
                 customMachineManufacturer?: string | null;
+                customMachineArea?: string | null;
             }>;
             importance?: string | null;
             description?: string | null;
@@ -351,12 +357,15 @@ export default function CreateMaterialRequestPage() {
         return suffix ? `${m.name} - ${suffix}` : m.name;
     }, []);
 
-    // Área derivada de las máquinas de catálogo seleccionadas
+    // Área derivada de las máquinas seleccionadas (catálogo o custom)
     const derivedAreaName = useMemo(() => {
-        const catalogEntries = (watchedMachines ?? []).filter((m) => m.machineId !== 'OTHER');
+        const entries = watchedMachines ?? [];
         const areas = new Set(
-            catalogEntries
+            entries
                 .map((entry) => {
+                    if (entry.machineId === 'OTHER') {
+                        return entry.customMachineArea?.trim() || undefined;
+                    }
                     const cat = machines.find((m) => m.id === entry.machineId);
                     return cat?.area?.name ?? cat?.subArea?.area?.name;
                 })
@@ -419,6 +428,7 @@ export default function CreateMaterialRequestPage() {
                 customMachineName: mrm.customMachineName ?? '',
                 customMachineModel: mrm.customMachineModel ?? '',
                 customMachineManufacturer: mrm.customMachineManufacturer ?? '',
+                customMachineArea: mrm.customMachineArea ?? '',
             })),
             description: req.description ?? '',
             justification: req.justification ?? '',
@@ -565,6 +575,7 @@ export default function CreateMaterialRequestPage() {
                     customMachineName: m.machineId === 'OTHER' ? (m.customMachineName || undefined) : (m.customMachineName || undefined),
                     customMachineModel: m.customMachineModel || undefined,
                     customMachineManufacturer: m.customMachineManufacturer || undefined,
+                    customMachineArea: m.machineId === 'OTHER' ? (m.customMachineArea || undefined) : undefined,
                 })),
                 description: values.description || undefined,
                 justification: values.justification || undefined,
@@ -879,18 +890,40 @@ export default function CreateMaterialRequestPage() {
                                                     </Button>
                                                 </div>
 
-                                                {/* Nombre personalizado — requerido para Otro */}
+                                                {/* Nombre y área personalizados — requeridos para Otro */}
                                                 {isOther && (
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">
-                                                            Nombre del equipo <span className="text-destructive">*</span>
-                                                        </Label>
-                                                        <Input
-                                                            className="h-8 text-xs"
-                                                            placeholder="Nombre del equipo no registrado"
-                                                            {...register(`machines.${idx}.customMachineName`)}
-                                                        />
-                                                    </div>
+                                                    <>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">
+                                                                Nombre del equipo <span className="text-destructive">*</span>
+                                                            </Label>
+                                                            <Input
+                                                                className="h-8 text-xs"
+                                                                placeholder="Nombre del equipo no registrado"
+                                                                {...register(`machines.${idx}.customMachineName`)}
+                                                            />
+                                                            {errors.machines?.[idx]?.customMachineName && (
+                                                                <p className="text-xs text-destructive">
+                                                                    {errors.machines[idx]?.customMachineName?.message}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">
+                                                                Área <span className="text-destructive">*</span>
+                                                            </Label>
+                                                            <Input
+                                                                className="h-8 text-xs"
+                                                                placeholder="Área donde se ubica el equipo"
+                                                                {...register(`machines.${idx}.customMachineArea`)}
+                                                            />
+                                                            {errors.machines?.[idx]?.customMachineArea && (
+                                                                <p className="text-xs text-destructive">
+                                                                    {errors.machines[idx]?.customMachineArea?.message}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </>
                                                 )}
 
                                                 {/* Modelo y fabricante — opcionales para catálogo, opcionales para Otro */}
@@ -935,6 +968,7 @@ export default function CreateMaterialRequestPage() {
                                         customMachineName: '',
                                         customMachineModel: catalogMachine?.model ?? '',
                                         customMachineManufacturer: catalogMachine?.manufacturer ?? '',
+                                        customMachineArea: '',
                                     };
                                     appendMachine(newEntry);
                                 }}

@@ -19,6 +19,17 @@ export const PRIORITY_LABELS: Record<string, string> = {
   CRITICAL: 'Crítico',
 };
 
+export const STATUS_LABELS: Record<string, string> = {
+  PENDING_PURCHASE_REQUEST: 'Pendiente S.C.',
+  PENDING_QUOTATION: 'Pendiente cotización',
+  PENDING_APPROVAL_QUOTATION: 'Aprobación cotización',
+  PENDING_SUPPLIER_REGISTRATION: 'Alta proveedor',
+  PENDING_PURCHASE_ORDER: 'Pendiente O.C.',
+  PENDING_PAYMENT: 'Pendiente pago',
+  PENDING_DELIVERY: 'Pendiente entrega',
+  DELIVERED: 'Entregado',
+};
+
 export const IMPORTANCE_LABELS: Record<string, string> = {
   VERY_IMPORTANT: 'Muy importante',
   IMPORTANT: 'Importante',

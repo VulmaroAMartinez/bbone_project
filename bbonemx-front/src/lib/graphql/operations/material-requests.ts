@@ -95,6 +95,7 @@ export const GET_MATERIAL_REQUESTS_QUERY = gql`
         customMachineName
         customMachineModel
         customMachineManufacturer
+        customMachineArea
         machine {
           id
           name
@@ -161,6 +162,7 @@ export const GET_MATERIAL_REQUEST_QUERY = gql`
         customMachineName
         customMachineModel
         customMachineManufacturer
+        customMachineArea
         machine {
           id
           name
@@ -253,6 +255,7 @@ export const CREATE_MATERIAL_REQUEST_MUTATION = gql`
         customMachineName
         customMachineModel
         customMachineManufacturer
+        customMachineArea
         machine {
           id
           name
@@ -331,14 +334,18 @@ export const GET_MATERIAL_REQUEST_HISTORIES_QUERY = gql`
       category
       priority
       importance
+      boss
       justification
       description
+      comments
+      suggestedSupplier
       emailSentAt
       isActive
       createdAt
       requester {
         id
         fullName
+        employeeNumber
       }
       machines {
         id
@@ -346,9 +353,13 @@ export const GET_MATERIAL_REQUEST_HISTORIES_QUERY = gql`
         customMachineName
         customMachineModel
         customMachineManufacturer
+        customMachineArea
         machine {
           id
           name
+          brand
+          model
+          manufacturer
           areaId
           area {
             id
@@ -370,12 +381,25 @@ export const GET_MATERIAL_REQUEST_HISTORIES_QUERY = gql`
         sku
         description
         customName
+        brand
+        model
+        partNumber
         requestedQuantity
         unitOfMeasure
+        proposedMaxStock
+        proposedMinStock
         isGenericAllowed
+      }
+      photos {
+        id
+        fileName
+        filePath
+        mimeType
+        uploadedAt
       }
       histories {
         id
+        createdAt
         status
         purchaseRequest
         purchaseOrder
@@ -395,6 +419,7 @@ export const UPDATE_MATERIAL_REQUEST_HISTORY_MUTATION = gql`
       id
       histories {
         id
+        createdAt
         status
         purchaseRequest
         purchaseOrder

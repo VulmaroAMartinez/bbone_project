@@ -19,6 +19,9 @@ export class MaterialRequestMachine extends BaseEntity {
   })
   customMachineManufacturer?: string;
 
+  @Column({ name: 'custom_machine_area', type: 'varchar', nullable: true })
+  customMachineArea?: string;
+
   @Column({ name: 'material_request_id', type: 'uuid' })
   materialRequestId: string;
 

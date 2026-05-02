@@ -9,4 +9,5 @@ export class MaterialRequestMachineType {
   @Field({ nullable: true }) customMachineName?: string;
   @Field({ nullable: true }) customMachineModel?: string;
   @Field({ nullable: true }) customMachineManufacturer?: string;
+  @Field({ nullable: true }) customMachineArea?: string;
 }

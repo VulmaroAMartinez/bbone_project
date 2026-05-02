@@ -38,6 +38,11 @@ export class CreateMaterialRequestMachineInput {
   @IsOptional()
   @IsString()
   customMachineManufacturer?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  customMachineArea?: string;
 }
 
 @InputType()
