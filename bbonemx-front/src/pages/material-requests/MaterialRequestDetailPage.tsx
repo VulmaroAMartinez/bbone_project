@@ -5,6 +5,7 @@ import {
     GetMaterialRequestDocument,
     GetMaterialRequestsDocument,
     SendMaterialRequestEmailDocument,
+    HardDeleteMaterialRequestDocument,
     type GetMaterialRequestQuery,
 } from '@/lib/graphql/generated/graphql';
 import { toast } from 'sonner';
@@ -24,6 +25,16 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
     ArrowLeft,
     Mail,
     Edit2,
@@ -34,6 +45,8 @@ import {
     Calendar,
     Info,
     Camera,
+    Trash2,
+    RefreshCw,
 } from 'lucide-react';
 import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
 import { addEmailsToHistory, getSuggestedEmails } from '@/lib/email-history';
@@ -238,6 +251,7 @@ export default function MaterialRequestDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [emailOpen, setEmailOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
 
     const { data, loading } = useQuery<GetMaterialRequestQuery>(GetMaterialRequestDocument, {
         variables: { id: id! },
@@ -245,7 +259,30 @@ export default function MaterialRequestDetailPage() {
         fetchPolicy: 'cache-and-network',
     });
 
+    const [hardDeleteMaterialRequest, { loading: deleting }] = useMutation(
+        HardDeleteMaterialRequestDocument,
+        {
+            refetchQueries: [GetMaterialRequestsDocument],
+        },
+    );
+
     const request = data?.materialRequest ?? null;
+
+    const confirmHardDelete = async () => {
+        if (!request) return;
+        try {
+            await hardDeleteMaterialRequest({ variables: { id: request.id } });
+            toast.success(
+                `Solicitud ${request.folio} eliminada y folios re-secuenciados`,
+            );
+            setDeleteOpen(false);
+            navigate('/solicitud-material');
+        } catch (err) {
+            toast.error(
+                err instanceof Error ? err.message : 'Error al eliminar la solicitud',
+            );
+        }
+    };
 
     const formatDateLong = (d: string) =>
         new Date(d).toLocaleDateString('es-MX', {
@@ -354,6 +391,21 @@ export default function MaterialRequestDetailPage() {
                         >
                             <Edit2 className="h-4 w-4" />
                             Editar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => setDeleteOpen(true)}
+                            disabled={!!request.emailSentAt || deleting}
+                            title={
+                                request.emailSentAt
+                                    ? 'No se puede eliminar: el correo ya fue enviado'
+                                    : 'Eliminar permanentemente la solicitud'
+                            }
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Eliminar
                         </Button>
                     </div>
                 </div>
@@ -653,6 +705,45 @@ export default function MaterialRequestDetailPage() {
                 materialRequestId={id!}
                 folio={request.folio}
             />
+
+            {/* AlertDialog: Confirmar eliminación permanente */}
+            <AlertDialog
+                open={deleteOpen}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteOpen(false);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Eliminar permanentemente {request.folio}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción borrará la solicitud, sus máquinas, artículos,
+                            historial y fotografías del servidor. Los folios de las
+                            solicitudes posteriores se re-secuenciarán automáticamente.
+                            Esta acción{' '}
+                            <span className="font-semibold text-destructive">
+                                no se puede deshacer
+                            </span>
+                            .
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmHardDelete}
+                            disabled={deleting}
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                        >
+                            {deleting ? (
+                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Eliminar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

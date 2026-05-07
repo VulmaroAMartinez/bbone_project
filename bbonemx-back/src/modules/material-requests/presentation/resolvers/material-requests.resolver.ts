@@ -105,6 +105,15 @@ export class MaterialRequestsResolver {
     return this.materialRequestsService.deactivate(id, user);
   }
 
+  @Mutation(() => Boolean)
+  @Roles(Role.ADMIN, Role.BOSS)
+  async hardDeleteMaterialRequest(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user: User,
+  ): Promise<boolean> {
+    return this.materialRequestsService.hardDelete(id, user);
+  }
+
   @Mutation(() => Boolean, { name: 'sendMaterialRequestEmail' })
   @Roles(Role.ADMIN, Role.BOSS)
   async sendMaterialRequestEmail(
