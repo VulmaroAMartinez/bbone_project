@@ -246,6 +246,11 @@ export class MaterialRequestsRepository {
         `DELETE FROM material_request_machines WHERE material_request_id = $1`,
         [id],
       );
+      // Desvincula la solicitud de actividades sin eliminar la actividad padre.
+      await manager.query(
+        `DELETE FROM activity_material_requests WHERE material_request_id = $1`,
+        [id],
+      );
       await manager.query(`DELETE FROM material_requests WHERE id = $1`, [id]);
 
       const affected = (await manager.query(
