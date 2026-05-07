@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { MaterialRequest, MaterialRequestMachine } from '../../domain/entities';
 import { FolioGenerator } from 'src/common';
 
@@ -18,6 +18,9 @@ const RELATIONS = [
   'photos',
 ];
 
+/** Advisory lock key serializing sequence assignment across create/hardDelete. */
+const MATERIAL_REQUESTS_SEQ_LOCK = 987654322;
+
 @Injectable()
 export class MaterialRequestsRepository {
   constructor(
@@ -25,6 +28,7 @@ export class MaterialRequestsRepository {
     private readonly repository: Repository<MaterialRequest>,
     @InjectRepository(MaterialRequestMachine)
     private readonly machineRepository: Repository<MaterialRequestMachine>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findAll(): Promise<MaterialRequest[]> {
@@ -119,18 +123,23 @@ export class MaterialRequestsRepository {
   }
 
   async create(data: Partial<MaterialRequest>): Promise<MaterialRequest> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const result = await this.repository.query(
-      `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM material_requests`,
-    );
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const sequence = Number(result[0].next_seq);
-    const folio = FolioGenerator.generateMaterialRequestFolio(
-      sequence,
-      new Date(),
-    );
-    const entity = this.repository.create({ ...data, sequence, folio });
-    const saved = await this.repository.save(entity);
+    const saved = await this.dataSource.transaction(async (manager) => {
+      await manager.query(`SELECT pg_advisory_xact_lock($1)`, [
+        MATERIAL_REQUESTS_SEQ_LOCK,
+      ]);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const result = await manager.query(
+        `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq FROM material_requests`,
+      );
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const sequence = Number(result[0].next_seq);
+      const folio = FolioGenerator.generateMaterialRequestFolio(
+        sequence,
+        new Date(),
+      );
+      const entity = this.repository.create({ ...data, sequence, folio });
+      return manager.save(entity);
+    });
     return (await this.findById(saved.id))!;
   }
 
@@ -176,5 +185,87 @@ export class MaterialRequestsRepository {
     materialRequest.isActive = false;
     materialRequest.deletedAt = new Date();
     await this.repository.save(materialRequest);
+  }
+
+  /**
+   * Physically removes a material request and all its child rows
+   * (photos, history, items, machines), then re-sequences folios of all
+   * subsequent material requests so the PLT-YYMMDD-NNN sequence remains
+   * gap-free.
+   *
+   * Returns the file paths of photos that should be deleted from disk by
+   * the caller (after the transaction commits).
+   */
+  async hardDelete(id: string): Promise<string[]> {
+    let filePaths: string[] = [];
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query(`SELECT pg_advisory_xact_lock($1)`, [
+        MATERIAL_REQUESTS_SEQ_LOCK,
+      ]);
+
+      type RequestRow = { id: string; sequence: number };
+      type PhotoRow = { file_path: string };
+      type AffectedRow = { id: string; sequence: number; created_at: string };
+
+      const rows = (await manager.query(
+        `SELECT id, sequence FROM material_requests WHERE id = $1`,
+        [id],
+      )) as unknown as RequestRow[];
+      const [row] = rows;
+
+      if (!row) {
+        throw new NotFoundException(
+          `Solicitud de material con ID ${id} no encontrada`,
+        );
+      }
+
+      const deletedSeq: number = row.sequence;
+
+      const photos = (await manager.query(
+        `SELECT file_path FROM material_request_photos WHERE material_request_id = $1`,
+        [id],
+      )) as unknown as PhotoRow[];
+      filePaths = photos.map((p) => p.file_path).filter(Boolean);
+
+      // Borrado explícito de hijos en orden, defensivo respecto al DDL real
+      // (MaterialRequestHistory NO declara onDelete: 'CASCADE' en TypeORM).
+      await manager.query(
+        `DELETE FROM material_request_photos WHERE material_request_id = $1`,
+        [id],
+      );
+      await manager.query(
+        `DELETE FROM material_request_history WHERE material_request_id = $1`,
+        [id],
+      );
+      await manager.query(
+        `DELETE FROM material_request_items WHERE material_request_id = $1`,
+        [id],
+      );
+      await manager.query(
+        `DELETE FROM material_request_machines WHERE material_request_id = $1`,
+        [id],
+      );
+      await manager.query(`DELETE FROM material_requests WHERE id = $1`, [id]);
+
+      const affected = (await manager.query(
+        `SELECT id, sequence, created_at FROM material_requests WHERE sequence > $1 ORDER BY sequence ASC`,
+        [deletedSeq],
+      )) as unknown as AffectedRow[];
+
+      for (const affectedRow of affected) {
+        const newSeq = affectedRow.sequence - 1;
+        const newFolio = FolioGenerator.generateMaterialRequestFolio(
+          newSeq,
+          new Date(affectedRow.created_at),
+        );
+        await manager.query(
+          `UPDATE material_requests SET sequence = $1, folio = $2 WHERE id = $3`,
+          [newSeq, newFolio, affectedRow.id],
+        );
+      }
+    });
+
+    return filePaths;
   }
 }

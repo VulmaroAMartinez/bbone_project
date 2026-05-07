@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { existsSync } from 'fs';
+import { existsSync, promises as fsPromises } from 'fs';
 import { basename, join } from 'path';
 import {
   MaterialRequestsRepository,
@@ -110,6 +110,18 @@ function resolveItemType(item: MaterialRequestItem): string {
   if (item.materialId) return 'Material';
   if (item.sparePartId) return 'Refacción';
   return 'Otro';
+}
+
+/** Basename seguro para borrar archivos en `uploads/` (mismo criterio que findings). */
+function resolveUploadBasename(filePath: string): string | null {
+  if (!filePath?.trim()) return null;
+  const noQuery = filePath.split('#')[0].split('?')[0];
+  const normalized = noQuery.replace(/\\/g, '/');
+  const parts = normalized.split('/').filter((s) => s.length > 0);
+  const raw = parts[parts.length - 1];
+  if (!raw) return null;
+  const safe = raw.replace(/[^a-zA-Z0-9._-]/g, '');
+  return safe || null;
 }
 
 @Injectable()
@@ -478,6 +490,44 @@ export class MaterialRequestsService {
     const mr = await this.findByIdOrFail(id);
     this.assertBossCanManageMaterialRequest(user, mr);
     await this.materialRequestsRepository.softDelete(id);
+    return true;
+  }
+
+  /**
+   * Eliminación física de la solicitud de material. Borra todos sus hijos
+   * (máquinas, ítems, historial, fotos) y re-secuencia los folios de las
+   * solicitudes posteriores. Bloquea si el correo ya fue enviado.
+   */
+  async hardDelete(id: string, user: User): Promise<boolean> {
+    const mr = await this.findByIdOrFail(id);
+    this.assertBossCanManageMaterialRequest(user, mr);
+
+    if (mr.emailSentAt) {
+      throw new BadRequestException(
+        'No se puede eliminar permanentemente una solicitud cuyo correo ya fue enviado',
+      );
+    }
+
+    const filePaths = await this.materialRequestsRepository.hardDelete(id);
+
+    for (const filePath of filePaths) {
+      const safeBasename = resolveUploadBasename(filePath);
+      if (!safeBasename) continue;
+      const absolutePath = join(process.cwd(), 'uploads', safeBasename);
+      try {
+        await fsPromises.unlink(absolutePath);
+      } catch {
+        this.logger.warn(
+          'No se pudo eliminar archivo físico de solicitud de material',
+          { absolutePath },
+        );
+      }
+    }
+
+    this.logger.log(
+      `Solicitud de material ${mr.folio} eliminada permanentemente por usuario ${user.id}`,
+    );
+
     return true;
   }
 

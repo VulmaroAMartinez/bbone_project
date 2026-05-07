@@ -318,6 +318,12 @@ export const DEACTIVATE_MATERIAL_REQUEST_MUTATION = gql`
   }
 `;
 
+export const HARD_DELETE_MATERIAL_REQUEST_MUTATION = gql`
+  mutation HardDeleteMaterialRequest($id: ID!) {
+    hardDeleteMaterialRequest(id: $id)
+  }
+`;
+
 export const SEND_MATERIAL_REQUEST_EMAIL_MUTATION = gql`
   mutation SendMaterialRequestEmail($input: SendMaterialRequestEmailInput!) {
     sendMaterialRequestEmail(input: $input)
