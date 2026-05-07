@@ -495,8 +495,9 @@ export class MaterialRequestsService {
 
   /**
    * Eliminación física de la solicitud de material. Borra todos sus hijos
-   * (máquinas, ítems, historial, fotos) y re-secuencia los folios de las
-   * solicitudes posteriores. Bloquea si el correo ya fue enviado.
+   * (máquinas, ítems, historial, fotos). Los folios existentes se conservan
+   * (se permiten huecos) para no romper referencias externas ya enviadas.
+   * Bloquea si el correo ya fue enviado.
    */
   async hardDelete(id: string, user: User): Promise<boolean> {
     const mr = await this.findByIdOrFail(id);

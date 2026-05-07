@@ -189,9 +189,9 @@ export class MaterialRequestsRepository {
 
   /**
    * Physically removes a material request and all its child rows
-   * (photos, history, items, machines), then re-sequences folios of all
-   * subsequent material requests so the PLT-YYMMDD-NNN sequence remains
-   * gap-free.
+   * (photos, history, items, machines). Folios are intentionally preserved
+   * and gaps are allowed to avoid changing external references already sent
+   * by email.
    *
    * Returns the file paths of photos that should be deleted from disk by
    * the caller (after the transaction commits).
@@ -206,7 +206,6 @@ export class MaterialRequestsRepository {
 
       type RequestRow = { id: string; sequence: number };
       type PhotoRow = { file_path: string };
-      type AffectedRow = { id: string; sequence: number; created_at: string };
 
       const rows = (await manager.query(
         `SELECT id, sequence FROM material_requests WHERE id = $1`,
@@ -219,8 +218,6 @@ export class MaterialRequestsRepository {
           `Solicitud de material con ID ${id} no encontrada`,
         );
       }
-
-      const deletedSeq: number = row.sequence;
 
       const photos = (await manager.query(
         `SELECT file_path FROM material_request_photos WHERE material_request_id = $1`,
@@ -252,23 +249,6 @@ export class MaterialRequestsRepository {
         [id],
       );
       await manager.query(`DELETE FROM material_requests WHERE id = $1`, [id]);
-
-      const affected = (await manager.query(
-        `SELECT id, sequence, created_at FROM material_requests WHERE sequence > $1 ORDER BY sequence ASC`,
-        [deletedSeq],
-      )) as unknown as AffectedRow[];
-
-      for (const affectedRow of affected) {
-        const newSeq = affectedRow.sequence - 1;
-        const newFolio = FolioGenerator.generateMaterialRequestFolio(
-          newSeq,
-          new Date(affectedRow.created_at),
-        );
-        await manager.query(
-          `UPDATE material_requests SET sequence = $1, folio = $2 WHERE id = $3`,
-          [newSeq, newFolio, affectedRow.id],
-        );
-      }
     });
 
     return filePaths;

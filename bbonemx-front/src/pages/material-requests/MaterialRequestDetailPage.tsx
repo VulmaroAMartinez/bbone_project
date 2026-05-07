@@ -273,7 +273,7 @@ export default function MaterialRequestDetailPage() {
         try {
             await hardDeleteMaterialRequest({ variables: { id: request.id } });
             toast.success(
-                `Solicitud ${request.folio} eliminada y folios re-secuenciados`,
+                `Solicitud ${request.folio} eliminada correctamente`,
             );
             setDeleteOpen(false);
             navigate('/solicitud-material');
@@ -720,8 +720,8 @@ export default function MaterialRequestDetailPage() {
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             Esta acción borrará la solicitud, sus máquinas, artículos,
-                            historial y fotografías del servidor. Los folios de las
-                            solicitudes posteriores se re-secuenciarán automáticamente.
+                            historial y fotografías del servidor. Los folios ya existentes
+                            se conservarán (podrían quedar huecos en la numeración).
                             Esta acción{' '}
                             <span className="font-semibold text-destructive">
                                 no se puede deshacer
