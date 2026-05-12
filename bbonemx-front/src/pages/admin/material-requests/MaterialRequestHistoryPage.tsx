@@ -23,6 +23,8 @@ import {
   getDeliveryStatusColor,
 } from '@/lib/material-requests/delivery-status.util';
 import { MaterialRequestFullDetailModal } from '@/components/material-requests/MaterialRequestFullDetailModal';
+import { getApiBaseUrl } from '@/lib/utils/uploads';
+import { downloadBlob } from '@/lib/utils/excel-download';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,7 +62,7 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from '@/components/ui/empty';
-import { Search, Pencil, Eye, X, ClipboardList, Loader2, List } from 'lucide-react';
+import { Search, Pencil, Eye, X, ClipboardList, Loader2, List, Download } from 'lucide-react';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -198,6 +200,7 @@ export default function MaterialRequestHistoryPage() {
   const [editingMrId, setEditingMrId] = useState<string | null>(null);
   const [viewingItemsMrId, setViewingItemsMrId] = useState<string | null>(null);
   const [viewingDetailMrId, setViewingDetailMrId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const requests = useMemo(() => data?.materialRequestsWithDeleted ?? [], [data?.materialRequestsWithDeleted]);
 
@@ -242,6 +245,43 @@ export default function MaterialRequestHistoryPage() {
     setFilterArea('all');
   };
 
+  const handleExportExcel = async () => {
+    if (filtered.length === 0) return;
+    setExporting(true);
+    try {
+      const filename = `solicitudes-material-${new Date().toISOString().split('T')[0]}.xlsx`;
+      const response = await fetch(
+        `${getApiBaseUrl()}/api/material-requests/export/excel`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filters: {
+              search: search.trim() || undefined,
+              status: filterStatus === 'all' ? undefined : filterStatus,
+              category: filterCategory === 'all' ? undefined : filterCategory,
+              area: filterArea === 'all' ? undefined : filterArea,
+            },
+          }),
+        },
+      );
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      downloadBlob(blob, filename);
+      toast.success('Excel descargado correctamente');
+    } catch (err) {
+      toast.error(
+        `Error al exportar: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Edit form
   const editingMr = requests.find((r) => r.id === editingMrId);
   const editingHistory = getLatestHistory(editingMr?.histories);
@@ -257,7 +297,6 @@ export default function MaterialRequestHistoryPage() {
     resolver: yupResolver(editSchema),
   });
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const watchedStatus = watch('status');
 
   const openEditModal = (mrId: string) => {
@@ -388,6 +427,22 @@ export default function MaterialRequestHistoryPage() {
               Limpiar
             </Button>
           )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            disabled={exporting || filtered.length === 0}
+            className="h-8 px-2 text-xs gap-1"
+            title="Descargar Excel con los mismos filtros que la tabla"
+          >
+            {exporting ? (
+              <Loader2 className="h-3 w-3 animate-spin shrink-0" aria-hidden />
+            ) : (
+              <Download className="h-3 w-3 shrink-0" aria-hidden />
+            )}
+            Excel
+          </Button>
         </div>
       </div>
 

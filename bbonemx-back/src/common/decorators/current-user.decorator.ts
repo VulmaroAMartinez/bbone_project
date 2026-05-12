@@ -2,7 +2,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 
 /**
- * Decorador que extrae el usuario autenticado del contexto GraphQL.
+ * Decorador que extrae el usuario autenticado del request HTTP o del contexto GraphQL.
  *
  * @example
  * // Obtener usuario completo
@@ -20,11 +20,20 @@ import { GqlExecutionContext } from '@nestjs/graphql';
  */
 export const CurrentUser = createParamDecorator(
   (data: string | undefined, context: ExecutionContext) => {
-    const ctx = GqlExecutionContext.create(context);
-    const request = ctx.getContext<{
-      req: { user?: Record<string, unknown> };
-    }>().req;
-    const user = request.user;
+    let user: Record<string, unknown> | undefined;
+
+    if (context.getType<string>() === 'http') {
+      const req = context
+        .switchToHttp()
+        .getRequest<{ user?: Record<string, unknown> }>();
+      user = req.user;
+    } else {
+      const ctx = GqlExecutionContext.create(context);
+      const request = ctx.getContext<{
+        req: { user?: Record<string, unknown> };
+      }>().req;
+      user = request.user;
+    }
 
     // Si se especifica una propiedad, retornar solo esa propiedad
     if (data && user) {
