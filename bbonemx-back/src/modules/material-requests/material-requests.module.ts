@@ -15,6 +15,7 @@ import {
 } from './infrastructure/repositories';
 import { MaterialRequestsService } from './application/services';
 import { MaterialRequestsResolver } from './presentation/resolvers';
+import { MaterialRequestsExcelController } from './presentation/controllers/material-requests-excel.controller';
 import { SparePartsModule } from '../catalogs/spare-parts/spare-parts.module';
 import { MaterialsModule } from '../catalogs/materials/materials.module';
 
@@ -30,6 +31,7 @@ import { MaterialsModule } from '../catalogs/materials/materials.module';
     MaterialsModule,
     SparePartsModule,
   ],
+  controllers: [MaterialRequestsExcelController],
   providers: [
     MaterialRequestsRepository,
     MaterialRequestItemsRepository,

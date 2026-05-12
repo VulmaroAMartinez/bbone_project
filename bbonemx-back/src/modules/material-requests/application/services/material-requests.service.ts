@@ -25,6 +25,7 @@ import {
   SendMaterialRequestEmailInput,
   UpdateMaterialRequestHistoryInput,
   CreateMaterialRequestPhotoInput,
+  MaterialRequestHistoryExportFiltersInput,
 } from '../dto';
 import { RequestCategory, StatusHistoryMR } from 'src/common';
 import { MaterialRequestPhoto } from '../../domain/entities';
@@ -34,6 +35,7 @@ import { SparePartsService } from 'src/modules/catalogs/spare-parts/application/
 import { EmailService } from 'src/common/modules/email/application/services/email.service';
 import { EmailTemplateService } from 'src/common/modules/email/application/services/email-template.service';
 import { MaterialRequestEmailTemplateData } from 'src/common/modules/email/presentation/types';
+import * as ExcelJS from 'exceljs';
 
 const ALLOWED_PHOTO_MIME_TYPES = new Set([
   'image/jpeg',
@@ -87,6 +89,18 @@ const PRIORITY_LABELS: Record<string, string> = {
   CRITICAL: 'Crítico',
 };
 
+/** Alineado con `STATUS_LABELS` del front (material-request.constants). */
+const STATUS_LABELS: Record<string, string> = {
+  PENDING_PURCHASE_REQUEST: 'Pendiente S.C.',
+  PENDING_QUOTATION: 'Pendiente cotización',
+  PENDING_APPROVAL_QUOTATION: 'Aprobación cotización',
+  PENDING_SUPPLIER_REGISTRATION: 'Alta proveedor',
+  PENDING_PURCHASE_ORDER: 'Pendiente O.C.',
+  PENDING_PAYMENT: 'Pendiente pago',
+  PENDING_DELIVERY: 'Pendiente entrega',
+  DELIVERED: 'Entregado',
+};
+
 const IMPORTANCE_LABELS: Record<string, string> = {
   VERY_IMPORTANT: 'Muy importante',
   IMPORTANT: 'Importante',
@@ -122,6 +136,76 @@ function resolveUploadBasename(filePath: string): string | null {
   if (!raw) return null;
   const safe = raw.replace(/[^a-zA-Z0-9._-]/g, '');
   return safe || null;
+}
+
+function exportFormatDateTime(d: Date | string | null | undefined): string {
+  if (d == null) return '';
+  const date = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function exportGetLatestHistory<T extends { createdAt?: Date | null }>(
+  histories: T[] | null | undefined,
+): T | undefined {
+  if (!histories?.length) return undefined;
+  return [...histories].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bTime - aTime;
+  })[0];
+}
+
+type ExportMachineLike = {
+  customMachineArea?: string | null;
+  customMachineName?: string | null;
+  customMachineModel?: string | null;
+  customMachineManufacturer?: string | null;
+  machine?: {
+    name?: string | null;
+    brand?: string | null;
+    model?: string | null;
+    area?: { name: string } | null;
+    subArea?: { area?: { name: string } | null } | null;
+  } | null;
+};
+
+function exportDeriveArea(
+  machines: ExportMachineLike[] | null | undefined,
+): string {
+  const names = new Set<string>();
+  for (const mrm of machines ?? []) {
+    const name =
+      mrm.machine?.area?.name ??
+      mrm.machine?.subArea?.area?.name ??
+      mrm.customMachineArea ??
+      undefined;
+    if (name) names.add(name);
+  }
+  if (names.size === 1) return [...names][0];
+  if (names.size > 1) return 'Diversas áreas';
+  return '';
+}
+
+function exportMachinesSummary(
+  machines: ExportMachineLike[] | null | undefined,
+): string {
+  const parts: string[] = [];
+  for (const mrm of machines ?? []) {
+    const displayName = mrm.machine?.name ?? mrm.customMachineName ?? '';
+    const brand = mrm.machine?.brand ?? mrm.customMachineManufacturer;
+    const model = mrm.machine?.model ?? mrm.customMachineModel;
+    const tail = [brand, model].filter(Boolean).join(' · ');
+    const line = displayName + (tail ? ` (${tail})` : '');
+    if (line.trim()) parts.push(line.trim());
+  }
+  return parts.join('; ');
 }
 
 @Injectable()
@@ -835,5 +919,182 @@ export class MaterialRequestsService {
     );
 
     return this.findByIdOrFail(input.materialRequestId);
+  }
+
+  /**
+   * Exporta seguimiento de solicitudes a Excel (una fila por artículo).
+   * Filtros deben mantenerse alineados con MaterialRequestHistoryPage.
+   */
+  async exportHistoryTrackingToExcelBuffer(
+    user: User,
+    filters: MaterialRequestHistoryExportFiltersInput,
+  ): Promise<Buffer> {
+    const all = await this.findAllWithDeletedForUser(user);
+    const search = (filters.search ?? '').trim().toLowerCase();
+    const filterStatus = filters.status ?? 'all';
+    const filterCategory = filters.category ?? 'all';
+    const filterArea = filters.area ?? 'all';
+
+    const filtered = all.filter((r) => {
+      const matchSearch =
+        !search ||
+        r.folio.toLowerCase().includes(search) ||
+        (r.requester?.fullName ?? '').toLowerCase().includes(search) ||
+        (r.machines ?? []).some((mrm) =>
+          (mrm.machine?.name ?? mrm.customMachineName ?? '')
+            .toLowerCase()
+            .includes(search),
+        );
+      const h = exportGetLatestHistory(r.histories);
+      const matchStatus =
+        filterStatus === 'all' ||
+        h?.status === (filterStatus as StatusHistoryMR);
+      const matchCategory =
+        filterCategory === 'all' ||
+        r.category === (filterCategory as RequestCategory);
+      const area = exportDeriveArea(r.machines ?? []);
+      const matchArea = filterArea === 'all' || area === filterArea;
+      return matchSearch && matchStatus && matchCategory && matchArea;
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Solicitudes');
+
+    ws.columns = [
+      { header: 'Folio', key: 'folio', width: 16 },
+      { header: 'Fecha creación', key: 'fechaCreacion', width: 18 },
+      { header: 'Activa', key: 'activa', width: 8 },
+      { header: 'Correo enviado', key: 'correoEnviado', width: 18 },
+      { header: 'Categoría', key: 'categoria', width: 22 },
+      { header: 'Prioridad', key: 'prioridad', width: 14 },
+      { header: 'Importancia', key: 'importancia', width: 14 },
+      { header: 'Jefe a cargo', key: 'jefe', width: 24 },
+      { header: 'Descripción', key: 'descripcion', width: 40 },
+      { header: 'Justificación', key: 'justificacion', width: 32 },
+      { header: 'Comentarios', key: 'comentarios', width: 32 },
+      { header: 'Proveedor sugerido', key: 'proveedorSugerido', width: 22 },
+      { header: 'Área', key: 'area', width: 20 },
+      { header: 'Solicitante', key: 'solicitante', width: 26 },
+      { header: 'No. empleado', key: 'noEmpleado', width: 14 },
+      { header: 'Estatus seguimiento', key: 'estatusSeguimiento', width: 22 },
+      { header: 'S.C.', key: 'solicitudCompra', width: 16 },
+      { header: 'O.C.', key: 'ordenCompra', width: 16 },
+      { header: 'E.M.', key: 'entregaMercancia', width: 16 },
+      { header: 'Proveedor (compras)', key: 'proveedorCompras', width: 22 },
+      {
+        header: 'Fecha entrega estimada',
+        key: 'fechaEntregaEstimada',
+        width: 18,
+      },
+      { header: 'Fecha entrega', key: 'fechaEntrega', width: 18 },
+      { header: '% avance', key: 'porcentajeAvance', width: 10 },
+      { header: 'Máquinas', key: 'maquinas', width: 48 },
+      { header: 'Fotos (nombres)', key: 'fotosNombres', width: 36 },
+      { header: 'Ítem descripción', key: 'itemDescripcion', width: 32 },
+      { header: 'Ítem nombre', key: 'itemNombreCustom', width: 24 },
+      { header: 'Ítem SKU', key: 'itemSku', width: 14 },
+      { header: 'Ítem no. parte', key: 'itemNoParte', width: 16 },
+      { header: 'Ítem marca', key: 'itemMarca', width: 14 },
+      { header: 'Ítem modelo', key: 'itemModelo', width: 14 },
+      { header: 'Ítem cantidad', key: 'itemCantidad', width: 12 },
+      { header: 'Ítem U.M.', key: 'itemUM', width: 10 },
+      { header: 'Ítem stock máx. prop.', key: 'itemStockMax', width: 14 },
+      { header: 'Ítem stock mín. prop.', key: 'itemStockMin', width: 14 },
+      { header: 'Ítem genérico permitido', key: 'itemGenerico', width: 12 },
+    ];
+
+    const headerRow = ws.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.height = 18;
+    ws.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: ws.columns?.length ?? 36 },
+    };
+
+    for (const r of filtered) {
+      const h = exportGetLatestHistory(r.histories);
+      const area = exportDeriveArea(r.machines ?? []);
+      const photoNames = (r.photos ?? [])
+        .map((p) => p.fileName)
+        .filter(Boolean)
+        .join('; ');
+
+      const base = {
+        folio: r.folio,
+        fechaCreacion: exportFormatDateTime(r.createdAt),
+        activa: r.isActive ? 'Sí' : 'No',
+        correoEnviado: r.emailSentAt ? exportFormatDateTime(r.emailSentAt) : '',
+        categoria: CATEGORY_LABELS[r.category] ?? r.category,
+        prioridad: PRIORITY_LABELS[r.priority] ?? r.priority,
+        importancia: r.importance
+          ? (IMPORTANCE_LABELS[r.importance] ?? r.importance)
+          : '',
+        jefe: r.boss ?? '',
+        descripcion: (r.description ?? '').slice(0, 5000),
+        justificacion: (r.justification ?? '').slice(0, 5000),
+        comentarios: (r.comments ?? '').slice(0, 5000),
+        proveedorSugerido: r.suggestedSupplier ?? '',
+        area,
+        solicitante: r.requester?.fullName ?? '',
+        noEmpleado: r.requester?.employeeNumber ?? '',
+        estatusSeguimiento: h?.status
+          ? (STATUS_LABELS[h.status] ?? h.status)
+          : '',
+        solicitudCompra: h?.purchaseRequest ?? '',
+        ordenCompra: h?.purchaseOrder ?? '',
+        entregaMercancia: h?.deliveryMerchandise ?? '',
+        proveedorCompras: h?.supplier ?? '',
+        fechaEntregaEstimada: h?.estimatedDeliveryDate
+          ? exportFormatDateTime(h.estimatedDeliveryDate)
+          : '',
+        fechaEntrega: h?.deliveryDate
+          ? exportFormatDateTime(h.deliveryDate)
+          : '',
+        porcentajeAvance:
+          h?.progressPercentage != null ? String(h.progressPercentage) : '',
+        maquinas: exportMachinesSummary(r.machines ?? []),
+        fotosNombres: photoNames,
+      };
+
+      const items = r.items ?? [];
+      if (items.length === 0) {
+        ws.addRow({
+          ...base,
+          itemDescripcion: '— Sin artículos —',
+          itemNombreCustom: '',
+          itemSku: '',
+          itemNoParte: '',
+          itemMarca: '',
+          itemModelo: '',
+          itemCantidad: '',
+          itemUM: '',
+          itemStockMax: '',
+          itemStockMin: '',
+          itemGenerico: '',
+        });
+      } else {
+        for (const it of items) {
+          ws.addRow({
+            ...base,
+            itemDescripcion: it.description ?? '',
+            itemNombreCustom: it.customName ?? '',
+            itemSku: it.sku ?? '',
+            itemNoParte: it.partNumber ?? '',
+            itemMarca: it.brand ?? '',
+            itemModelo: it.model ?? '',
+            itemCantidad:
+              it.requestedQuantity != null ? String(it.requestedQuantity) : '',
+            itemUM: it.unitOfMeasure ?? '',
+            itemStockMax:
+              it.proposedMaxStock != null ? String(it.proposedMaxStock) : '',
+            itemStockMin:
+              it.proposedMinStock != null ? String(it.proposedMinStock) : '',
+            itemGenerico: it.isGenericAllowed ? 'Sí' : 'No',
+          });
+        }
+      }
+    }
+
+    return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 }
