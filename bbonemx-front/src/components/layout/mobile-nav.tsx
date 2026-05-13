@@ -44,6 +44,11 @@ type NavItem = {
   children?: { href: string; label: string, icon: LucideIcon }[];
 };
 
+type NavStructure = {
+  main: NavItem[];
+  boss?: NavItem[];
+};
+
 export function MobileNav({ onClose }: MobileNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -64,43 +69,45 @@ export function MobileNav({ onClose }: MobileNavProps) {
     navigate('/', { replace: true });
   };
 
-const getNavItems = (): NavItem[] => {
+  const getNavStructure = (): NavStructure => {
     if (isAdmin) {
-      return [
-        { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/admin/ordenes', label: 'Órdenes', icon: ClipboardList },
-        { href: '/admin/ordenes-programadas', label: 'Programadas', icon: Calendar },
-        { href: '/admin/actividades', label: 'Agenda', icon: ListChecks },
-        { href: '/maquinas', label: 'Equipos/Estructuras', icon: Forklift },
-        { href: '/hallazgos', label: 'Hallazgos', icon: Search },
-        { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
-        { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
-        {
-          label: 'Gestión de Técnicos',
-          icon: Users,
-          children: [
-            { href: '/tecnicos', label: 'Técnicos', icon: Users },
-            { href: '/horarios', label: 'Horarios / Turnos', icon: Calendar },
-            { href: '/horas-extra', label: 'Horas Extra', icon: Timer },
-          ]
-        },
-        {
-          label: 'Catálogo',
-          icon: LayoutList,
-          children: [
-            { href: '/areas', label: 'Áreas', icon: Building2 },
-            { href: '/departamentos', label: 'Departamentos', icon: Building },
-            { href: '/puestos', label: 'Puestos', icon: Briefcase },
-            { href: '/solicitantes', label: 'Solicitantes', icon: Users },
-            { href: '/repuestos', label: 'Repuestos', icon: Bolt },
-            { href: '/materiales', label: 'Materiales', icon: Drill },
-            { href: '/turnos', label: 'Turnos', icon: Clock }
-          ]
-        }
-      ];
+      return {
+        main: [
+          { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { href: '/admin/ordenes', label: 'Órdenes', icon: ClipboardList },
+          { href: '/admin/ordenes-programadas', label: 'Programadas', icon: Calendar },
+          { href: '/admin/actividades', label: 'Agenda', icon: ListChecks },
+          { href: '/maquinas', label: 'Equipos/Estructuras', icon: Forklift },
+          { href: '/hallazgos', label: 'Hallazgos', icon: Search },
+          { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
+          { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
+          {
+            label: 'Gestión de Técnicos',
+            icon: Users,
+            children: [
+              { href: '/tecnicos', label: 'Técnicos', icon: Users },
+              { href: '/horarios', label: 'Horarios / Turnos', icon: Calendar },
+              { href: '/horas-extra', label: 'Horas Extra', icon: Timer },
+            ]
+          },
+          {
+            label: 'Catálogo',
+            icon: LayoutList,
+            children: [
+              { href: '/areas', label: 'Áreas', icon: Building2 },
+              { href: '/departamentos', label: 'Departamentos', icon: Building },
+              { href: '/puestos', label: 'Puestos', icon: Briefcase },
+              { href: '/solicitantes', label: 'Solicitantes', icon: Users },
+              { href: '/repuestos', label: 'Repuestos', icon: Bolt },
+              { href: '/materiales', label: 'Materiales', icon: Drill },
+              { href: '/turnos', label: 'Turnos', icon: Clock }
+            ]
+          }
+        ],
+      };
     }
     if (isTechnician) {
-      const items: NavItem[] = [
+      const main: NavItem[] = [
         { href: '/tecnico/pendientes', label: 'Mis Pendientes', icon: ClipboardList },
         ...(isBoss ? [{ href: '/tecnico/mis-ordenes', label: 'Mis Órdenes', icon: ClipboardList } as NavItem] : []),
         { href: '/horario', label: 'Mi Horario', icon: Calendar },
@@ -108,22 +115,31 @@ const getNavItems = (): NavItem[] => {
         { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
       ];
       if (isBoss) {
-        items.push(
-          { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
-        );
+        return {
+          main,
+          boss: [
+            { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
+            { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
+            { href: '/hallazgos', label: 'Hallazgos', icon: Search },
+            { href: '/admin/ordenes-programadas', label: 'Programadas', icon: Calendar },
+            { href: '/admin/ordenes', label: 'Órdenes', icon: ClipboardList },
+          ],
+        };
       }
-      return items;
+      return { main };
     }
     if (isRequester) {
-      return [
-        { href: '/solicitante/mis-ordenes', label: 'Mis Órdenes', icon: ClipboardList },
-        { href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle },
-      ];
+      return {
+        main: [
+          { href: '/solicitante/mis-ordenes', label: 'Mis Órdenes', icon: ClipboardList },
+          { href: '/solicitante/crear-ot', label: 'Crear Solicitud', icon: PlusCircle },
+        ],
+      };
     }
-    return [];
+    return { main: [] };
   };
 
-  const navItems = getNavItems();
+  const { main: mainNavItems, boss: bossNavItems } = getNavStructure();
 
   const handleNavigation = (href: string) => {
     onClose();
@@ -134,6 +150,71 @@ const getNavItems = (): NavItem[] => {
     logout();
     onClose();
   };
+
+  const renderNavList = (items: NavItem[], keyPrefix: string) =>
+    items.map((item) => {
+      const hasChildren = !!item.children?.length;
+      const isExpanded = expandedItems[item.label];
+
+      const isChildActive = item.children?.some(child => location.pathname === child.href || location.pathname.startsWith(`${child.href}/`));
+      const isActive = (item.href && (location.pathname === item.href || location.pathname.startsWith(`${item.href}/`))) || isChildActive;
+
+      return (
+        <li key={`${keyPrefix}-${item.label}`} className="space-y-1">
+          <button
+            onClick={() => {
+              if (hasChildren) {
+                toggleExpand(item.label);
+              } else if (item.href) {
+                handleNavigation(item.href);
+              }
+            }}
+            className={cn(
+              'w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors',
+              isActive && !hasChildren
+                ? 'bg-sidebar-accent text-sidebar-primary'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent/50',
+              isActive && hasChildren && 'text-sidebar-primary font-semibold'
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <span className={cn(isActive ? 'text-sidebar-primary' : 'text-muted-foreground')}>
+                <item.icon className="h-5 w-5" />
+              </span>
+              <span className="text-sm font-medium">{item.label}</span>
+            </div>
+            {hasChildren && (
+              <ChevronDown
+                className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isExpanded && "rotate-180")}
+              />
+            )}
+          </button>
+
+          {hasChildren && isExpanded && (
+            <ul className="mt-1 space-y-1 pl-10 pr-2">
+              {item.children!.map((child) => {
+                const isChildCurrent = location.pathname === child.href || location.pathname.startsWith(`${child.href}/`);
+                return (
+                  <li key={child.href}>
+                    <button
+                      onClick={() => handleNavigation(child.href)}
+                      className={cn(
+                        'w-full flex items-center py-2 px-3 rounded-md transition-colors text-sm',
+                        isChildCurrent
+                          ? 'bg-sidebar-accent/50 text-sidebar-primary font-medium'
+                          : 'text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-foreground'
+                      )}
+                    >
+                      {child.label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </li>
+      );
+    });
 
   return (
     <div className="flex flex-col h-full bg-sidebar">
@@ -159,70 +240,22 @@ const getNavItems = (): NavItem[] => {
           </div>
 
           <ul className="space-y-1">
-            {navItems.map((item) => {
-              const hasChildren = !!item.children?.length;
-              const isExpanded = expandedItems[item.label];
-
-              const isChildActive = item.children?.some(child => location.pathname === child.href || location.pathname.startsWith(`${child.href}/`));
-              const isActive = (item.href && (location.pathname === item.href || location.pathname.startsWith(`${item.href}/`))) || isChildActive;
-
-              return (
-                <li key={item.label} className="space-y-1">
-                  <button
-                    onClick={() => {
-                      if (hasChildren) {
-                        toggleExpand(item.label);
-                      } else if (item.href) {
-                        handleNavigation(item.href);
-                      }
-                    }}
-                    className={cn(
-                      'w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors',
-                      isActive && !hasChildren
-                        ? 'bg-sidebar-accent text-sidebar-primary'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50',
-                      isActive && hasChildren && 'text-sidebar-primary font-semibold'
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={cn(isActive ? 'text-sidebar-primary' : 'text-muted-foreground')}>
-                        <item.icon className="h-5 w-5" />
-                      </span>
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </div>
-                    {hasChildren && (
-                      <ChevronDown
-                        className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isExpanded && "rotate-180")}
-                      />
-                    )}
-                  </button>
-
-                  {hasChildren && isExpanded && (
-                    <ul className="mt-1 space-y-1 pl-10 pr-2">
-                      {item.children!.map((child) => {
-                        const isChildCurrent = location.pathname === child.href || location.pathname.startsWith(`${child.href}/`);
-                        return (
-                          <li key={child.href}>
-                            <button
-                              onClick={() => handleNavigation(child.href)}
-                              className={cn(
-                                'w-full flex items-center py-2 px-3 rounded-md transition-colors text-sm',
-                                isChildCurrent
-                                  ? 'bg-sidebar-accent/50 text-sidebar-primary font-medium'
-                                  : 'text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-foreground'
-                              )}
-                            >
-                              {child.label}
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </li>
-              );
-            })}
+            {renderNavList(mainNavItems, 'main')}
           </ul>
+
+          {bossNavItems && bossNavItems.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div className="px-3 mb-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Jefe
+                </p>
+              </div>
+              <ul className="space-y-1">
+                {renderNavList(bossNavItems, 'boss')}
+              </ul>
+            </>
+          )}
 
           <Separator className="my-4" />
 
