@@ -62,22 +62,27 @@ export function AppRouter() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
-        <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} />}>
-          <Route element={<ShellLayout title="Panel de administración" />}>
-            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+        <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.BOSS]} />}>
+          <Route element={<ShellLayout title="Órdenes y hallazgos" />}>
             <Route path="/admin/ordenes" element={<AdminOrdenesPage />} />
             <Route path="/admin/orden/:id" element={<AdminOrdenDetallePage />} />
+            <Route path="/admin/crear-ot" element={<AdminCrearOTPage />} />
+            <Route path="/admin/ordenes-programadas" element={<OrdenesProgramadasPage />} />
             <Route path="/hallazgos" element={<FindingPage />} />
             <Route path="/hallazgos/nuevo" element={<NewFindingPage />} />
             <Route path="/hallazgos/:id/editar" element={<FindingFeedbackPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} />}>
+          <Route element={<ShellLayout title="Panel de administración" />}>
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
             <Route path="/solicitantes" element={<RequestersPage />} />
             <Route path="/repuestos" element={<SparePartsPage />} />
             <Route path="/materiales" element={<MaterialsPage />} />
             <Route path="/turnos" element={<ShiftsPage />} />
             <Route path="/puestos" element={<PositionsPage />} />
             <Route path="/departamentos" element={<DepartmentsPage />} />
-            <Route path="/admin/crear-ot" element={<AdminCrearOTPage />} />
-            <Route path="/admin/ordenes-programadas" element={<OrdenesProgramadasPage />} />
             <Route path="/horarios" element={<SchedulePage />} />
             <Route path="/tecnicos" element={<TechniciansPage />} />
             <Route path="/tecnico/:id" element={<TechnicianDetailPage />} />

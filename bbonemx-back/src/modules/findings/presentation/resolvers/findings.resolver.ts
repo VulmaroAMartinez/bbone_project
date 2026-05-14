@@ -32,7 +32,7 @@ import { Finding } from '../../domain/entities';
 
 @Resolver(() => FindingType)
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.ADMIN, Role.BOSS)
 export class FindingsResolver {
   constructor(
     private readonly findingsService: FindingsService,

@@ -144,7 +144,7 @@ function getCompatibleShiftIds(
 function AdminOrdenDetallePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const apolloClient = useApolloClient();
   const [manageOpen, setManageOpen] = useState(false);
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
@@ -527,19 +527,19 @@ function AdminOrdenDetallePage() {
 
       {/* Action buttons del Admin */}
       <div className="flex flex-wrap gap-3 p-4 bg-muted/30 rounded-lg border border-border">
-        {!isCompleted && !isCancelled && (
+        {!isCompleted && !isCancelled && isAdmin && (
           <Button onClick={openManageDialog} className="gap-2 shadow-sm">
             <Settings className="h-4 w-4" />
             Gestionar OT {isPending ? 'y Asignar' : ''}
           </Button>
         )}
-        {order.status === 'PAUSED' && (
+        {order.status === 'PAUSED' && isAdmin && (
           <Button onClick={() => setResumeConfirmOpen(true)} disabled={resuming} variant="secondary" className="gap-2">
             <Play className="h-4 w-4" />
             {resuming ? 'Reanudando...' : 'Forzar Reanudación'}
           </Button>
         )}
-        {!isCompleted && !isCancelled && (
+        {!isCompleted && !isCancelled && isAdmin && (
           <Button onClick={() => setCancelConfirmOpen(true)} disabled={cancelling} variant="destructive" className="gap-2">
             <XCircle className="h-4 w-4" />
             {cancelling ? 'Cancelando...' : 'Cancelar Orden'}
@@ -1011,37 +1011,39 @@ function AdminOrdenDetallePage() {
       </div>
 
       {/* Modal Súper-Gestionar OT */}
-      <ManageWorkOrderDialog
-        open={manageOpen}
-        onOpenChange={setManageOpen}
-        showMachineField={showMachineField}
-        showScheduledDate={showScheduledDate}
-        isPending={isPending}
-        isProcessing={isProcessing}
-        mgmt={mgmt}
-        setMgmt={(updater) => {
-          setMgmt((prev) => {
-            const next = typeof updater === 'function' ? updater(prev) : updater;
-            if (next.shiftId !== prev.shiftId) {
-              setAuxiliaryTechnicians([]);
-              return { ...next, leadTechnicianId: '' };
-            }
-            return next;
-          });
-        }}
-        auxiliaryTechnicians={auxiliaryTechnicians}
-        setAuxiliaryTechnicians={setAuxiliaryTechnicians}
-        machineOptions={machineOptions}
-        techOptions={techOptions}
-        shifts={shifts}
-        priorities={PRIORITIES}
-        stoppageTypes={STOPPAGE_TYPES}
-        maintenanceTypes={MAINTENANCE_TYPES}
-        workTypes={WORK_TYPES}
-        disableBreakdown={!areaHasMachines}
-        breakdownDisabledHint="sin equipos en el área"
-        onSave={handleSaveManagement}
-      />
+      {isAdmin && (
+        <ManageWorkOrderDialog
+          open={manageOpen}
+          onOpenChange={setManageOpen}
+          showMachineField={showMachineField}
+          showScheduledDate={showScheduledDate}
+          isPending={isPending}
+          isProcessing={isProcessing}
+          mgmt={mgmt}
+          setMgmt={(updater) => {
+            setMgmt((prev) => {
+              const next = typeof updater === 'function' ? updater(prev) : updater;
+              if (next.shiftId !== prev.shiftId) {
+                setAuxiliaryTechnicians([]);
+                return { ...next, leadTechnicianId: '' };
+              }
+              return next;
+            });
+          }}
+          auxiliaryTechnicians={auxiliaryTechnicians}
+          setAuxiliaryTechnicians={setAuxiliaryTechnicians}
+          machineOptions={machineOptions}
+          techOptions={techOptions}
+          shifts={shifts}
+          priorities={PRIORITIES}
+          stoppageTypes={STOPPAGE_TYPES}
+          maintenanceTypes={MAINTENANCE_TYPES}
+          workTypes={WORK_TYPES}
+          disableBreakdown={!areaHasMachines}
+          breakdownDisabledHint="sin equipos en el área"
+          onSave={handleSaveManagement}
+        />
+      )}
 
       {/* Modal Confirmar Reanudación */}
       <Dialog open={resumeConfirmOpen} onOpenChange={setResumeConfirmOpen}>
