@@ -482,9 +482,13 @@ function AdminOrdenDetallePage() {
 
   const pendingConformity = (workOrderRaw as { pendingConformity?: boolean })?.pendingConformity ?? false;
   const conformityCycleCount = (workOrderRaw as { conformityCycleCount?: number })?.conformityCycleCount ?? 0;
+  const isRequesterViewer = user?.id === requester?.id;
 
-  // Admin es el solicitante y debe responder conformidad primero
-  const needsConformityAsRequester = (isTemporaryRepair || order.status === 'FINISHED') && requesterIsAdmin && pendingConformity;
+  /** Solicitante (jefe o admin) o admin viendo OT de solicitante-admin: conformidad antes de firmar. */
+  const needsConformityAsRequester =
+    (isTemporaryRepair || order.status === 'FINISHED') &&
+    pendingConformity &&
+    (isRequesterViewer || requesterIsAdmin);
   /** Otro admin firma el tercer rol (solo cuando el solicitante no es admin). */
   const canCurrentAdminSign =
     !requesterIsAdmin &&
@@ -498,7 +502,6 @@ function AdminOrdenDetallePage() {
     user?.id === requester?.id &&
     !requesterSignature &&
     !!user?.roles?.some((role: { name?: string }) => role.name === 'ADMIN');
-  const isRequesterViewer = user?.id === requester?.id;
   const canRequesterSign =
     isRequesterViewer &&
     !requesterIsAdmin &&
@@ -931,9 +934,9 @@ function AdminOrdenDetallePage() {
               )}
             </CardHeader>
             <CardContent>
-              {requesterIsAdmin && pendingConformity && (
+              {needsConformityAsRequester && (
                 <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
-                  Pendiente de evaluación de conformidad. Usa el botón "Responder Conformidad" para continuar.
+                  Pendiente de evaluación de conformidad. Usa el botón &quot;Responder Conformidad&quot; para continuar.
                 </p>
               )}
               <div className={`grid gap-4 ${requesterIsAdmin ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
@@ -952,6 +955,15 @@ function AdminOrdenDetallePage() {
                       height={48}
                       className="h-12 object-contain"
                     />
+                  ) : needsConformityAsRequester && isRequesterViewer ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsConformityOpen(true)}
+                      className="bg-transparent border-amber-500/50 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                    >
+                      <ClipboardList className="h-3 w-3 mr-2" /> Responder Conformidad
+                    </Button>
                   ) : canRequesterSign ? (
                     <Button
                       variant="outline"
@@ -963,7 +975,7 @@ function AdminOrdenDetallePage() {
                     </Button>
                   ) : (
                     <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
-                      Pendiente
+                      {pendingConformity ? 'Conformidad pendiente' : 'Pendiente'}
                     </span>
                   )}
                 </div>
