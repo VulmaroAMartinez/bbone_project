@@ -110,7 +110,6 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
     if (isTechnician) {
       const main: NavItem[] = [
         { href: '/tecnico/pendientes', label: 'Mis Pendientes', icon: ClipboardList },
-        ...(isBoss ? [{ href: '/tecnico/mis-ordenes', label: 'Mis Órdenes', icon: ClipboardList } as NavItem] : []),
         { href: '/horario', label: 'Mi Horario', icon: Calendar },
         { href: '/tecnico/asignaciones', label: 'Historial', icon: FileText },
         { href: '/tecnico/horas-extra', label: 'Horas Extra', icon: Timer },
@@ -119,11 +118,11 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
         return {
           main,
           boss: [
+            { href: '/tecnico/mis-ordenes', label: 'Mis Órdenes', icon: ClipboardList },
             { href: '/solicitud-material', label: 'Solicitud de material', icon: FileCog2 },
             { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
             { href: '/hallazgos', label: 'Hallazgos', icon: Search },
             { href: '/admin/ordenes-programadas', label: 'Programadas', icon: Calendar },
-            { href: '/admin/ordenes', label: 'Órdenes', icon: ClipboardList },
           ],
         };
       }

@@ -144,7 +144,8 @@ function getCompatibleShiftIds(
 function AdminOrdenDetallePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isBoss } = useAuth();
+  const canManageWorkOrder = isAdmin || isBoss;
   const apolloClient = useApolloClient();
   const [manageOpen, setManageOpen] = useState(false);
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
@@ -497,10 +498,17 @@ function AdminOrdenDetallePage() {
     user?.id === requester?.id &&
     !requesterSignature &&
     !!user?.roles?.some((role: { name?: string }) => role.name === 'ADMIN');
+  const isRequesterViewer = user?.id === requester?.id;
+  const canRequesterSign =
+    isRequesterViewer &&
+    !requesterIsAdmin &&
+    !requesterSignature &&
+    (isTemporaryRepair || order.status === 'FINISHED') &&
+    !pendingConformity;
   const canShowSignWorkOrder =
     (isTemporaryRepair || order.status === 'FINISHED') &&
     !pendingConformity &&
-    (canCurrentAdminSign || canAdminRequesterSign);
+    (canCurrentAdminSign || canAdminRequesterSign || canRequesterSign);
   const needsMySignature = canShowSignWorkOrder;
 
   // Fotos
@@ -527,7 +535,7 @@ function AdminOrdenDetallePage() {
 
       {/* Action buttons del Admin */}
       <div className="flex flex-wrap gap-3 p-4 bg-muted/30 rounded-lg border border-border">
-        {!isCompleted && !isCancelled && isAdmin && (
+        {!isCompleted && !isCancelled && canManageWorkOrder && (
           <Button onClick={openManageDialog} className="gap-2 shadow-sm">
             <Settings className="h-4 w-4" />
             Gestionar OT {isPending ? 'y Asignar' : ''}
@@ -554,7 +562,11 @@ function AdminOrdenDetallePage() {
         {needsMySignature && (
           <Button onClick={() => setIsSignModalOpen(true)} className="gap-2 bg-success hover:bg-success/90 text-success-foreground shadow-sm">
             <Pen className="h-4 w-4" />
-            {canAdminRequesterSign ? 'Firmar (solicitante / administrador)' : 'Firmar como Administrador'}
+            {canRequesterSign
+              ? 'Firmar como solicitante'
+              : canAdminRequesterSign
+                ? 'Firmar (solicitante / administrador)'
+                : 'Firmar como Administrador'}
           </Button>
         )}
         <Button
@@ -940,6 +952,15 @@ function AdminOrdenDetallePage() {
                       height={48}
                       className="h-12 object-contain"
                     />
+                  ) : canRequesterSign ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsSignModalOpen(true)}
+                      className="bg-background shadow-sm border-primary/50 text-primary hover:bg-primary/10"
+                    >
+                      <Pen className="h-3 w-3 mr-2" /> Firmar
+                    </Button>
                   ) : (
                     <span className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
                       Pendiente
@@ -1011,7 +1032,7 @@ function AdminOrdenDetallePage() {
       </div>
 
       {/* Modal Súper-Gestionar OT */}
-      {isAdmin && (
+      {canManageWorkOrder && (
         <ManageWorkOrderDialog
           open={manageOpen}
           onOpenChange={setManageOpen}
@@ -1089,7 +1110,13 @@ function AdminOrdenDetallePage() {
         isOpen={isSignModalOpen}
         onClose={() => setIsSignModalOpen(false)}
         onSave={handleSaveSignature}
-        title={requesterIsAdmin ? 'Firma del Solicitante / Administrador' : 'Firma del Administrador'}
+        title={
+          canRequesterSign
+            ? 'Firma del Solicitante'
+            : requesterIsAdmin
+              ? 'Firma del Solicitante / Administrador'
+              : 'Firma del Administrador'
+        }
       />
 
       {/* Modal Conformidad — cuando el admin es el solicitante */}
