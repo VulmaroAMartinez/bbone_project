@@ -68,7 +68,7 @@ export default function MisOrdenesJefePage() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Mis órdenes</h1>
           <p className="text-muted-foreground">Órdenes de trabajo que has solicitado</p>
         </div>
-        <Button className="gap-2" onClick={() => navigate('/tecnico/crear-ot')}>
+        <Button className="gap-2" onClick={() => navigate('/admin/crear-ot')}>
           <Plus className="h-4 w-4" />
           Nueva solicitud
         </Button>
@@ -131,7 +131,7 @@ export default function MisOrdenesJefePage() {
                 area={area}
                 subArea={subArea}
                 leadTechnician={leadTechnician}
-                onClick={() => navigate(`/tecnico/mis-ordenes/${order.id}`)}
+                onClick={() => navigate(`/admin/orden/${order.id}`)}
               />
             );
           })

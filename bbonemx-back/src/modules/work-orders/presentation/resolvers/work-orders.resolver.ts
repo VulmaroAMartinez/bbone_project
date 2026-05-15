@@ -280,7 +280,7 @@ export class WorkOrdersResolver {
 
   @Mutation(() => WorkOrderType)
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   updateWorkOrder(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: UpdateWorkOrderInput,

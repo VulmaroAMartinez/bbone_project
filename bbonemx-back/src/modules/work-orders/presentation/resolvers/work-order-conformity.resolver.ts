@@ -29,7 +29,7 @@ export class WorkOrderConformityResolver {
    * - Si no conforme: reinicia OT a IN_PROGRESS
    */
   @Mutation(() => WorkOrderConformityRecordType)
-  @Roles(Role.REQUESTER, Role.ADMIN)
+  @Roles(Role.REQUESTER, Role.ADMIN, Role.BOSS)
   async respondConformity(
     @Args('input') input: RespondConformityInput,
     @CurrentUser() user: User,
