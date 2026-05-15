@@ -11,10 +11,12 @@ import type { Response } from 'express';
 import { Type } from 'class-transformer';
 import { IsOptional, IsString, ValidateNested } from 'class-validator';
 
+import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { Role } from '../../../../common/enums/role.enum';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
+import { User } from '../../../users/domain/entities';
 
 import {
   ActivityFiltersInput,
@@ -59,6 +61,7 @@ export class ActivitiesPdfController {
   async exportPdf(
     @Body() body: ExportActivitiesPdfBodyDto,
     @Res() res: Response,
+    @CurrentUser() user: User,
   ): Promise<void> {
     const filters = body?.filters ?? {};
     const sort = body?.sort ?? {
@@ -81,6 +84,7 @@ export class ActivitiesPdfController {
         filters,
         sort,
         this.BATCH_SIZE,
+        user,
       );
       await this.pdfGeneratorService.streamTablePdfToWritable(
         data,

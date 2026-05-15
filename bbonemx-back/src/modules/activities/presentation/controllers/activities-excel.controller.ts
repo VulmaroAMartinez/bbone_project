@@ -1,8 +1,10 @@
 import { Body, Controller, Logger, Post, Res, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { Role } from '../../../../common/enums/role.enum';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
+import { User } from '../../../users/domain/entities';
 import type { Response } from 'express';
 import { Type } from 'class-transformer';
 import { IsOptional, IsString, ValidateNested } from 'class-validator';
@@ -45,6 +47,7 @@ export class ActivitiesExcelController {
   async exportExcel(
     @Body() body: ExportActivitiesExcelBodyDto,
     @Res() res: Response,
+    @CurrentUser() user: User,
   ): Promise<void> {
     const filters = body?.filters ?? {};
     const sort = body?.sort ?? {
@@ -63,7 +66,10 @@ export class ActivitiesExcelController {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-store');
 
-    const rowCount = await this.activitiesService.countForExcelExport(filters);
+    const rowCount = await this.activitiesService.countForExcelExport(
+      filters,
+      user,
+    );
 
     try {
       if (rowCount > this.STREAMING_ROW_THRESHOLD) {
@@ -72,6 +78,7 @@ export class ActivitiesExcelController {
           sort,
           res,
           this.BATCH_SIZE,
+          user,
         );
 
         if (!res.writableEnded) {
@@ -83,6 +90,7 @@ export class ActivitiesExcelController {
       const buffer = await this.activitiesService.exportToExcelBuffer(
         filters,
         sort,
+        user,
       );
       res.status(200).end(buffer);
     } catch (err) {

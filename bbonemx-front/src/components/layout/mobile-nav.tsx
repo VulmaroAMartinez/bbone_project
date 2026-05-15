@@ -122,6 +122,7 @@ export function MobileNav({ onClose }: MobileNavProps) {
             { href: '/seguimiento-solicitudes', label: 'Seguimiento SM', icon: ClipboardCheck },
             { href: '/hallazgos', label: 'Hallazgos', icon: Search },
             { href: '/admin/ordenes-programadas', label: 'Programadas', icon: Calendar },
+            { href: '/admin/actividades', label: 'Agenda', icon: ListChecks },
           ],
         };
       }

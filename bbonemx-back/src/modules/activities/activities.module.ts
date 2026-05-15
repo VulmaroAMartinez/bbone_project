@@ -24,6 +24,7 @@ import {
 import { ActivitiesResolver } from './presentation/resolvers';
 import { AreasModule } from '../catalogs/areas/areas.module';
 import { MachinesModule } from '../catalogs/machines/machines.module';
+import { TechniciansModule } from '../catalogs/technicians/technicians.module';
 import { UsersModule } from '../users/users.module';
 import { WorkOrdersModule } from '../work-orders/work-orders.module';
 import { MaterialRequestsModule } from '../material-requests/material-requests.module';
@@ -41,6 +42,7 @@ import { ActivitiesPdfController } from './presentation/controllers/activities-p
     ]),
     AreasModule,
     MachinesModule,
+    TechniciansModule,
     UsersModule,
     WorkOrdersModule,
     MaterialRequestsModule,

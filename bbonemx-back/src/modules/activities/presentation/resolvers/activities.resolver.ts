@@ -63,11 +63,13 @@ export class ActivitiesResolver {
     @Args('pagination', { nullable: true })
     pagination?: ActivityPaginationInput,
     @Args('sort', { nullable: true }) sort?: ActivitySortInput,
+    @CurrentUser() user?: User,
   ): Promise<ActivityPaginatedResponse> {
     const { data, total } = await this.activitiesService.findWithFilters(
       filters || {},
       pagination || { page: 1, limit: 20 },
       sort || { field: ActivitySortField.CREATED_AT, order: SortOrder.DESC },
+      user,
     );
     const page = pagination?.page || 1;
     const limit = pagination?.limit || 20;
@@ -89,17 +91,23 @@ export class ActivitiesResolver {
   async exportActivitiesExcel(
     @Args('filters', { nullable: true }) filters?: ActivityFiltersInput,
     @Args('sort', { nullable: true }) sort?: ActivitySortInput,
+    @CurrentUser() user?: User,
   ): Promise<string> {
     return this.activitiesService.exportToExcel(
       filters || {},
       sort || { field: ActivitySortField.CREATED_AT, order: SortOrder.DESC },
+      user,
     );
   }
 
   @Query(() => ActivityType, { name: 'activity', nullable: true })
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.BOSS)
-  async findById(@Args('id', { type: () => ID }) id: string) {
+  async findById(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user?: User,
+  ) {
+    await this.activitiesService.assertBossCanAccessActivity(id, user);
     return this.activitiesService.findById(id);
   }
 
@@ -117,12 +125,13 @@ export class ActivitiesResolver {
 
   @Mutation(() => ActivityType)
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   async updateActivity(
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: UpdateActivityInput,
     @CurrentUser() user: User,
   ) {
+    await this.activitiesService.assertBossCanAccessActivity(id, user);
     return this.activitiesService.update(id, input, user.id);
   }
 
@@ -136,11 +145,13 @@ export class ActivitiesResolver {
 
   @Mutation(() => ActivityType)
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   async updateActivityPriority(
     @Args('id', { type: () => ID }) id: string,
     @Args('priority') priority: boolean,
+    @CurrentUser() user: User,
   ) {
+    await this.activitiesService.assertBossCanAccessActivity(id, user);
     return this.activitiesService.updatePriority(id, priority);
   }
 
@@ -148,10 +159,15 @@ export class ActivitiesResolver {
 
   @Mutation(() => ActivityWorkOrderType)
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   async addActivityWorkOrder(
     @Args('input') input: AddActivityWorkOrderByFolioInput,
+    @CurrentUser() user: User,
   ) {
+    await this.activitiesService.assertBossCanAccessActivity(
+      input.activityId,
+      user,
+    );
     return this.activityWorkOrdersService.addByFolio(
       input.activityId,
       input.folio,
@@ -160,11 +176,13 @@ export class ActivitiesResolver {
 
   @Mutation(() => Boolean)
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   async removeActivityWorkOrder(
     @Args('activityId', { type: () => ID }) activityId: string,
     @Args('workOrderId', { type: () => ID }) workOrderId: string,
+    @CurrentUser() user: User,
   ) {
+    await this.activitiesService.assertBossCanAccessActivity(activityId, user);
     await this.activityWorkOrdersService.remove(activityId, workOrderId);
     return true;
   }
@@ -173,10 +191,15 @@ export class ActivitiesResolver {
 
   @Mutation(() => ActivityMaterialRequestType)
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   async addActivityMaterialRequest(
     @Args('input') input: AddActivityMaterialRequestByFolioInput,
+    @CurrentUser() user: User,
   ) {
+    await this.activitiesService.assertBossCanAccessActivity(
+      input.activityId,
+      user,
+    );
     return this.activityMaterialRequestsService.addByFolio(
       input.activityId,
       input.folio,
@@ -185,11 +208,13 @@ export class ActivitiesResolver {
 
   @Mutation(() => Boolean)
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   async removeActivityMaterialRequest(
     @Args('activityId', { type: () => ID }) activityId: string,
     @Args('materialRequestId', { type: () => ID }) materialRequestId: string,
+    @CurrentUser() user: User,
   ) {
+    await this.activitiesService.assertBossCanAccessActivity(activityId, user);
     await this.activityMaterialRequestsService.remove(
       activityId,
       materialRequestId,
