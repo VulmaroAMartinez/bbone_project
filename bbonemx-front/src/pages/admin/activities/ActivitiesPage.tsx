@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { useOfflineAwareQuery } from '@/hooks/useOfflineAwareQuery';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -106,6 +107,8 @@ const statusColors: Record<string, string> = {
 
 export default function ActivitiesPage() {
   const navigate = useNavigate();
+  const { user, isBoss, isAdmin } = useAuth();
+  const isBossAgendaView = isBoss && !isAdmin;
   const [searchParams, setSearchParams] = useSearchParams();
   const statusParam = searchParams.get('status');
   const initialStatusFilter: ActivityStatus | 'all' =
@@ -147,6 +150,18 @@ export default function ActivitiesPage() {
   const [exporting, setExporting] = useState(false);
 
   const { data: filtersData } = useQuery<FiltersDataQuery>(GET_FILTERS_DATA);
+
+  const myTechnicianId = useMemo(() => {
+    if (!isBossAgendaView || !user?.id) return '';
+    return (
+      filtersData?.techniciansActive?.find((t) => t.user.id === user.id)?.id ?? ''
+    );
+  }, [filtersData?.techniciansActive, isBossAgendaView, user?.id]);
+
+  const queryTechnicianId = isBossAgendaView
+    ? myTechnicianId || undefined
+    : technicianFilter || undefined;
+
   const { data: machinesData } = useQuery<{ machinesByArea: Array<{ id: string; name: string }> }>(
     GetMachinesByAreaDocument,
     {
@@ -160,7 +175,7 @@ export default function ActivitiesPage() {
       filters: {
         areaId: areaFilter || undefined,
         machineId: machineFilter || undefined,
-        technicianId: technicianFilter || undefined,
+        technicianId: queryTechnicianId,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         priority: priorityFilter || undefined,
         search: searchTerm || undefined,
@@ -235,7 +250,7 @@ export default function ActivitiesPage() {
           filters: {
             areaId: areaFilter || undefined,
             machineId: machineFilter || undefined,
-            technicianId: technicianFilter || undefined,
+            technicianId: queryTechnicianId,
             status: statusFilter !== 'all' ? statusFilter : undefined,
             priority: priorityFilter || undefined,
             search: searchTerm || undefined,
@@ -278,7 +293,7 @@ export default function ActivitiesPage() {
             filters: {
               areaId: areaFilter || undefined,
               machineId: machineFilter || undefined,
-              technicianId: technicianFilter || undefined,
+              technicianId: queryTechnicianId,
               status: statusFilter !== 'all' ? statusFilter : undefined,
               priority: priorityFilter || undefined,
               search: searchTerm || undefined,
@@ -316,7 +331,13 @@ export default function ActivitiesPage() {
   );
 
   const technicianOptions = useMemo(
-    () => (filtersData?.techniciansActive || []).map((t: { id: string; user: { id: string; fullName: string } }) => ({ value: t.user.id, label: t.user.fullName })),
+    () =>
+      (filtersData?.techniciansActive || []).map(
+        (t: { id: string; user: { id: string; fullName: string } }) => ({
+          value: t.id,
+          label: t.user.fullName,
+        }),
+      ),
     [filtersData],
   );
 
@@ -370,7 +391,7 @@ export default function ActivitiesPage() {
     searchTerm.trim() !== '' ||
     areaFilter !== '' ||
     machineFilter !== '' ||
-    technicianFilter !== '' ||
+    (!isBossAgendaView && technicianFilter !== '') ||
     statusFilter !== 'all' ||
     priorityFilter;
 
@@ -393,7 +414,14 @@ export default function ActivitiesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
+          {isBossAgendaView && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Solo actividades donde eres responsable
+            </p>
+          )}
+        </div>
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -411,9 +439,11 @@ export default function ActivitiesPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button onClick={() => navigate('/admin/actividades/nueva')}>
-            <Plus className="h-4 w-4 mr-2" /> Nueva Actividad
-          </Button>
+          {!isBossAgendaView && (
+            <Button onClick={() => navigate('/admin/actividades/nueva')}>
+              <Plus className="h-4 w-4 mr-2" /> Nueva Actividad
+            </Button>
+          )}
         </div>
       </div>
 
@@ -437,13 +467,15 @@ export default function ActivitiesPage() {
               placeholder="Filtrar por área"
               searchPlaceholder="Buscar área..."
             />
-            <Combobox
-              options={technicianOptions}
-              value={technicianFilter}
-              onValueChange={(v) => { setTechnicianFilter(v); setPage(1); }}
-              placeholder="Filtrar por responsable"
-              searchPlaceholder="Buscar responsable..."
-            />
+            {!isBossAgendaView && (
+              <Combobox
+                options={technicianOptions}
+                value={technicianFilter}
+                onValueChange={(v) => { setTechnicianFilter(v); setPage(1); }}
+                placeholder="Filtrar por responsable"
+                searchPlaceholder="Buscar responsable..."
+              />
+            )}
             <Combobox
               options={machineOptions}
               value={machineFilter}
@@ -603,12 +635,14 @@ export default function ActivitiesPage() {
                             <DropdownMenuItem onClick={() => navigate(`/admin/actividades/${act.id}/solicitudes`)}>
                               <FileText className="h-4 w-4 mr-2" /> Solicitudes de material
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDelete(act.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" /> Eliminar
-                            </DropdownMenuItem>
+                            {!isBossAgendaView && (
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDelete(act.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

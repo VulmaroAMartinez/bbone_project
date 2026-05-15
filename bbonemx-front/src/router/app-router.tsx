@@ -72,6 +72,12 @@ export function AppRouter() {
             <Route path="/hallazgos/nuevo" element={<NewFindingPage />} />
             <Route path="/hallazgos/:id/editar" element={<FindingFeedbackPage />} />
           </Route>
+          <Route element={<ShellLayout title="Agenda" />}>
+            <Route path="/admin/actividades" element={<ActivitiesPage />} />
+            <Route path="/admin/actividades/:id/editar" element={<ActivityFormPage />} />
+            <Route path="/admin/actividades/:id/ordenes" element={<ActivityWorkOrdersPage />} />
+            <Route path="/admin/actividades/:id/solicitudes" element={<ActivityMaterialRequestsPage />} />
+          </Route>
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} />}>

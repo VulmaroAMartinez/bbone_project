@@ -1,10 +1,17 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ActivitiesRepository } from '../../infrastructure/repositories/activities.repository';
 import { ActivityTechniciansRepository } from '../../infrastructure/repositories/activity-technicians.repository';
 import { AreasService } from 'src/modules/catalogs/areas/application/services/areas.service';
 import { MachinesService } from 'src/modules/catalogs/machines/application/services/machines.service';
+import { TechniciansRepository } from 'src/modules/catalogs/technicians/infrastructure/repositories/technicians.repository';
 import { ExcelGeneratorService } from 'src/infrastructure/excel';
 import { Activity } from '../../domain/entities';
+import { User } from 'src/modules/users/domain/entities';
 import { CreateActivityInput, UpdateActivityInput } from '../dto/activity.dto';
 import {
   ActivityFiltersInput,
@@ -21,10 +28,50 @@ export class ActivitiesService {
   constructor(
     private readonly activitiesRepository: ActivitiesRepository,
     private readonly activityTechniciansRepository: ActivityTechniciansRepository,
+    private readonly techniciansRepository: TechniciansRepository,
     private readonly areasService: AreasService,
     private readonly machinesService: MachinesService,
     private readonly excelGeneratorService: ExcelGeneratorService,
   ) {}
+
+  private async resolveTechnicianIdForBoss(user: User): Promise<string> {
+    const technician = await this.techniciansRepository.findByUserId(user.id);
+    if (!technician) {
+      throw new ForbiddenException(
+        'No se encontró un perfil de técnico asociado a tu usuario',
+      );
+    }
+    return technician.id;
+  }
+
+  async scopeFiltersForUser(
+    filters: ActivityFiltersInput,
+    user?: User,
+  ): Promise<ActivityFiltersInput> {
+    if (!user?.isBoss() || user.isAdmin()) {
+      return filters;
+    }
+    const technicianId = await this.resolveTechnicianIdForBoss(user);
+    return { ...filters, technicianId };
+  }
+
+  async assertBossCanAccessActivity(
+    activityId: string,
+    user?: User,
+  ): Promise<void> {
+    if (!user?.isBoss() || user.isAdmin()) {
+      return;
+    }
+    const technicianId = await this.resolveTechnicianIdForBoss(user);
+    const assignments =
+      await this.activityTechniciansRepository.findByActivityId(activityId);
+    const isResponsible = assignments.some(
+      (assignment) => assignment.technicianId === technicianId,
+    );
+    if (!isResponsible) {
+      throw new ForbiddenException('No tienes acceso a esta actividad');
+    }
+  }
 
   async findAll(): Promise<Activity[]> {
     return this.activitiesRepository.findAll();
@@ -46,8 +93,14 @@ export class ActivitiesService {
     filters: ActivityFiltersInput,
     pagination: ActivityPaginationInput,
     sort: ActivitySortInput,
+    user?: User,
   ): Promise<{ data: Activity[]; total: number }> {
-    return this.activitiesRepository.findWithFilters(filters, pagination, sort);
+    const scopedFilters = await this.scopeFiltersForUser(filters, user);
+    return this.activitiesRepository.findWithFilters(
+      scopedFilters,
+      pagination,
+      sort,
+    );
   }
 
   async create(input: CreateActivityInput, userId: string): Promise<Activity> {
@@ -143,9 +196,11 @@ export class ActivitiesService {
   async exportToExcel(
     filters: ActivityFiltersInput,
     sort: ActivitySortInput,
+    user?: User,
   ): Promise<string> {
+    const scopedFilters = await this.scopeFiltersForUser(filters, user);
     const data = await this.activitiesRepository.findAllWithFilters(
-      filters,
+      scopedFilters,
       sort,
     );
     const buffer = await this.excelGeneratorService.generateExcelBuffer(
@@ -155,17 +210,23 @@ export class ActivitiesService {
     return buffer.toString('base64');
   }
 
-  async countForExcelExport(filters: ActivityFiltersInput): Promise<number> {
-    return this.activitiesRepository.countForExcelExport(filters);
+  async countForExcelExport(
+    filters: ActivityFiltersInput,
+    user?: User,
+  ): Promise<number> {
+    const scopedFilters = await this.scopeFiltersForUser(filters, user);
+    return this.activitiesRepository.countForExcelExport(scopedFilters);
   }
 
   async exportToExcelBuffer(
     filters: ActivityFiltersInput,
     sort: ActivitySortInput,
+    user?: User,
   ): Promise<Buffer> {
+    const scopedFilters = await this.scopeFiltersForUser(filters, user);
     const startedAt = Date.now();
     const data = await this.activitiesRepository.findAllWithFilters(
-      filters,
+      scopedFilters,
       sort,
     );
     const buffer = await this.excelGeneratorService.generateExcelBuffer(
@@ -185,11 +246,13 @@ export class ActivitiesService {
     sort: ActivitySortInput,
     writable: NodeJS.WritableStream,
     batchSize = 500,
+    user?: User,
   ): Promise<void> {
+    const scopedFilters = await this.scopeFiltersForUser(filters, user);
     const startedAt = Date.now();
     let rowsYielded = 0;
     const streamGenerator = this.createExcelRowStream(
-      filters,
+      scopedFilters,
       sort,
       batchSize,
       () => {
@@ -213,11 +276,13 @@ export class ActivitiesService {
     filters: ActivityFiltersInput,
     sort: ActivitySortInput,
     batchSize = 500,
+    user?: User,
   ): AsyncGenerator<Activity> {
+    const scopedFilters = await this.scopeFiltersForUser(filters, user);
     let page = 1;
     while (true) {
       const batch = await this.activitiesRepository.findAllWithFiltersBatch(
-        filters,
+        scopedFilters,
         sort,
         { page, limit: batchSize },
       );
