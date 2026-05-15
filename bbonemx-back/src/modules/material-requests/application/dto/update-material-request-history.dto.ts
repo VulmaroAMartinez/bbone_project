@@ -1,4 +1,4 @@
-import { InputType, Field, ID } from '@nestjs/graphql';
+import { InputType, Field, ID, Float } from '@nestjs/graphql';
 import {
   IsNotEmpty,
   IsUUID,
@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   IsDate,
+  IsNumber,
 } from 'class-validator';
 import { StatusHistoryMR } from 'src/common';
 
@@ -52,4 +53,14 @@ export class UpdateMaterialRequestHistoryInput {
   @IsOptional()
   @IsDate({ message: 'La fecha de entrega debe ser una fecha válida' })
   deliveryDate?: Date;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  quotationNumber?: string;
+
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @IsNumber()
+  quotationCost?: number;
 }

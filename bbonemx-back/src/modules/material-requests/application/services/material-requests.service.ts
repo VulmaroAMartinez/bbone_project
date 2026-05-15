@@ -908,6 +908,8 @@ export class MaterialRequestsService {
         purchaseOrder: input.purchaseOrder,
         deliveryMerchandise: input.deliveryMerchandise,
         supplier: input.supplier,
+        quotationNumber: input.quotationNumber,
+        quotationCost: input.quotationCost,
         progressPercentage,
         ...(input.deliveryDate !== undefined && {
           deliveryDate: input.deliveryDate,
@@ -979,6 +981,8 @@ export class MaterialRequestsService {
       { header: 'Estatus seguimiento', key: 'estatusSeguimiento', width: 22 },
       { header: 'S.C.', key: 'solicitudCompra', width: 16 },
       { header: 'O.C.', key: 'ordenCompra', width: 16 },
+      { header: 'Núm. cotización', key: 'numeroCotizacion', width: 18 },
+      { header: 'Costo cotización', key: 'costoCotizacion', width: 16 },
       { header: 'E.M.', key: 'entregaMercancia', width: 16 },
       { header: 'Proveedor (compras)', key: 'proveedorCompras', width: 22 },
       {
@@ -1008,7 +1012,7 @@ export class MaterialRequestsService {
     headerRow.height = 18;
     ws.autoFilter = {
       from: { row: 1, column: 1 },
-      to: { row: 1, column: ws.columns?.length ?? 36 },
+      to: { row: 1, column: ws.columns?.length ?? 38 },
     };
 
     for (const r of filtered) {
@@ -1042,6 +1046,9 @@ export class MaterialRequestsService {
           : '',
         solicitudCompra: h?.purchaseRequest ?? '',
         ordenCompra: h?.purchaseOrder ?? '',
+        numeroCotizacion: h?.quotationNumber ?? '',
+        costoCotizacion:
+          h?.quotationCost != null ? String(h.quotationCost) : '',
         entregaMercancia: h?.deliveryMerchandise ?? '',
         proveedorCompras: h?.supplier ?? '',
         fechaEntregaEstimada: h?.estimatedDeliveryDate

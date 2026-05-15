@@ -414,6 +414,8 @@ export const GET_MATERIAL_REQUEST_HISTORIES_QUERY = gql`
         estimatedDeliveryDate
         progressPercentage
         supplier
+        quotationNumber
+        quotationCost
       }
     }
   }
@@ -434,6 +436,8 @@ export const UPDATE_MATERIAL_REQUEST_HISTORY_MUTATION = gql`
         estimatedDeliveryDate
         progressPercentage
         supplier
+        quotationNumber
+        quotationCost
       }
     }
   }

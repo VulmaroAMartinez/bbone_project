@@ -872,6 +872,8 @@ type MaterialRequestHistory {
   progressPercentage: Int
   purchaseOrder: String
   purchaseRequest: String
+  quotationCost: Float
+  quotationNumber: String
   status: StatusHistoryMR!
   supplier: String
   updatedAt: DateTime!
@@ -1808,6 +1810,8 @@ input UpdateMaterialRequestHistoryInput {
   materialRequestId: ID!
   purchaseOrder: String
   purchaseRequest: String
+  quotationCost: Float
+  quotationNumber: String
   status: StatusHistoryMR!
   supplier: String
 }

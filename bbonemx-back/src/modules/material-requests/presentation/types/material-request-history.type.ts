@@ -1,4 +1,4 @@
-import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
+import { ObjectType, Field, ID, Int, Float } from '@nestjs/graphql';
 import { StatusHistoryMR } from 'src/common';
 
 @ObjectType('MaterialRequestHistory')
@@ -13,6 +13,8 @@ export class MaterialRequestHistoryType {
   @Field(() => Date, { nullable: true }) estimatedDeliveryDate?: Date | null;
   @Field(() => Int, { nullable: true }) progressPercentage?: number;
   @Field({ nullable: true }) supplier?: string;
+  @Field({ nullable: true }) quotationNumber?: string;
+  @Field(() => Float, { nullable: true }) quotationCost?: number;
   @Field() isActive: boolean;
   @Field() createdAt: Date;
   @Field() updatedAt: Date;
