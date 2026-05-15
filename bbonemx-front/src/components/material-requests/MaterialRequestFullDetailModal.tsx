@@ -173,6 +173,8 @@ export function MaterialRequestFullDetailModal({
                       <TableHead>Fecha</TableHead>
                       <TableHead>S.C.</TableHead>
                       <TableHead>O.C.</TableHead>
+                      <TableHead>Núm. cotización</TableHead>
+                      <TableHead>Costo cotización</TableHead>
                       <TableHead>E.M.</TableHead>
                       <TableHead>Proveedor</TableHead>
                       <TableHead>F. estimada</TableHead>
@@ -184,7 +186,7 @@ export function MaterialRequestFullDetailModal({
                     {(request.histories ?? []).length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={9}
+                          colSpan={11}
                           className="text-center text-muted-foreground"
                         >
                           Sin historial
@@ -207,6 +209,14 @@ export function MaterialRequestFullDetailModal({
                             </TableCell>
                             <TableCell>{h.purchaseRequest || '—'}</TableCell>
                             <TableCell>{h.purchaseOrder || '—'}</TableCell>
+                            <TableCell>{h.quotationNumber || '—'}</TableCell>
+                            <TableCell>
+                              {h.quotationCost != null
+                                ? Number(h.quotationCost).toLocaleString('es-MX', {
+                                    minimumFractionDigits: 2,
+                                  })
+                                : '—'}
+                            </TableCell>
                             <TableCell>{h.deliveryMerchandise || '—'}</TableCell>
                             <TableCell>{h.supplier || '—'}</TableCell>
                             <TableCell>

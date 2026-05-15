@@ -141,6 +141,8 @@ interface EditFormValues {
   purchaseOrder?: string;
   deliveryMerchandise?: string;
   supplier?: string;
+  quotationNumber?: string;
+  quotationCost?: string;
   estimatedDeliveryDate?: string;
   deliveryDate?: string;
 }
@@ -172,6 +174,8 @@ const editSchema: yup.ObjectSchema<EditFormValues> = yup.object({
     then: (schema) => schema.required('La E.M. es requerida para marcar como entregado'),
   }),
   supplier: yup.string().optional(),
+  quotationNumber: yup.string().optional(),
+  quotationCost: yup.string().optional(),
   estimatedDeliveryDate: yup.string().optional(),
   deliveryDate: yup.string().optional().when('status', {
     is: 'DELIVERED',
@@ -308,6 +312,9 @@ export default function MaterialRequestHistoryPage() {
       purchaseOrder: h?.purchaseOrder ?? '',
       deliveryMerchandise: h?.deliveryMerchandise ?? '',
       supplier: h?.supplier ?? '',
+      quotationNumber: h?.quotationNumber ?? '',
+      quotationCost:
+        h?.quotationCost != null ? String(h.quotationCost) : '',
       estimatedDeliveryDate: h?.estimatedDeliveryDate
         ? String(h.estimatedDeliveryDate).split('T')[0]
         : '',
@@ -328,6 +335,10 @@ export default function MaterialRequestHistoryPage() {
             purchaseOrder: values.purchaseOrder || undefined,
             deliveryMerchandise: values.deliveryMerchandise || undefined,
             supplier: values.supplier || undefined,
+            quotationNumber: values.quotationNumber || undefined,
+            quotationCost: values.quotationCost
+              ? Number(values.quotationCost)
+              : undefined,
             estimatedDeliveryDate: values.estimatedDeliveryDate || undefined,
             deliveryDate: values.deliveryDate || undefined,
           },
@@ -481,6 +492,8 @@ export default function MaterialRequestHistoryPage() {
                     <TableHead className="whitespace-nowrap">Estatus</TableHead>
                     <TableHead className="hidden md:table-cell whitespace-nowrap">S.C.</TableHead>
                     <TableHead className="hidden md:table-cell whitespace-nowrap">O.C.</TableHead>
+                    <TableHead className="hidden xl:table-cell whitespace-nowrap">Núm. cot.</TableHead>
+                    <TableHead className="hidden xl:table-cell whitespace-nowrap">Costo cot.</TableHead>
                     <TableHead className="hidden lg:table-cell whitespace-nowrap">E.M.</TableHead>
                     <TableHead className="hidden lg:table-cell whitespace-nowrap">Área</TableHead>
                     <TableHead className="hidden md:table-cell whitespace-nowrap">Equipo(s)</TableHead>
@@ -532,6 +545,16 @@ export default function MaterialRequestHistoryPage() {
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs">
                           {h?.purchaseOrder || '—'}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell text-xs">
+                          {h?.quotationNumber || '—'}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell text-xs">
+                          {h?.quotationCost != null
+                            ? Number(h.quotationCost).toLocaleString('es-MX', {
+                                minimumFractionDigits: 2,
+                              })
+                            : '—'}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-xs">
                           {h?.deliveryMerchandise || '—'}
@@ -711,6 +734,22 @@ export default function MaterialRequestHistoryPage() {
               <div className="space-y-2">
                 <Label>Proveedor</Label>
                 <Input {...register('supplier')} placeholder="Proveedor" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Número de cotización</Label>
+                <Input {...register('quotationNumber')} placeholder="Núm. cotización" />
+              </div>
+              <div className="space-y-2">
+                <Label>Costo de cotización</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  {...register('quotationCost')}
+                  placeholder="0.00"
+                />
               </div>
             </div>
 

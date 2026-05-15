@@ -52,4 +52,16 @@ export class MaterialRequestHistory extends BaseEntity {
 
   @Column({ nullable: true })
   supplier?: string;
+
+  @Column({ name: 'quotation_number', nullable: true })
+  quotationNumber?: string;
+
+  @Column({
+    name: 'quotation_cost',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  quotationCost?: number;
 }
