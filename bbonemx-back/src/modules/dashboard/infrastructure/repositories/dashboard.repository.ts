@@ -194,10 +194,10 @@ export class DashboardRepository {
         'at',
         'at.activity_id = a.id AND at.is_active = true',
       )
-      .innerJoin('users', 'u', 'u.id = at.technician_id')
+      .innerJoin('users', 'u', 'u.id = at.technician_id AND u.is_active = true')
       .where('a.is_active = true')
       .andWhere(
-        'a.start_date >= :dateFrom AND a.start_date < :dateToExclusive',
+        'a.created_at >= :dateFrom AND a.created_at < :dateToExclusive',
         { dateFrom, dateToExclusive },
       );
 
@@ -216,7 +216,6 @@ export class DashboardRepository {
       .addGroupBy('u.first_name')
       .addGroupBy('u.last_name')
       .orderBy('"totalActivities"', 'DESC')
-      .limit(15)
       .getRawMany<{
         responsibleId: string;
         responsibleName: string;

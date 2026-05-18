@@ -41,7 +41,8 @@ export class ActivitiesService {
         'No se encontró un perfil de técnico asociado a tu usuario',
       );
     }
-    return technician.id;
+    // activity_technicians.technician_id referencia users.id, no technicians.id
+    return technician.userId;
   }
 
   async scopeFiltersForUser(

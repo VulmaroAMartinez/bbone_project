@@ -423,6 +423,9 @@ export default function DashboardPage() {
             <CardTitle className="text-foreground flex items-center gap-2 text-base">
               <Users className="h-4 w-4" /> Actividades por Responsable
             </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Actividades creadas en: {rangeLabels[rangePreset] ?? rangePreset}
+            </p>
           </CardHeader>
           <CardContent>
             <div role="img" aria-label="Gráfica de barras dobles de actividades totales vs con fecha fin por responsable">
@@ -522,6 +525,9 @@ export default function DashboardPage() {
                 <CardTitle className="text-foreground flex items-center gap-2 text-base">
                   <ArrowRight className="h-4 w-4 text-primary" /> Conversión de Hallazgos
                 </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Hallazgos creados en: {rangeLabels[rangePreset] ?? rangePreset} (no el total histórico)
+                </p>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
@@ -665,9 +671,14 @@ export default function DashboardPage() {
       <Card ref={refFindingsCollection} className="bg-card border-border shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground flex items-center gap-2 text-base">
-              <LayoutList className="h-4 w-4 text-primary" /> Hallazgos por Colección
-            </CardTitle>
+            <div>
+              <CardTitle className="text-foreground flex items-center gap-2 text-base">
+                <LayoutList className="h-4 w-4 text-primary" /> Hallazgos por Colección
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Periodo: {rangeLabels[rangePreset] ?? rangePreset} · una colección por vista
+              </p>
+            </div>
             {findingsByCollection.length > 0 && (
               <div className="flex items-center gap-2">
                 <button

@@ -334,7 +334,7 @@ export default function ActivitiesPage() {
     () =>
       (filtersData?.techniciansActive || []).map(
         (t: { id: string; user: { id: string; fullName: string } }) => ({
-          value: t.id,
+          value: t.user.id,
           label: t.user.fullName,
         }),
       ),
