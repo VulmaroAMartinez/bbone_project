@@ -9,11 +9,13 @@ import { gql } from '@apollo/client';
 import {
   ActivityItemFragmentDoc,
   GetActivityByIdDocument,
+  GetActivitiesFilteredDocument,
   GetMachinesByAreaDocument,
   MachineBasicFragmentDoc,
   CreateActivityDocument,
   UpdateActivityDocument,
 } from '@/lib/graphql/generated/graphql';
+import { useAuth } from '@/hooks/useAuth';
 import type { ActivityStatus } from '@/lib/graphql/generated/graphql';
 import { useFragment } from '@/lib/graphql/generated/fragment-masking';
 
@@ -113,7 +115,10 @@ type FormValues = Omit<yup.InferType<typeof schema>, 'endDate'> & {
 export default function ActivityFormPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { user, activeRole } = useAuth();
   const isEditing = !!id;
+  const isBossCreateView = activeRole === 'BOSS' && !isEditing;
+  const lockedBossTechnicianId = isBossCreateView ? user?.id : undefined;
 
   const { data: formData, loading: loadingFormData } = useQuery<FormDataQuery>(GET_FORM_DATA);
   const { data: activityData, loading: loadingActivity } = useQuery(
@@ -157,7 +162,9 @@ export default function ActivityFormPage() {
     skip: !selectedAreaId,
   });
 
-  const [createActivity, { loading: creating }] = useMutation(CreateActivityDocument);
+  const [createActivity, { loading: creating }] = useMutation(CreateActivityDocument, {
+    refetchQueries: [{ query: GetActivitiesFilteredDocument }],
+  });
   const [updateActivity, { loading: updating }] = useMutation(UpdateActivityDocument);
   const isSaving = creating || updating;
   const activity = useFragment(
@@ -183,6 +190,19 @@ export default function ActivityFormPage() {
       });
     }
   }, [activity, isEditing, reset]);
+
+  useEffect(() => {
+    if (!isBossCreateView || !lockedBossTechnicianId || !formData?.techniciansActive) {
+      return;
+    }
+    const hasTechnicianProfile = formData.techniciansActive.some(
+      (t) => t.user.id === lockedBossTechnicianId,
+    );
+    if (!hasTechnicianProfile) {
+      return;
+    }
+    setValue('technicianIds', [lockedBossTechnicianId], { shouldValidate: true });
+  }, [formData, isBossCreateView, lockedBossTechnicianId, setValue]);
 
   const areaOptions = useMemo(() => {
     const areas = formData?.areasActive ?? [];
@@ -214,6 +234,14 @@ export default function ActivityFormPage() {
   );
 
   const onSubmit = async (values: FormValues) => {
+    if (
+      isBossCreateView &&
+      lockedBossTechnicianId &&
+      !values.technicianIds.includes(lockedBossTechnicianId)
+    ) {
+      toast.error('Debes incluirte como responsable de la actividad');
+      return;
+    }
     try {
       if (isEditing) {
         await updateActivity({
@@ -435,21 +463,26 @@ export default function ActivityFormPage() {
                       <div className="flex flex-wrap gap-2">
                         {(field.value || []).map((techId: string) => {
                           const tech = technicianOptions.find((t) => t.value === techId);
+                          const isLocked = techId === lockedBossTechnicianId;
                           return (
                             <span
                               key={techId}
                               className="inline-flex items-center gap-1 bg-muted px-2 py-1 rounded-md text-sm"
                             >
                               {tech?.label || techId}
-                              <button
-                                type="button"
-                                className="text-muted-foreground hover:text-destructive ml-1"
-                                onClick={() =>
-                                  field.onChange((field.value || []).filter((id: string) => id !== techId))
-                                }
-                              >
-                                &times;
-                              </button>
+                              {!isLocked && (
+                                <button
+                                  type="button"
+                                  className="text-muted-foreground hover:text-destructive ml-1"
+                                  onClick={() =>
+                                    field.onChange(
+                                      (field.value || []).filter((id: string) => id !== techId),
+                                    )
+                                  }
+                                >
+                                  &times;
+                                </button>
+                              )}
                             </span>
                           );
                         })}

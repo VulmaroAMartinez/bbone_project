@@ -115,12 +115,12 @@ export class ActivitiesResolver {
 
   @Mutation(() => ActivityType)
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.BOSS)
   async createActivity(
     @Args('input') input: CreateActivityInput,
     @CurrentUser() user: User,
   ) {
-    return this.activitiesService.create(input, user.id);
+    return this.activitiesService.create(input, user);
   }
 
   @Mutation(() => ActivityType)

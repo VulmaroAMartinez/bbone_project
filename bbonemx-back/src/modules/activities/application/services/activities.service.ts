@@ -74,6 +74,21 @@ export class ActivitiesService {
     }
   }
 
+  async assertBossCanCreateActivity(
+    input: CreateActivityInput,
+    user?: User,
+  ): Promise<void> {
+    if (!user?.isBoss() || user.isAdmin()) {
+      return;
+    }
+    const technicianId = await this.resolveTechnicianIdForBoss(user);
+    if (!input.technicianIds.includes(technicianId)) {
+      throw new ForbiddenException(
+        'Debes incluirte como responsable al crear una actividad',
+      );
+    }
+  }
+
   async findAll(): Promise<Activity[]> {
     return this.activitiesRepository.findAll();
   }
@@ -104,7 +119,8 @@ export class ActivitiesService {
     );
   }
 
-  async create(input: CreateActivityInput, userId: string): Promise<Activity> {
+  async create(input: CreateActivityInput, user: User): Promise<Activity> {
+    await this.assertBossCanCreateActivity(input, user);
     await this.areasService.findByIdOrFail(input.areaId);
     if (input.machineId) {
       await this.machinesService.findByIdOrFail(input.machineId);
@@ -125,10 +141,11 @@ export class ActivitiesService {
       priority: input.priority ?? false,
     });
 
-    const technicianAssignments = input.technicianIds.map((technicianId) => ({
+    const uniqueTechnicianIds = [...new Set(input.technicianIds)];
+    const technicianAssignments = uniqueTechnicianIds.map((technicianId) => ({
       activityId: activity.id,
       technicianId,
-      assignedBy: userId,
+      assignedBy: user.id,
       assignedAt: new Date(),
     }));
     await this.activityTechniciansRepository.saveMany(technicianAssignments);
@@ -171,7 +188,8 @@ export class ActivitiesService {
 
     if (input.technicianIds) {
       await this.activityTechniciansRepository.deleteByActivityId(id);
-      const technicianAssignments = input.technicianIds.map((technicianId) => ({
+      const uniqueTechnicianIds = [...new Set(input.technicianIds)];
+      const technicianAssignments = uniqueTechnicianIds.map((technicianId) => ({
         activityId: id,
         technicianId,
         assignedBy: userId,

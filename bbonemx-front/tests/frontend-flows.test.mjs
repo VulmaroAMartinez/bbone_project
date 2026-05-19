@@ -55,6 +55,17 @@ test('login y rutas protegidas', () => {
     allowedRoles: ['ADMIN'],
   });
   assert.equal(authorized, 'allow');
+
+  const bossAuthorized = resolveProtectedRouteAccess({
+    isLoading: false,
+    isAuthenticated: true,
+    hasUser: true,
+    isUserActive: true,
+    activeRole: 'BOSS',
+    isBoss: true,
+    allowedRoles: ['BOSS'],
+  });
+  assert.equal(bossAuthorized, 'allow');
 });
 
 test('creación/cierre de OT', () => {

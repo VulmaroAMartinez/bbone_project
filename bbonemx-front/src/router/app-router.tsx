@@ -74,6 +74,7 @@ export function AppRouter() {
           </Route>
           <Route element={<ShellLayout title="Agenda" />}>
             <Route path="/admin/actividades" element={<ActivitiesPage />} />
+            <Route path="/admin/actividades/nueva" element={<ActivityFormPage />} />
             <Route path="/admin/actividades/:id/editar" element={<ActivityFormPage />} />
             <Route path="/admin/actividades/:id/ordenes" element={<ActivityWorkOrdersPage />} />
             <Route path="/admin/actividades/:id/solicitudes" element={<ActivityMaterialRequestsPage />} />
@@ -101,11 +102,6 @@ export function AppRouter() {
             <Route path="/areas/:id/maquinas" element={<AreaMachinesPage />} />
             <Route path="/areas/:id/hallazgos" element={<AreaFindingsPage />} />
             <Route path="/horas-extra" element={<OvertimePage />} />
-            <Route path="/admin/actividades" element={<ActivitiesPage />} />
-            <Route path="/admin/actividades/nueva" element={<ActivityFormPage />} />
-            <Route path="/admin/actividades/:id/editar" element={<ActivityFormPage />} />
-            <Route path="/admin/actividades/:id/ordenes" element={<ActivityWorkOrdersPage />} />
-            <Route path="/admin/actividades/:id/solicitudes" element={<ActivityMaterialRequestsPage />} />
           </Route>
         </Route>
 
