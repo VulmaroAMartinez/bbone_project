@@ -84,11 +84,16 @@ describe('ActivitiesService', () => {
     });
 
     it('permite crear actividad a BOSS cuando se incluye como responsable', async () => {
-      const input = { ...baseInput, technicianIds: ['boss-user-1', 'other-user'] };
+      const input = {
+        ...baseInput,
+        technicianIds: ['boss-user-1', 'other-user'],
+      };
 
       await service.create(input, bossUser);
 
-      expect(techniciansRepository.findByUserId).toHaveBeenCalledWith('boss-user-1');
+      expect(techniciansRepository.findByUserId).toHaveBeenCalledWith(
+        'boss-user-1',
+      );
       expect(activityTechniciansRepository.saveMany).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
@@ -135,9 +140,19 @@ describe('ActivitiesService', () => {
 
       await service.create(input, bossUser);
 
-      const saved = activityTechniciansRepository.saveMany.mock.calls[0][0];
+      type TechnicianAssignment = {
+        activityId: string;
+        technicianId: string;
+        assignedBy: string;
+        assignedAt: Date;
+      };
+      const saveManyMock = activityTechniciansRepository.saveMany as jest.Mock<
+        Promise<void>,
+        [TechnicianAssignment[]]
+      >;
+      const saved = saveManyMock.mock.calls[0]?.[0] ?? [];
       expect(saved).toHaveLength(2);
-      expect(saved.map((a: { technicianId: string }) => a.technicianId)).toEqual([
+      expect(saved.map((a) => a.technicianId)).toEqual([
         'boss-user-1',
         'other-user',
       ]);
