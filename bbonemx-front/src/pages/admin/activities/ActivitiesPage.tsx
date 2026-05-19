@@ -107,8 +107,8 @@ const statusColors: Record<string, string> = {
 
 export default function ActivitiesPage() {
   const navigate = useNavigate();
-  const { user, isBoss, isAdmin } = useAuth();
-  const isBossAgendaView = isBoss && !isAdmin;
+  const { user, isAdmin, activeRole } = useAuth();
+  const isBossAgendaView = activeRole === 'BOSS' && !isAdmin;
   const [searchParams, setSearchParams] = useSearchParams();
   const statusParam = searchParams.get('status');
   const initialStatusFilter: ActivityStatus | 'all' =
@@ -153,10 +153,9 @@ export default function ActivitiesPage() {
 
   const myTechnicianId = useMemo(() => {
     if (!isBossAgendaView || !user?.id) return '';
-    return (
-      filtersData?.techniciansActive?.find((t) => t.user.id === user.id)?.id ?? ''
-    );
-  }, [filtersData?.techniciansActive, isBossAgendaView, user?.id]);
+    // activity_technicians.technician_id referencia users.id, no technicians.id
+    return user.id;
+  }, [isBossAgendaView, user?.id]);
 
   const queryTechnicianId = isBossAgendaView
     ? myTechnicianId || undefined
@@ -439,11 +438,9 @@ export default function ActivitiesPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {!isBossAgendaView && (
-            <Button onClick={() => navigate('/admin/actividades/nueva')}>
-              <Plus className="h-4 w-4 mr-2" /> Nueva Actividad
-            </Button>
-          )}
+          <Button onClick={() => navigate('/admin/actividades/nueva')}>
+            <Plus className="h-4 w-4 mr-2" /> Nueva Actividad
+          </Button>
         </div>
       </div>
 

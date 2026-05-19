@@ -76,6 +76,7 @@ function resolveActiveRole(user: AuthUser): string | null {
   const roleNames = getRoleNames(user);
   const hasAdmin = roleNames.includes('ADMIN');
   const hasTechnician = roleNames.includes('TECHNICIAN');
+  const hasBoss = roleNames.includes('BOSS');
   const hasRequester = roleNames.includes('REQUESTER');
 
   if (hasAdmin && hasTechnician) {
@@ -84,6 +85,7 @@ function resolveActiveRole(user: AuthUser): string | null {
   }
   if (hasAdmin) return 'ADMIN';
   if (hasTechnician) return 'TECHNICIAN';
+  if (hasBoss) return 'BOSS';
   if (hasRequester) return 'REQUESTER';
   return null;
 }
