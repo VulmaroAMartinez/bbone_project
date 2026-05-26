@@ -200,7 +200,7 @@ export class WorkOrderPdfService implements OnModuleInit {
   // ── Date helpers ─────────────────────────────────────────────────────────
 
   private formatDate(date?: Date | null): string {
-    if (!date) return 'N/A';
+    if (!date) return '';
     return new Date(date).toLocaleDateString('es-MX', {
       day: '2-digit',
       month: '2-digit',
@@ -209,7 +209,7 @@ export class WorkOrderPdfService implements OnModuleInit {
   }
 
   private formatDateTime(date?: Date | null): string {
-    if (!date) return 'N/A';
+    if (!date) return '';
     return new Date(date).toLocaleString('es-MX', {
       day: '2-digit',
       month: '2-digit',
@@ -301,37 +301,37 @@ export class WorkOrderPdfService implements OnModuleInit {
   ): any {
     const requesterName = wo.requester
       ? `${wo.requester.firstName} ${wo.requester.lastName}`
-      : 'N/A';
+      : '';
 
     const areaText = wo.area
       ? wo.area.name + (wo.subArea ? ` / ${wo.subArea.name}` : '')
-      : 'N/A';
+      : '';
 
     const machineText = wo.machine
       ? `${wo.machine.code ?? ''} - ${wo.machine.name ?? ''}`.trim()
-      : 'N/A';
+      : '';
 
     const techLines = technicians.map((t) => {
       const name = t.technician
         ? `${t.technician.firstName} ${t.technician.lastName}`
-        : 'N/A';
+        : '';
       const role = t.isLead ? 'Técnico Líder' : 'Técnico Auxiliar';
-      return `${name} (${role})`;
-    });
+      return name ? `${name} (${role})` : '';
+    }).filter(Boolean);
     const techText =
-      techLines.length > 0 ? techLines.join('\n') : 'Sin asignar';
+      techLines.length > 0 ? techLines.join('\n') : '';
 
     const priorityText = wo.priority
       ? (PRIORITY_LABELS[String(wo.priority)] ?? String(wo.priority))
-      : 'N/A';
+      : '';
 
     const workTypeText = wo.workType
       ? (WORK_TYPE_LABELS[String(wo.workType)] ?? String(wo.workType))
-      : 'N/A';
+      : '';
 
     const stopTypeText = wo.stopType
       ? (STOP_TYPE_LABELS[String(wo.stopType)] ?? String(wo.stopType))
-      : 'N/A';
+      : '';
 
     const L = { bold: true, fontSize: 9, fillColor: '#F0F4F8' };
     const V = { fontSize: 9 };
@@ -355,7 +355,7 @@ export class WorkOrderPdfService implements OnModuleInit {
               row('Prioridad:', priorityText),
               row('Tipo de trabajo:', workTypeText),
               row('Responsable(s):', techText),
-              row('Descripción:', wo.description ?? 'N/A'),
+              row('Descripción:', wo.description ?? ''),
             ],
           },
           layout: {
@@ -392,7 +392,7 @@ export class WorkOrderPdfService implements OnModuleInit {
         dataUrl
           ? { image: dataUrl, fit: [230, 175], alignment: 'center' }
           : {
-              text: 'Sin fotografía',
+              text: '',
               fontSize: 9,
               italics: true,
               color: '#888888',
@@ -443,7 +443,7 @@ export class WorkOrderPdfService implements OnModuleInit {
 
     addField('Fecha/Hora Inicio:', this.formatDateTime(wo.startDate));
     addField('Fecha/Hora Fin:', this.formatDateTime(wo.endDate));
-    addField('Tiempo funcional:', `${wo.functionalTimeMinutes ?? 0} min`);
+    addField('Tiempo funcional:', wo.functionalTimeMinutes ? `${wo.functionalTimeMinutes} min` : '');
 
     if (wo.downtimeMinutes && wo.downtimeMinutes > 0) {
       addField('Tiempo muerto:', `${wo.downtimeMinutes} min`);
@@ -482,10 +482,10 @@ export class WorkOrderPdfService implements OnModuleInit {
           ['No. Parte', 'Marca', 'Cantidad', 'Unidad'],
           ['*', 80, 60, 60],
           spareParts.map((sp) => [
-            sp.sparePart?.partNumber ?? 'N/A',
-            sp.sparePart?.brand ?? '-',
+            sp.sparePart?.partNumber ?? '',
+            sp.sparePart?.brand ?? '',
             String(sp.quantity),
-            sp.sparePart?.unitOfMeasure ?? '-',
+            sp.sparePart?.unitOfMeasure ?? '',
           ]),
         ),
       );
@@ -513,10 +513,10 @@ export class WorkOrderPdfService implements OnModuleInit {
           ['Descripción', 'Marca', 'Cantidad', 'Unidad'],
           ['*', 80, 60, 60],
           materials.map((m) => [
-            m.material?.description ?? 'N/A',
-            m.material?.brand ?? '-',
+            m.material?.description ?? '',
+            m.material?.brand ?? '',
             String(m.quantity),
-            m.material?.unitOfMeasure ?? '-',
+            m.material?.unitOfMeasure ?? '',
           ]),
         ),
       );
@@ -625,7 +625,7 @@ export class WorkOrderPdfService implements OnModuleInit {
         const dataUrl = sigDataUrlBySignatureId.get(sig.id) ?? null;
         const signerName = sig.signer
           ? `${sig.signer.firstName} ${sig.signer.lastName}`
-          : 'N/A';
+          : '';
 
         const activeRoles =
           sig.signer?.userRoles
@@ -642,7 +642,7 @@ export class WorkOrderPdfService implements OnModuleInit {
             dataUrl
               ? { image: dataUrl, fit: sigFit, alignment: 'center' }
               : {
-                  text: 'Firma no disponible',
+                  text: '',
                   fontSize: 8,
                   italics: true,
                   alignment: 'center',
@@ -699,7 +699,7 @@ export class WorkOrderPdfService implements OnModuleInit {
               margin: [0, 2, 0, 2],
             },
             {
-              text: 'Firma pendiente',
+              text: '',
               fontSize: 8,
               italics: true,
               alignment: 'center',
