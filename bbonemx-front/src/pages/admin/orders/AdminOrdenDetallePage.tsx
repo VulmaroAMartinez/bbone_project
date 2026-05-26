@@ -576,8 +576,8 @@ function AdminOrdenDetallePage() {
           variant="outline"
           size="sm"
           onClick={() => exportPdf({ variables: { id: order.id } })}
-          disabled={!order.isFullySigned || exportingPdf}
-          title={!order.isFullySigned ? `Requiere ${requesterIsAdmin ? 2 : 3} firmas para exportar` : 'Exportar PDF'}
+          disabled={exportingPdf}
+          title="Exportar PDF"
           className="gap-2 ml-auto"
         >
           <FileDown className="h-4 w-4" />
