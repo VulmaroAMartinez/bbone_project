@@ -6,9 +6,11 @@ import {
     GetMaterialRequestsDocument,
     SendMaterialRequestEmailDocument,
     HardDeleteMaterialRequestDocument,
+    ExportMaterialRequestPdfDocument,
     type GetMaterialRequestQuery,
 } from '@/lib/graphql/generated/graphql';
 import { toast } from 'sonner';
+import { downloadPdfFromBase64 } from '@/lib/utils/pdf-download';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +49,7 @@ import {
     Camera,
     Trash2,
     RefreshCw,
+    FileDown,
 } from 'lucide-react';
 import { resolveBackendAssetUrl } from '@/lib/utils/uploads';
 import { addEmailsToHistory, getSuggestedEmails } from '@/lib/email-history';
@@ -266,6 +269,24 @@ export default function MaterialRequestDetailPage() {
         },
     );
 
+    const [exportPdf, { loading: exportingPdf }] = useMutation(
+        ExportMaterialRequestPdfDocument,
+        {
+            onCompleted: (data) => {
+                if (data.exportMaterialRequestPdf) {
+                    downloadPdfFromBase64(
+                        data.exportMaterialRequestPdf,
+                        `Solicitud-${request?.folio ?? 'Material'}.pdf`,
+                    );
+                    toast.success('PDF descargado correctamente');
+                }
+            },
+            onError: (err) => {
+                toast.error(`Error al exportar PDF: ${err.message}`);
+            },
+        },
+    );
+
     const request = data?.materialRequest ?? null;
 
     const confirmHardDelete = async () => {
@@ -372,6 +393,21 @@ export default function MaterialRequestDetailPage() {
                         )}
                     </div>
                     <div className="flex gap-2 flex-wrap">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => exportPdf({ variables: { id: request.id } })}
+                            disabled={exportingPdf}
+                            title="Descargar PDF"
+                        >
+                            {exportingPdf ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <FileDown className="h-4 w-4" />
+                            )}
+                            {exportingPdf ? 'Exportando...' : 'Descargar PDF'}
+                        </Button>
                         <Button
                             variant="outline"
                             size="sm"

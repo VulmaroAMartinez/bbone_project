@@ -59,6 +59,17 @@ export class MaterialRequestsResolver {
     return this.materialRequestsService.findByFolioForUser(folio, user);
   }
 
+  @Mutation(() => String, {
+    name: 'exportMaterialRequestPdf',
+    description: 'Exportar solicitud de material a PDF (Base64)',
+  })
+  @Roles(Role.ADMIN, Role.BOSS)
+  async exportMaterialRequestPdf(
+    @Args('id', { type: () => ID }) id: string,
+  ): Promise<string> {
+    return this.materialRequestsService.exportToPdf(id);
+  }
+
   @Mutation(() => MaterialRequestType)
   async createMaterialRequest(
     @Args('input') input: CreateMaterialRequestInput,

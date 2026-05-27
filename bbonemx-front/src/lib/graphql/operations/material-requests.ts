@@ -330,6 +330,12 @@ export const SEND_MATERIAL_REQUEST_EMAIL_MUTATION = gql`
   }
 `;
 
+export const EXPORT_MATERIAL_REQUEST_PDF_MUTATION = gql`
+  mutation ExportMaterialRequestPdf($id: ID!) {
+    exportMaterialRequestPdf(id: $id)
+  }
+`;
+
 // ─── MRH (Seguimiento) ──────────────────────────────────────────────────────
 
 export const GET_MATERIAL_REQUEST_HISTORIES_QUERY = gql`

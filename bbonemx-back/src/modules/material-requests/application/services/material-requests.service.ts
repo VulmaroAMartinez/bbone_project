@@ -35,6 +35,7 @@ import { SparePartsService } from 'src/modules/catalogs/spare-parts/application/
 import { EmailService } from 'src/common/modules/email/application/services/email.service';
 import { EmailTemplateService } from 'src/common/modules/email/application/services/email-template.service';
 import { MaterialRequestEmailTemplateData } from 'src/common/modules/email/presentation/types';
+import { MaterialRequestPdfService } from './material-request-pdf.service';
 import * as ExcelJS from 'exceljs';
 
 const ALLOWED_PHOTO_MIME_TYPES = new Set([
@@ -221,12 +222,29 @@ export class MaterialRequestsService {
     private readonly sparePartsService: SparePartsService,
     private readonly emailService: EmailService,
     private readonly emailTemplateService: EmailTemplateService,
+    private readonly materialRequestPdfService: MaterialRequestPdfService,
   ) {}
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
   private isSKURequest(category: RequestCategory): boolean {
     return SKU_REQUEST_CATEGORIES.has(category);
+  }
+
+  async exportToPdf(id: string): Promise<string> {
+    const materialRequest = await this.materialRequestsRepository.findById(id);
+    if (!materialRequest) {
+      throw new NotFoundException(
+        `Solicitud de material con ID ${id} no encontrada`,
+      );
+    }
+
+    return this.materialRequestPdfService.generatePdfBase64({
+      materialRequest,
+      items: materialRequest.items,
+      photos: materialRequest.photos,
+      histories: materialRequest.histories,
+    });
   }
 
   /**
