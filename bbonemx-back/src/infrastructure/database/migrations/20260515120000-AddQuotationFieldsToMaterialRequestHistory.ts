@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddQuotationFieldsToMaterialRequestHistory20260515120000
-  implements MigrationInterface
-{
+export class AddQuotationFieldsToMaterialRequestHistory20260515120000 implements MigrationInterface {
   name = 'AddQuotationFieldsToMaterialRequestHistory20260515120000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

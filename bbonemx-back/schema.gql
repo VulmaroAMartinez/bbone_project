@@ -1020,6 +1020,9 @@ type Mutation {
   deleteWorkOrder(id: ID!): Boolean!
   deleteWorkOrderPhoto(id: ID!): WorkOrderPhoto!
 
+  """Exportar solicitud de material a PDF (Base64)"""
+  exportMaterialRequestPdf(id: ID!): String!
+
   """Exportar orden de trabajo a PDF (Base64)"""
   exportWorkOrderPdf(id: ID!): String!
   generateWorkOrdersForPreventiveTask: GenerateWorkOrdersResult!

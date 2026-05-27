@@ -13,7 +13,10 @@ import {
   MaterialRequestHistoryRepository,
   MaterialRequestPhotosRepository,
 } from './infrastructure/repositories';
-import { MaterialRequestsService } from './application/services';
+import {
+  MaterialRequestsService,
+  MaterialRequestPdfService,
+} from './application/services';
 import { MaterialRequestsResolver } from './presentation/resolvers';
 import { MaterialRequestsExcelController } from './presentation/controllers/material-requests-excel.controller';
 import { SparePartsModule } from '../catalogs/spare-parts/spare-parts.module';
@@ -38,6 +41,7 @@ import { MaterialsModule } from '../catalogs/materials/materials.module';
     MaterialRequestHistoryRepository,
     MaterialRequestPhotosRepository,
     MaterialRequestsService,
+    MaterialRequestPdfService,
     MaterialRequestsResolver,
   ],
   exports: [MaterialRequestsService, TypeOrmModule],
