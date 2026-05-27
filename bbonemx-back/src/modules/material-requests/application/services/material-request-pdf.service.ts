@@ -87,29 +87,50 @@ export class MaterialRequestPdfService implements OnModuleInit {
       },
     };
 
-    const mod = (await import('pdfmake/js/Printer.js')) as unknown;
-    const PrinterClass = ((mod as { default?: unknown }).default ||
-      mod) as new (...args: any[]) => any;
+    const mod = (await import('pdfmake/js/Printer.js')) as Record<
+      string,
+      unknown
+    >;
+    let Printer = (mod?.default ?? mod) as
+      | { default?: unknown }
+      | (new (...args: unknown[]) => unknown);
+    if (Printer && typeof Printer === 'object' && 'default' in Printer) {
+      Printer = Printer.default as new (...args: unknown[]) => unknown;
+    }
 
-    if (typeof PrinterClass !== 'function') {
+    if (typeof Printer !== 'function') {
       throw new InternalServerErrorException(
         'No se pudo inicializar el generador de PDF',
       );
     }
 
     const urlResolverMod =
-      (await import('pdfmake/js/URLResolver.js')) as unknown;
-    const URLResolverClass = ((urlResolverMod as { default?: unknown })
-      .default || urlResolverMod) as new (...args: any[]) => any;
+      (await import('pdfmake/js/URLResolver.js')) as Record<string, unknown>;
+    let URLResolver = (urlResolverMod?.default ?? urlResolverMod) as
+      | { default?: unknown }
+      | (new (...args: unknown[]) => unknown);
+    if (
+      URLResolver &&
+      typeof URLResolver === 'object' &&
+      'default' in URLResolver
+    ) {
+      URLResolver = URLResolver.default as new (...args: unknown[]) => unknown;
+    }
 
-    if (typeof URLResolverClass !== 'function') {
+    if (typeof URLResolver !== 'function') {
       throw new InternalServerErrorException(
         'No se pudo inicializar el resolvedor de URLs para PDF',
       );
     }
 
-    const urlResolver = new URLResolverClass(fs) as unknown;
-    return new PrinterClass(fonts, undefined, urlResolver) as PdfmakePrinter;
+    const urlResolver = new (URLResolver as new (
+      ...args: unknown[]
+    ) => unknown)(fs);
+    return new (Printer as new (...args: unknown[]) => unknown)(
+      fonts,
+      undefined,
+      urlResolver,
+    ) as PdfmakePrinter;
   }
 
   async generatePdfBase64(data: MaterialRequestPdfData): Promise<string> {
