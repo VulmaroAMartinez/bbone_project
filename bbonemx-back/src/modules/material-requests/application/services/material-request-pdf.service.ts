@@ -4,14 +4,14 @@ import {
   Logger,
   OnModuleInit,
 } from '@nestjs/common';
-import type { TDocumentDefinitions } from 'pdfmake/interfaces';
+import type { TDocumentDefinitions, StyleDictionary } from 'pdfmake/interfaces';
 import { join, dirname } from 'path';
 import * as fs from 'fs';
 import { MaterialRequest } from '../../domain/entities/material-request.entity';
 import { MaterialRequestItem } from '../../domain/entities/material-request-item.entity';
 import { MaterialRequestPhoto } from '../../domain/entities/material-request-photo.entity';
 import { MaterialRequestHistory } from '../../domain/entities/material-request-history.entity';
-import { RequestCategory, RequestImportance, RequestPriority } from 'src/common';
+import { RequestPriority } from 'src/common';
 
 const PRIORITY_LABELS: Record<string, string> = {
   URGENT: 'Urgente',
@@ -87,30 +87,50 @@ export class MaterialRequestPdfService implements OnModuleInit {
       },
     };
 
-    const mod = (await import('pdfmake/js/Printer.js')) as Record<string, any>;
-    let Printer = mod?.default ?? mod;
+    const mod = (await import('pdfmake/js/Printer.js')) as Record<
+      string,
+      unknown
+    >;
+    let Printer = (mod?.default ?? mod) as
+      | { default?: unknown }
+      | (new (...args: unknown[]) => unknown);
     if (Printer && typeof Printer === 'object' && 'default' in Printer) {
-      Printer = Printer.default;
+      Printer = Printer.default as new (...args: unknown[]) => unknown;
     }
+
     if (typeof Printer !== 'function') {
       throw new InternalServerErrorException(
         'No se pudo inicializar el generador de PDF',
       );
     }
 
-    const urlResolverMod = (await import('pdfmake/js/URLResolver.js')) as Record<string, any>;
-    let URLResolver = urlResolverMod?.default ?? urlResolverMod;
-    if (URLResolver && typeof URLResolver === 'object' && 'default' in URLResolver) {
-      URLResolver = URLResolver.default;
+    const urlResolverMod =
+      (await import('pdfmake/js/URLResolver.js')) as Record<string, unknown>;
+    let URLResolver = (urlResolverMod?.default ?? urlResolverMod) as
+      | { default?: unknown }
+      | (new (...args: unknown[]) => unknown);
+    if (
+      URLResolver &&
+      typeof URLResolver === 'object' &&
+      'default' in URLResolver
+    ) {
+      URLResolver = URLResolver.default as new (...args: unknown[]) => unknown;
     }
+
     if (typeof URLResolver !== 'function') {
       throw new InternalServerErrorException(
         'No se pudo inicializar el resolvedor de URLs para PDF',
       );
     }
 
-    const urlResolver = new URLResolver(fs);
-    return new Printer(fonts, undefined, urlResolver);
+    const urlResolver = new (URLResolver as new (
+      ...args: unknown[]
+    ) => unknown)(fs);
+    return new (Printer as new (...args: unknown[]) => unknown)(
+      fonts,
+      undefined,
+      urlResolver,
+    ) as PdfmakePrinter;
   }
 
   async generatePdfBase64(data: MaterialRequestPdfData): Promise<string> {
@@ -118,24 +138,40 @@ export class MaterialRequestPdfService implements OnModuleInit {
     const logoDataUrl = await this.readLogoDataUrl();
 
     // Obtener los valores SC, OC, EM del historial (los más recientes que tengan valor)
-    const activeHistory = [...histories].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .find(h => h.purchaseRequest || h.purchaseOrder || h.deliveryMerchandise);
+    const activeHistory = [...histories]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .find(
+        (h) => h.purchaseRequest || h.purchaseOrder || h.deliveryMerchandise,
+      );
 
     const content: any[] = [];
     content.push(this.buildHeader(materialRequest, logoDataUrl));
     content.push({ text: ' ', margin: [0, 10] });
     content.push(this.buildRequestInfo(materialRequest, activeHistory));
     content.push({ text: ' ', margin: [0, 10] });
-    
+
     if (items.length > 0) {
-      content.push({ text: 'ARTÍCULOS SOLICITADOS', style: 'sectionHeader', margin: [0, 10, 0, 5] });
+      content.push({
+        text: 'ARTÍCULOS SOLICITADOS',
+        style: 'sectionHeader',
+        margin: [0, 10, 0, 5],
+      });
       content.push(this.buildItemsTable(items));
       content.push({ text: ' ', margin: [0, 10] });
     }
 
-    if (materialRequest.description || materialRequest.justification || materialRequest.comments || materialRequest.suggestedSupplier) {
+    if (
+      materialRequest.description ||
+      materialRequest.justification ||
+      materialRequest.comments ||
+      materialRequest.suggestedSupplier
+    ) {
       content.push(this.buildObservations(materialRequest));
     }
+
+    const styles: StyleDictionary = {
+      sectionHeader: { fontSize: 11, bold: true, color: '#333333' },
+    };
 
     const docDefinition: TDocumentDefinitions = {
       pageSize: 'A4',
@@ -145,24 +181,22 @@ export class MaterialRequestPdfService implements OnModuleInit {
         font: 'Roboto',
         fontSize: 9,
       },
-      styles: {
-        sectionHeader: { fontSize: 11, bold: true, color: '#333333' }
-      } as any
+      styles,
     };
 
     const printer = await this.getPrinter();
     const doc = await printer.createPdfKitDocument(docDefinition);
 
-    const chunks: Buffer[] = [];
+    const chunks: Uint8Array[] = [];
     const pdfPromise = new Promise<string>((resolve, reject) => {
-      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks).toString('base64')));
       doc.on('error', reject);
       doc.end();
     });
 
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('PDF generation timeout')), 30000)
+      setTimeout(() => reject(new Error('PDF generation timeout')), 30000),
     );
 
     return Promise.race([pdfPromise, timeoutPromise]);
@@ -171,18 +205,41 @@ export class MaterialRequestPdfService implements OnModuleInit {
   private buildHeader(mr: MaterialRequest, logoDataUrl: string | null): any {
     return {
       columns: [
-        logoDataUrl ? { image: logoDataUrl, width: 80, alignment: 'left' } : { text: '', width: 80 },
+        logoDataUrl
+          ? { image: logoDataUrl, width: 80, alignment: 'left' }
+          : { text: '', width: 80 },
         {
           stack: [
-            { text: 'SOLICITUD DE MATERIALES', fontSize: 16, bold: true, alignment: 'center' },
-            { text: mr.folio, fontSize: 14, bold: true, color: '#444444', alignment: 'center', margin: [0, 5] },
+            {
+              text: 'SOLICITUD DE MATERIALES',
+              fontSize: 16,
+              bold: true,
+              alignment: 'center',
+            },
+            {
+              text: mr.folio,
+              fontSize: 14,
+              bold: true,
+              color: '#444444',
+              alignment: 'center',
+              margin: [0, 5],
+            },
           ],
           width: '*',
         },
         {
           stack: [
-            { text: 'Fecha de Solicitud:', fontSize: 8, bold: true, alignment: 'right' },
-            { text: mr.createdAt.toLocaleDateString('es-MX'), fontSize: 10, alignment: 'right' },
+            {
+              text: 'Fecha de Solicitud:',
+              fontSize: 8,
+              bold: true,
+              alignment: 'right',
+            },
+            {
+              text: mr.createdAt.toLocaleDateString('es-MX'),
+              fontSize: 10,
+              alignment: 'right',
+            },
           ],
           width: 100,
         },
@@ -190,14 +247,24 @@ export class MaterialRequestPdfService implements OnModuleInit {
     };
   }
 
-  private buildRequestInfo(mr: MaterialRequest, history?: MaterialRequestHistory): any {
-    const areaMachineText = mr.machines?.length > 0 
-      ? mr.machines.map(m => {
-          const mName = m.machine?.name || m.customMachineName || '—';
-          const mArea = m.machine?.area?.name || m.machine?.subArea?.area?.name || m.customMachineArea || '';
-          return mArea ? `${mName} (${mArea})` : mName;
-        }).join('\n')
-      : 'N/A';
+  private buildRequestInfo(
+    mr: MaterialRequest,
+    history?: MaterialRequestHistory,
+  ): any {
+    const areaMachineText =
+      mr.machines?.length > 0
+        ? mr.machines
+            .map((m) => {
+              const mName = m.machine?.name || m.customMachineName || '—';
+              const mArea =
+                m.machine?.area?.name ||
+                m.machine?.subArea?.area?.name ||
+                m.customMachineArea ||
+                '';
+              return mArea ? `${mName} (${mArea})` : mName;
+            })
+            .join('\n')
+        : 'N/A';
 
     const labelStyle = { bold: true, fillColor: '#F5F5F5', fontSize: 9 };
     const valueStyle = { fontSize: 9 };
@@ -214,9 +281,15 @@ export class MaterialRequestPdfService implements OnModuleInit {
           ],
           [
             { text: 'Categoría:', ...labelStyle },
-            { text: CATEGORY_LABELS[mr.category] || mr.category, ...valueStyle },
+            {
+              text: CATEGORY_LABELS[mr.category] || mr.category,
+              ...valueStyle,
+            },
             { text: 'Prioridad:', ...labelStyle },
-            { text: PRIORITY_LABELS[mr.priority] || mr.priority, ...valueStyle },
+            {
+              text: PRIORITY_LABELS[mr.priority] || mr.priority,
+              ...valueStyle,
+            },
           ],
           [
             { text: 'Área / Equipo:', ...labelStyle },
@@ -234,7 +307,12 @@ export class MaterialRequestPdfService implements OnModuleInit {
             { text: 'EM (Entrega Merc.):', ...labelStyle },
             { text: history?.deliveryMerchandise || '—', ...valueStyle },
             { text: 'Importancia:', ...labelStyle },
-            { text: mr.importance ? (IMPORTANCE_LABELS[mr.importance] || mr.importance) : '—', ...valueStyle },
+            {
+              text: mr.importance
+                ? IMPORTANCE_LABELS[mr.importance] || mr.importance
+                : '—',
+              ...valueStyle,
+            },
           ],
         ],
       },
@@ -258,13 +336,39 @@ export class MaterialRequestPdfService implements OnModuleInit {
         widths: ['*', '10%', '10%', '20%'],
         body: [
           [
-            { text: 'Descripción / Artículo', bold: true, fillColor: '#EEEEEE', alignment: 'center' },
-            { text: 'Cant.', bold: true, fillColor: '#EEEEEE', alignment: 'center' },
-            { text: 'Unidad', bold: true, fillColor: '#EEEEEE', alignment: 'center' },
-            { text: 'SKU / No. Parte', bold: true, fillColor: '#EEEEEE', alignment: 'center' },
+            {
+              text: 'Descripción / Artículo',
+              bold: true,
+              fillColor: '#EEEEEE',
+              alignment: 'center',
+            },
+            {
+              text: 'Cant.',
+              bold: true,
+              fillColor: '#EEEEEE',
+              alignment: 'center',
+            },
+            {
+              text: 'Unidad',
+              bold: true,
+              fillColor: '#EEEEEE',
+              alignment: 'center',
+            },
+            {
+              text: 'SKU / No. Parte',
+              bold: true,
+              fillColor: '#EEEEEE',
+              alignment: 'center',
+            },
           ],
-          ...items.map(item => [
-            { text: item.description || item.material?.description || item.sparePart?.description || '—' },
+          ...items.map((item) => [
+            {
+              text:
+                item.description ||
+                item.material?.description ||
+                item.sparePart?.description ||
+                '—',
+            },
             { text: item.requestedQuantity || 0, alignment: 'center' },
             { text: item.unitOfMeasure || '—', alignment: 'center' },
             { text: item.sku || item.partNumber || '—' },
@@ -276,27 +380,47 @@ export class MaterialRequestPdfService implements OnModuleInit {
         vLineWidth: () => 0.5,
         hLineColor: () => '#CCCCCC',
         vLineColor: () => '#CCCCCC',
-      }
+      },
     };
   }
 
   private buildObservations(mr: MaterialRequest): any {
     const obsRows: any[] = [];
-    if (mr.description) obsRows.push([{ text: 'Descripción del Servicio:', bold: true, width: 120 }, { text: mr.description }]);
-    if (mr.justification) obsRows.push([{ text: 'Justificación:', bold: true, width: 120 }, { text: mr.justification }]);
-    if (mr.comments) obsRows.push([{ text: 'Comentarios adicionales:', bold: true, width: 120 }, { text: mr.comments }]);
-    if (mr.suggestedSupplier) obsRows.push([{ text: 'Proveedor sugerido:', bold: true, width: 120 }, { text: mr.suggestedSupplier }]);
+    if (mr.description)
+      obsRows.push([
+        { text: 'Descripción del Servicio:', bold: true, width: 120 },
+        { text: mr.description },
+      ]);
+    if (mr.justification)
+      obsRows.push([
+        { text: 'Justificación:', bold: true, width: 120 },
+        { text: mr.justification },
+      ]);
+    if (mr.comments)
+      obsRows.push([
+        { text: 'Comentarios adicionales:', bold: true, width: 120 },
+        { text: mr.comments },
+      ]);
+    if (mr.suggestedSupplier)
+      obsRows.push([
+        { text: 'Proveedor sugerido:', bold: true, width: 120 },
+        { text: mr.suggestedSupplier },
+      ]);
 
     return {
       stack: [
-        { text: 'OBSERVACIONES', style: 'sectionHeader', margin: [0, 10, 0, 5] },
+        {
+          text: 'OBSERVACIONES',
+          style: 'sectionHeader',
+          margin: [0, 10, 0, 5],
+        },
         {
           table: {
             widths: [130, '*'],
-            body: obsRows
+            body: obsRows,
           },
-          layout: 'noBorders'
-        }
+          layout: 'noBorders',
+        },
       ],
     };
   }
@@ -304,7 +428,7 @@ export class MaterialRequestPdfService implements OnModuleInit {
   private async readLogoDataUrl(): Promise<string | null> {
     const logoPath = join(process.cwd(), 'assets', 'logo1.png');
     if (!fs.existsSync(logoPath)) return null;
-    const buffer = fs.readFileSync(logoPath);
+    const buffer = await fs.promises.readFile(logoPath);
     return `data:image/png;base64,${buffer.toString('base64')}`;
   }
 }

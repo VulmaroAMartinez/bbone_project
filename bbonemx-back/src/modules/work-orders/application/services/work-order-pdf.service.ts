@@ -311,15 +311,16 @@ export class WorkOrderPdfService implements OnModuleInit {
       ? `${wo.machine.code ?? ''} - ${wo.machine.name ?? ''}`.trim()
       : '';
 
-    const techLines = technicians.map((t) => {
-      const name = t.technician
-        ? `${t.technician.firstName} ${t.technician.lastName}`
-        : '';
-      const role = t.isLead ? 'Técnico Líder' : 'Técnico Auxiliar';
-      return name ? `${name} (${role})` : '';
-    }).filter(Boolean);
-    const techText =
-      techLines.length > 0 ? techLines.join('\n') : '';
+    const techLines = technicians
+      .map((t) => {
+        const name = t.technician
+          ? `${t.technician.firstName} ${t.technician.lastName}`
+          : '';
+        const role = t.isLead ? 'Técnico Líder' : 'Técnico Auxiliar';
+        return name ? `${name} (${role})` : '';
+      })
+      .filter(Boolean);
+    const techText = techLines.length > 0 ? techLines.join('\n') : '';
 
     const priorityText = wo.priority
       ? (PRIORITY_LABELS[String(wo.priority)] ?? String(wo.priority))
@@ -443,7 +444,10 @@ export class WorkOrderPdfService implements OnModuleInit {
 
     addField('Fecha/Hora Inicio:', this.formatDateTime(wo.startDate));
     addField('Fecha/Hora Fin:', this.formatDateTime(wo.endDate));
-    addField('Tiempo funcional:', wo.functionalTimeMinutes ? `${wo.functionalTimeMinutes} min` : '');
+    addField(
+      'Tiempo funcional:',
+      wo.functionalTimeMinutes ? `${wo.functionalTimeMinutes} min` : '',
+    );
 
     if (wo.downtimeMinutes && wo.downtimeMinutes > 0) {
       addField('Tiempo muerto:', `${wo.downtimeMinutes} min`);

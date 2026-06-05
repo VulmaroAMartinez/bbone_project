@@ -95,7 +95,9 @@ const WORK_TYPES: { value: WorkTypeValue; label: string }[] = [
 export default function AdminCrearOTPage() {
   const navigate = useNavigate();
 
-  const { data: areasData, loading: areasLoading } = useQuery(GetAreasDocument);
+  const { data: areasData, loading: areasLoading } = useQuery(GetAreasDocument, {
+    fetchPolicy: 'cache-and-network',
+  });
   const { data: techData, loading: techLoading } = useQuery(GetTechniciansDocument);
   const { data: shiftsData } = useQuery(GetShiftsDocument);
 
@@ -115,7 +117,10 @@ export default function AdminCrearOTPage() {
   const [assignWorkOrder] = useMutation(ASSIGN_WORK_ORDER_MUTATION);
   const [uploadPhoto] = useMutation(UPLOAD_WORK_ORDER_PHOTO_MUTATION);
 
-  const areas = areasData?.areas ? unmaskFragment(AreaBasicFragmentDoc, areasData.areas) : [];
+  const areas = useMemo(() => {
+    const raw = areasData?.areas ? unmaskFragment(AreaBasicFragmentDoc, areasData.areas) : [];
+    return raw.filter((a) => a.isActive);
+  }, [areasData?.areas]);
   const subAreas = subAreasData?.subAreasByArea
     ? unmaskFragment(SubAreaBasicFragmentDoc, subAreasData.subAreasByArea)
     : [];
