@@ -418,6 +418,7 @@ export function AreaFormModal({ open, onOpenChange, area, onSuccess }: AreaFormM
               description: values.description || undefined,
             },
           },
+          refetchQueries: ['GetAreas', 'GetAreasWithDeleted'],
         });
         areaId = area.id;
       } else {
@@ -429,6 +430,7 @@ export function AreaFormModal({ open, onOpenChange, area, onSuccess }: AreaFormM
               description: values.description || undefined,
             },
           },
+          refetchQueries: ['GetAreas', 'GetAreasWithDeleted'],
         });
         const createdArea = createData?.createArea
           ? unmaskFragment(AreaDetailFragmentDoc, createData.createArea)
