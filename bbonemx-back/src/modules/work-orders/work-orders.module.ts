@@ -36,6 +36,7 @@ import {
   WorkOrdersResolver,
   WorkOrderConformityResolver,
 } from './presentation/resolvers';
+import { WorkOrdersExcelController } from './presentation/controllers/work-orders-excel.controller';
 import { AreasModule } from '../catalogs/areas/areas.module';
 import { SubAreasModule } from '../catalogs/sub-areas/sub-areas.module';
 import { UsersModule } from '../users/users.module';
@@ -90,6 +91,7 @@ import { ShiftsModule } from '../catalogs/shifts/shifts.module';
     WorkOrdersResolver,
     WorkOrderConformityResolver,
   ],
+  controllers: [WorkOrdersExcelController],
   exports: [
     WorkOrdersService,
     WorkOrderPhotosService,

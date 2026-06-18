@@ -16,10 +16,10 @@ import {
   StartWorkOrderInput,
   PauseWorkOrderInput,
   CompleteWorkOrderInput,
+  BatchScheduleWorkOrdersInput,
   WorkOrderFiltersInput,
   PaginationInput,
   WorkOrderSortInput,
-  BatchScheduleWorkOrdersInput,
 } from '../dto';
 import { WorkOrderStatus, StopType, MaintenanceType } from 'src/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -36,6 +36,12 @@ import { WorkOrderPhotosService } from './work-order-photos.service';
 import { WorkOrderSparePartsService } from './work-order-spare-parts.service';
 import { WorkOrderMaterialsService } from './work-order-materials.service';
 import { WorkOrderPdfService } from './work-order-pdf.service';
+import { ExcelGeneratorService } from 'src/infrastructure/excel';
+import {
+  WORK_ORDER_EXCEL_REPORT,
+  WorkOrderExcelRow,
+} from '../constants/work-order-excel.constants';
+import { WorkOrderTechnician } from '../../domain/entities';
 /**
  * Grupos de turnos compatibles entre sí.
  * Los turnos dentro de un mismo grupo pueden asignarse a órdenes de trabajo del grupo.
@@ -90,6 +96,7 @@ export class WorkOrdersService {
     private readonly workOrderSparePartsService: WorkOrderSparePartsService,
     private readonly workOrderMaterialsService: WorkOrderMaterialsService,
     private readonly workOrderPdfService: WorkOrderPdfService,
+    private readonly excelGeneratorService: ExcelGeneratorService,
   ) {}
 
   async findAll(): Promise<WorkOrder[]> {
@@ -136,6 +143,107 @@ export class WorkOrdersService {
     sort: WorkOrderSortInput,
   ): Promise<{ data: WorkOrder[]; total: number }> {
     return this.workOrdersRepository.findWithFilters(filters, pagination, sort);
+  }
+
+  async countForExcelExport(filters: WorkOrderFiltersInput): Promise<number> {
+    return this.workOrdersRepository.countForExcelExport(filters);
+  }
+
+  async exportToExcelBuffer(
+    filters: WorkOrderFiltersInput,
+    sort: WorkOrderSortInput,
+  ): Promise<Buffer> {
+    const startedAt = Date.now();
+    const data = await this.workOrdersRepository.findAllWithFiltersForExport(
+      filters,
+      sort,
+    );
+    const enriched = await this.enrichWithTechnicians(data);
+    const buffer = await this.excelGeneratorService.generateExcelBuffer(
+      enriched,
+      WORK_ORDER_EXCEL_REPORT,
+    );
+    this.logger.log('Excel buffer generado', {
+      sheetName: WORK_ORDER_EXCEL_REPORT.sheetName,
+      rows: enriched.length,
+      elapsedMs: Date.now() - startedAt,
+    });
+    return buffer;
+  }
+
+  async streamToExcel(
+    filters: WorkOrderFiltersInput,
+    sort: WorkOrderSortInput,
+    writable: NodeJS.WritableStream,
+    batchSize = 500,
+  ): Promise<void> {
+    const startedAt = Date.now();
+    let rowsYielded = 0;
+    const streamGenerator = this.createExcelRowStream(
+      filters,
+      sort,
+      batchSize,
+      () => {
+        rowsYielded += 1;
+      },
+    );
+    await this.excelGeneratorService.streamExcelToWritable(
+      streamGenerator,
+      WORK_ORDER_EXCEL_REPORT,
+      writable,
+    );
+    this.logger.log('Excel stream enviado', {
+      sheetName: WORK_ORDER_EXCEL_REPORT.sheetName,
+      batchSize,
+      rows: rowsYielded,
+      elapsedMs: Date.now() - startedAt,
+    });
+  }
+
+  private async enrichWithTechnicians(
+    workOrders: WorkOrder[],
+  ): Promise<WorkOrderExcelRow[]> {
+    if (!workOrders.length) return [];
+
+    const technicians = await this.woTechniciansRepository.findByWorkOrderIds(
+      workOrders.map((wo) => wo.id),
+    );
+    const byWorkOrderId = new Map<string, WorkOrderTechnician[]>();
+    for (const assignment of technicians) {
+      const list = byWorkOrderId.get(assignment.workOrderId) ?? [];
+      list.push(assignment);
+      byWorkOrderId.set(assignment.workOrderId, list);
+    }
+
+    return workOrders.map((wo) => {
+      const row = wo as WorkOrderExcelRow;
+      row._technicians = byWorkOrderId.get(wo.id) ?? [];
+      return row;
+    });
+  }
+
+  private async *createExcelRowStream(
+    filters: WorkOrderFiltersInput,
+    sort: WorkOrderSortInput,
+    batchSize: number,
+    onRow?: () => void,
+  ): AsyncGenerator<WorkOrderExcelRow> {
+    let page = 1;
+    while (true) {
+      const batch = await this.workOrdersRepository.findAllWithFiltersBatch(
+        filters,
+        sort,
+        { page, limit: batchSize },
+      );
+      if (!batch.length) return;
+
+      const enriched = await this.enrichWithTechnicians(batch);
+      for (const row of enriched) {
+        onRow?.();
+        yield row;
+      }
+      page += 1;
+    }
   }
 
   async getStatsByStatus(): Promise<{ status: string; count: number }[]> {

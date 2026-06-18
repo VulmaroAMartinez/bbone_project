@@ -45,8 +45,13 @@ import {
   CalendarDays,
   X,
   CheckSquare,
+  FileSpreadsheet,
+  Loader2,
 } from 'lucide-react';
 import { OfflineBanner } from '@/components/ui/offline-banner';
+import { postExcelExport } from '@/lib/utils/excel-download';
+import { getApiBaseUrl } from '@/lib/utils/uploads';
+import { toast } from 'sonner';
 
 const STATUS_TABS: { value: WorkOrderStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Todas' },
@@ -107,6 +112,7 @@ function OrdenesPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const { data: shiftsData } = useQuery(GetShiftsDocument);
   const { data: areasData } = useQuery(GetAreasDocument);
@@ -249,6 +255,36 @@ function OrdenesPage() {
     handleExitSelectionMode();
   }
 
+  async function handleExportExcel() {
+    setExporting(true);
+    const today = new Date().toISOString().split('T')[0];
+    try {
+      await postExcelExport(
+        `${getApiBaseUrl()}/api/work-orders/export/excel`,
+        {
+          filters: {
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+            priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+            assignedShiftId: shiftFilter !== 'all' ? shiftFilter : undefined,
+            areaId: areaFilter !== 'all' ? areaFilter : undefined,
+            subAreaId: subAreaFilter !== 'all' ? subAreaFilter : undefined,
+            search: searchTerm || undefined,
+          },
+          sort: { field: 'CREATED_AT', order: 'DESC' },
+          filename: `ordenes-trabajo-${today}.xlsx`,
+        },
+        `ordenes-trabajo-${today}.xlsx`,
+      );
+      toast.success('Excel descargado correctamente');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Error al exportar órdenes de trabajo',
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (loading && !data) return <WorkOrderListSkeleton count={5} />;
 
   if (error && !data) {
@@ -275,9 +311,23 @@ function OrdenesPage() {
             {data?.workOrdersFiltered.total || 0} órden(es) en total ({filteredOrders.length} visibles)
           </p>
         </div>
-        <Button onClick={() => navigate('/admin/crear-ot')}>
-          Crear nueva Orden de Trabajo
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+            )}
+            Exportar Excel
+          </Button>
+          <Button onClick={() => navigate('/admin/crear-ot')}>
+            Crear nueva Orden de Trabajo
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
