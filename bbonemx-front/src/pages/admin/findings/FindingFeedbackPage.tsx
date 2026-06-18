@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dialog';
 import { ArrowLeft, Save, Loader2, AlertTriangle, CheckCircle2, ImageIcon, X, Plus } from 'lucide-react';
 import { Combobox } from '@/components/ui/combobox';
+import { WorkOrderManageButton } from '@/components/work-orders/WorkOrderManageButton';
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
@@ -493,11 +494,20 @@ export default function FindingFeedbackPage() {
             </div>
 
             {finding.convertedToWo && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                    <p className="text-sm text-green-700">
-                        Convertido a OT: <Badge variant="secondary" className="ml-1">{finding.convertedToWo.folio}</Badge>
-                    </p>
+                <div className="flex flex-col gap-3 p-3 rounded-lg bg-green-50 border border-green-200 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                        <p className="text-sm text-green-700">
+                            Convertido a OT:{' '}
+                            <Badge variant="secondary" className="ml-1">
+                                {finding.convertedToWo.folio}
+                            </Badge>
+                        </p>
+                    </div>
+                    <WorkOrderManageButton
+                        workOrderId={finding.convertedToWo.id}
+                        onUpdated={() => { void refetchFinding(); }}
+                    />
                 </div>
             )}
 

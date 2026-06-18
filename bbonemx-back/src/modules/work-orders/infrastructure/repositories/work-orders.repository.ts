@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { WorkOrder } from '../../domain/entities';
 import {
   WorkOrderFiltersInput,
@@ -35,6 +35,114 @@ export class WorkOrdersRepository {
     @InjectRepository(WorkOrder)
     private readonly repository: Repository<WorkOrder>,
   ) {}
+
+  private createBaseQueryBuilder(): SelectQueryBuilder<WorkOrder> {
+    return this.repository
+      .createQueryBuilder('wo')
+      .leftJoinAndSelect('wo.area', 'area')
+      .leftJoinAndSelect('wo.subArea', 'subArea')
+      .leftJoinAndSelect('wo.requester', 'requester')
+      .leftJoinAndSelect('requester.userRoles', 'requesterUserRoles')
+      .leftJoinAndSelect('requesterUserRoles.role', 'requesterRole')
+      .leftJoinAndSelect('requester.department', 'department')
+      .leftJoinAndSelect('wo.assignedShift', 'assignedShift')
+      .leftJoinAndSelect('wo.machine', 'machine')
+      .where('wo.is_active = true');
+  }
+
+  private applyFilters(
+    qb: SelectQueryBuilder<WorkOrder>,
+    filters?: WorkOrderFiltersInput,
+  ): void {
+    if (!filters) return;
+
+    if (filters.status) {
+      qb.andWhere('wo.status = :status', { status: filters.status });
+    }
+    if (filters.statuses && filters.statuses.length > 0) {
+      qb.andWhere('wo.status IN (:...statuses)', {
+        statuses: filters.statuses,
+      });
+    }
+    if (filters.priority) {
+      qb.andWhere('wo.priority = :priority', { priority: filters.priority });
+    }
+    if (filters.maintenanceType) {
+      qb.andWhere('wo.maintenance_type = :maintenanceType', {
+        maintenanceType: filters.maintenanceType,
+      });
+    }
+    if (filters.workType) {
+      qb.andWhere('wo.work_type = :workType', { workType: filters.workType });
+    }
+    if (filters.areaId) {
+      qb.andWhere('wo.area_id = :areaId', { areaId: filters.areaId });
+    }
+    if (filters.subAreaId) {
+      qb.andWhere('wo.sub_area_id = :subAreaId', {
+        subAreaId: filters.subAreaId,
+      });
+    }
+    if (filters.requesterId) {
+      qb.andWhere('wo.requester_id = :requesterId', {
+        requesterId: filters.requesterId,
+      });
+    }
+    if (filters.assignedShiftId) {
+      qb.andWhere('wo.assigned_shift_id = :assignedShiftId', {
+        assignedShiftId: filters.assignedShiftId,
+      });
+    }
+    if (filters.technicianId) {
+      qb.innerJoin(
+        'work_order_technicians',
+        'wot',
+        'wot.work_order_id = wo.id AND wot.is_active = true',
+      ).andWhere('wot.technician_id = :technicianId', {
+        technicianId: filters.technicianId,
+      });
+    }
+    if (filters.createdFrom) {
+      qb.andWhere('wo.created_at >= :createdFrom', {
+        createdFrom: filters.createdFrom,
+      });
+    }
+    if (filters.createdTo) {
+      qb.andWhere('wo.created_at <= :createdTo', {
+        createdTo: filters.createdTo,
+      });
+    }
+    if (filters.scheduledFrom) {
+      qb.andWhere('wo.scheduled_date >= :scheduledFrom', {
+        scheduledFrom: filters.scheduledFrom,
+      });
+    }
+    if (filters.scheduledTo) {
+      qb.andWhere('wo.scheduled_date <= :scheduledTo', {
+        scheduledTo: filters.scheduledTo,
+      });
+    }
+    if (filters.search) {
+      qb.andWhere(
+        '(wo.folio ILIKE :search OR wo.description ILIKE :search OR machine.name ILIKE :search OR machine.code ILIKE :search)',
+        {
+          search: `%${filters.search}%`,
+        },
+      );
+    }
+  }
+
+  private applySort(
+    qb: SelectQueryBuilder<WorkOrder>,
+    sort?: WorkOrderSortInput,
+  ): void {
+    const sortField =
+      SORT_FIELD_MAP[sort?.field || WorkOrderSortField.CREATED_AT] ??
+      SORT_FIELD_MAP[WorkOrderSortField.CREATED_AT];
+    const sortOrder =
+      SORT_ORDER_MAP[sort?.order || SortOrder.DESC] ?? SortOrder.DESC;
+    qb.orderBy(sortField, sortOrder);
+  }
 
   //Obtener todas las WO activas con relaciones básicas
   async findAll(): Promise<WorkOrder[]> {
@@ -176,111 +284,53 @@ export class WorkOrdersRepository {
     pagination: PaginationInput,
     sort: WorkOrderSortInput,
   ): Promise<{ data: WorkOrder[]; total: number }> {
-    const qb = this.repository
-      .createQueryBuilder('wo')
-      .leftJoinAndSelect('wo.area', 'area')
-      .leftJoinAndSelect('wo.subArea', 'subArea')
-      .leftJoinAndSelect('wo.requester', 'requester')
-      .leftJoinAndSelect('requester.userRoles', 'requesterUserRoles')
-      .leftJoinAndSelect('requesterUserRoles.role', 'requesterRole')
-      .leftJoinAndSelect('requester.department', 'department')
-      .leftJoinAndSelect('wo.assignedShift', 'assignedShift')
-      .leftJoinAndSelect('wo.machine', 'machine')
-      .where('wo.is_active = true');
-
-    if (filters) {
-      if (filters.status) {
-        qb.andWhere('wo.status = :status', { status: filters.status });
-      }
-      if (filters.statuses && filters.statuses.length > 0) {
-        qb.andWhere('wo.status IN (:...statuses)', {
-          statuses: filters.statuses,
-        });
-      }
-      if (filters.priority) {
-        qb.andWhere('wo.priority = :priority', { priority: filters.priority });
-      }
-      if (filters.maintenanceType) {
-        qb.andWhere('wo.maintenance_type = :maintenanceType', {
-          maintenanceType: filters.maintenanceType,
-        });
-      }
-      if (filters.workType) {
-        qb.andWhere('wo.work_type = :workType', { workType: filters.workType });
-      }
-      if (filters.areaId) {
-        qb.andWhere('wo.area_id = :areaId', { areaId: filters.areaId });
-      }
-      if (filters.subAreaId) {
-        qb.andWhere('wo.sub_area_id = :subAreaId', {
-          subAreaId: filters.subAreaId,
-        });
-      }
-      if (filters.requesterId) {
-        qb.andWhere('wo.requester_id = :requesterId', {
-          requesterId: filters.requesterId,
-        });
-      }
-      if (filters.assignedShiftId) {
-        qb.andWhere('wo.assigned_shift_id = :assignedShiftId', {
-          assignedShiftId: filters.assignedShiftId,
-        });
-      }
-      if (filters.technicianId) {
-        qb.innerJoin(
-          'work_order_technicians',
-          'wot',
-          'wot.work_order_id = wo.id AND wot.is_active = true',
-        ).andWhere('wot.technician_id = :technicianId', {
-          technicianId: filters.technicianId,
-        });
-      }
-      if (filters.createdFrom) {
-        qb.andWhere('wo.created_at >= :createdFrom', {
-          createdFrom: filters.createdFrom,
-        });
-      }
-      if (filters.createdTo) {
-        qb.andWhere('wo.created_at <= :createdTo', {
-          createdTo: filters.createdTo,
-        });
-      }
-      if (filters.scheduledFrom) {
-        qb.andWhere('wo.scheduled_date >= :scheduledFrom', {
-          scheduledFrom: filters.scheduledFrom,
-        });
-      }
-      if (filters.scheduledTo) {
-        qb.andWhere('wo.scheduled_date <= :scheduledTo', {
-          scheduledTo: filters.scheduledTo,
-        });
-      }
-      if (filters.search) {
-        qb.andWhere(
-          '(wo.folio ILIKE :search OR wo.description ILIKE :search)',
-          {
-            search: `%${filters.search}%`,
-          },
-        );
-      }
-    }
+    const qb = this.createBaseQueryBuilder();
+    this.applyFilters(qb, filters);
 
     const total = await qb.getCount();
-
-    const sortField =
-      SORT_FIELD_MAP[sort?.field || WorkOrderSortField.CREATED_AT] ??
-      SORT_FIELD_MAP[WorkOrderSortField.CREATED_AT];
-    const sortOrder =
-      SORT_ORDER_MAP[sort?.order || SortOrder.DESC] ?? SortOrder.DESC;
-    qb.orderBy(sortField, sortOrder);
+    this.applySort(qb, sort);
 
     const page = pagination?.page || 1;
     const limit = pagination?.limit || 20;
     qb.skip((page - 1) * limit).take(limit);
 
     const data = await qb.getMany();
-
     return { data, total };
+  }
+
+  async countForExcelExport(filters: WorkOrderFiltersInput): Promise<number> {
+    const qb = this.repository
+      .createQueryBuilder('wo')
+      .leftJoin('wo.machine', 'machine')
+      .where('wo.is_active = true');
+    this.applyFilters(qb, filters);
+    return qb.getCount();
+  }
+
+  async findAllWithFiltersForExport(
+    filters: WorkOrderFiltersInput,
+    sort: WorkOrderSortInput,
+  ): Promise<WorkOrder[]> {
+    const qb = this.createBaseQueryBuilder();
+    this.applyFilters(qb, filters);
+    this.applySort(qb, sort);
+    return qb.getMany();
+  }
+
+  async findAllWithFiltersBatch(
+    filters: WorkOrderFiltersInput,
+    sort: WorkOrderSortInput,
+    pagination: PaginationInput,
+  ): Promise<WorkOrder[]> {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 20;
+
+    const qb = this.createBaseQueryBuilder();
+    this.applyFilters(qb, filters);
+    this.applySort(qb, sort);
+    qb.skip((page - 1) * limit).take(limit);
+
+    return qb.getMany();
   }
 
   async create(data: Partial<WorkOrder>): Promise<WorkOrder> {

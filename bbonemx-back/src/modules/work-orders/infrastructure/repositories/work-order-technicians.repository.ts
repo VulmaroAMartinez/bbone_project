@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 import { WorkOrderTechnician } from '../../domain/entities';
 
 @Injectable()
@@ -9,6 +9,18 @@ export class WorkOrderTechniciansRepository {
     @InjectRepository(WorkOrderTechnician)
     private readonly repository: Repository<WorkOrderTechnician>,
   ) {}
+
+  async findByWorkOrderIds(
+    workOrderIds: string[],
+  ): Promise<WorkOrderTechnician[]> {
+    if (!workOrderIds.length) return [];
+
+    return this.repository.find({
+      where: { workOrderId: In(workOrderIds), isActive: true },
+      relations: ['technician'],
+      order: { isLead: 'DESC', assignedAt: 'ASC' },
+    });
+  }
 
   async findByWorkOrderId(workOrderId: string): Promise<WorkOrderTechnician[]> {
     return this.repository.find({
