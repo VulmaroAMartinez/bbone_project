@@ -59,17 +59,6 @@ const STOP_TYPE_LABELS: Record<StopType, string> = {
   [StopType.OTHER]: 'Otro',
 };
 
-function formatDate(value: Date | string | null | undefined): string {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('es-MX', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
 function formatDateTime(value: Date | string | null | undefined): string {
   if (!value) return '';
   const d = new Date(value);
@@ -87,13 +76,18 @@ function formatTechnicianName(
   tech?: WorkOrderTechnician['technician'],
 ): string {
   if (!tech) return '';
-  return tech.fullName || `${tech.firstName ?? ''} ${tech.lastName ?? ''}`.trim();
+  return (
+    tech.fullName || `${tech.firstName ?? ''} ${tech.lastName ?? ''}`.trim()
+  );
 }
 
 function formatTechniciansList(row: WorkOrderExcelRow): string {
   const techs = row._technicians ?? [];
   if (!techs.length) return '';
-  return techs.map((t) => formatTechnicianName(t.technician)).filter(Boolean).join(', ');
+  return techs
+    .map((t) => formatTechnicianName(t.technician))
+    .filter(Boolean)
+    .join(', ');
 }
 
 function formatLeadTechnician(row: WorkOrderExcelRow): string {
